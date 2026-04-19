@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { connectDB } from "./_lib/db.js";
 import authRoutes from "./_lib/auth.js";
 import statsRoutes from "./_lib/stats.js";
+import { ObjectId } from "mongodb";
 
 const app = express();
 
@@ -31,6 +32,96 @@ app.use(async (req, res, next) => {
     res.status(500).json({ success: false, error: "Database Connection Error", details: err.message || "Unknown database error" });
   }
 });
+
+// ==========================================
+// 🛡️ ADMIN MIDDLEWARE & ROUTES 
+// ==========================================
+const isAdmin = (req: any, res: any, next: any) => {
+  // บังคับจำลอง CORS หัว Header ให้อนุญาต Dashboard ยิงเข้ามาได้
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, PUT, POST, PATCH, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, x-admin-token");
+
+  // ถ้ายิงมาแบบ OPTIONS (Preflight) ให้ข้ามเลยไม่ต้องเช็ค token
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
+  const adminToken = req.headers['x-admin-token'];
+  if (adminToken && adminToken === (process.env.ADMIN_TOKEN || '1234')) {
+    next();
+  } else {
+    res.status(403).json({ success: false, message: "รหัสลับไม่ถูกต้อง!" });
+  }
+};
+
+app.get("/api/admin/users", isAdmin, async (req: any, res: any) => {
+  try {
+    const dbInstance: any = await connectDB(); 
+    const db = dbInstance?.db || dbInstance;
+    const users = await db.collection("users").find({}).toArray();
+    res.json({ success: true, data: users });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.patch("/api/admin/update-user", isAdmin, async (req: any, res: any) => {
+  try {
+    const { userId, updateData } = req.body;
+    const dbInstance: any = await connectDB();
+    const db = dbInstance?.db || dbInstance;
+    await db.collection("users").updateOne(
+      { _id: new ObjectId(userId) }, 
+      { $set: updateData }
+    );
+    res.json({ success: true, message: "อัปเดตข้อมูลสำเร็จ!" });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get("/api/admin/products", isAdmin, async (req: any, res: any) => {
+  try {
+    const dbInstance: any = await connectDB();
+    const db = dbInstance?.db || dbInstance;
+    const products = await db.collection("products").find({}).sort({ _id: -1 }).toArray();
+    res.json({ success: true, data: products });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/api/admin/products", isAdmin, async (req: any, res: any) => {
+  try {
+    const newProduct = req.body;
+    const dbInstance: any = await connectDB();
+    const db = dbInstance?.db || dbInstance;
+    await db.collection("products").insertOne(newProduct);
+    res.json({ success: true, message: "เพิ่มสินค้าเข้า Database แล้ว!" });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.patch("/api/admin/products/:id", isAdmin, async (req: any, res: any) => {
+  try {
+    const productId = req.params.id;
+    const updateData = req.body;
+    const dbInstance: any = await connectDB();
+    const db = dbInstance?.db || dbInstance;
+
+    await db.collection("products").updateOne(
+      { _id: new ObjectId(productId) }, 
+      { $set: updateData }
+    );
+    res.json({ success: true, message: "อัปเดตข้อมูลทรัพยากรสำเร็จ!" });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+// ==========================================
+
 
 // Mount routes
 app.use("/api/auth", authRoutes);
