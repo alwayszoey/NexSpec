@@ -3,7 +3,7 @@ import {
   Search, ShieldAlert, Download, X, RefreshCcw, LayoutGrid, Layers, 
   Archive, Settings, FileText, Check, Zap, Menu, ArrowLeft, 
   Home, HelpCircle, Share2, Facebook, Instagram, MessageCircle,
-  Play, ChevronRight, Loader2, Youtube, Send, MessageSquare, Sun, Moon, Lock, UserPlus, LogOut
+  Play, ChevronRight, Loader2, Youtube, Send, MessageSquare, Sun, Moon, Lock, UserPlus, LogOut, Users, Eye
 } from 'lucide-react';
 import { resourcesData, ResourceItem } from './data';
 import { motion, AnimatePresence } from 'motion/react';
@@ -17,6 +17,26 @@ const EMOTICONS = ['🇹🇭', '🇻🇳', '🎮', '🚀', '✨', '🎁', '🔥'
 type ViewState = 'home' | 'details' | 'help';
 type AppLang = 'vi' | 'th';
 
+const StatsCard = ({ icon: Icon, title, value, unit }: { icon: any, title: string, value: string | number, unit: string }) => (
+  <div className="relative overflow-hidden rounded-[16px] sm:rounded-[20px] flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 sm:py-4 bg-white border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_4px_15px_rgba(0,0,0,0.05)] transition-shadow">
+    <div className="absolute -right-2 -bottom-2 pointer-events-none opacity-[0.03] text-brand">
+      <Icon className="w-16 h-16 sm:w-20 sm:h-20" />
+    </div>
+    <div className="shrink-0 flex items-center justify-center w-10 h-10 rounded-[12px] bg-brand/10 text-brand">
+      <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+    </div>
+    <div className="flex flex-col min-w-0">
+      <span className="text-xs font-medium leading-tight mb-0.5 text-slate-500">{title}</span>
+      <div className="flex items-baseline gap-1.5">
+        <span className="text-lg sm:text-xl font-bold tabular-nums leading-none text-slate-800">
+          {value}
+        </span>
+        <span className="text-[10px] sm:text-xs font-medium text-slate-400 whitespace-nowrap">{unit}</span>
+      </div>
+    </div>
+  </div>
+);
+
 export default function App() {
   const [lang, setLang] = useState<AppLang | null>(null);
   const [isAppLoading, setIsAppLoading] = useState(true);
@@ -29,6 +49,9 @@ export default function App() {
   const [authModalType, setAuthModalType] = useState<'login' | 'register' | null>(null);
   const [currentUser, setCurrentUser] = useState<{ id: string, username: string, email: string, avatarUrl?: string } | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
+
+  // ====== STATS STATES ======
+  const [appStats, setAppStats] = useState({ users: 0, views: 0, downloads: 0 });
 
   useEffect(() => {
     // Theme Initializer (Default to Light always on first visit)
@@ -69,6 +92,29 @@ export default function App() {
         localStorage.removeItem('authToken');
         sessionStorage.removeItem('authToken');
       });
+    }
+
+    // Fetch initial app stats
+    fetch('/api/stats')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setAppStats({ users: data.users, views: data.views, downloads: data.downloads });
+        }
+      })
+      .catch(err => console.error("Failed to fetch stats:", err));
+
+    // Increment view counter if not viewed this session
+    if (!sessionStorage.getItem('hasViewed')) {
+      fetch('/api/stats/view', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setAppStats(prev => ({ ...prev, views: data.views }));
+            sessionStorage.setItem('hasViewed', 'true');
+          }
+        })
+        .catch(err => console.error("Failed to increment view:", err));
     }
 
     // Simulate loading to ensure everything is ready
@@ -291,6 +337,16 @@ export default function App() {
         return;
       }
       
+      // Increment download stat
+      fetch('/api/stats/download', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+             setAppStats(prev => ({ ...prev, downloads: data.downloads }));
+          }
+        })
+        .catch(err => console.error("Failed to increment download:", err));
+
       window.open(`/api/download/${downloadKey}`, '_blank');
       setShowVerifyModal(false);
     }
@@ -662,6 +718,39 @@ export default function App() {
                     decoding="async" 
                     className="w-full h-auto object-cover object-center max-h-[100px] sm:max-h-[140px] md:max-h-[180px] lg:max-h-[220px]" 
                     src="https://img2.pic.in.th/Banner-Discord.png" 
+                  />
+                </motion.div>
+
+                {/* Dashboard Stats */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.2 }}
+                  className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6"
+                >
+                  <StatsCard 
+                    icon={Users} 
+                    title={t('statsUsers') || 'Đăng ký'}
+                    value={appStats.users.toLocaleString()}
+                    unit={t('unitPeople') || 'người'}
+                  />
+                  <StatsCard 
+                    icon={Layers} 
+                    title={t('statsItems') || 'Tài nguyên'}
+                    value={resourcesData.length.toLocaleString()}
+                    unit={t('unitItems') || 'mục'}
+                  />
+                  <StatsCard 
+                    icon={Eye} 
+                    title={t('statsViews') || 'Lượt truy cập'}
+                    value={appStats.views.toLocaleString()}
+                    unit={t('unitTimes') || 'lần'}
+                  />
+                  <StatsCard 
+                    icon={Download} 
+                    title={t('statsDownloads') || 'Lượt tải'}
+                    value={appStats.downloads.toLocaleString()}
+                    unit={t('unitTimes') || 'lần'}
                   />
                 </motion.div>
 

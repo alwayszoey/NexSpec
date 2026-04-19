@@ -2,6 +2,7 @@ import express from "express";
 import crypto from "crypto";
 import { connectDB } from "./_lib/db.js";
 import authRoutes from "./_lib/auth.js";
+import statsRoutes from "./_lib/stats.js";
 
 const app = express();
 
@@ -31,8 +32,9 @@ app.use(async (req, res, next) => {
   }
 });
 
-// Mount Auth routes under /api/auth
+// Mount routes
 app.use("/api/auth", authRoutes);
+app.use("/api/stats", statsRoutes);
 
 // Stateless URL signer using HMAC
 function generateSignedToken(url: string, ip: string) {

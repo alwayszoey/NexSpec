@@ -101,5 +101,14 @@ export const translations = {
   profileUpdated: { vi: "Cập nhật hồ sơ thành công!", th: "อัปเดตโปรไฟล์สำเร็จแล้ว!" },
   
   // Login Required
-  loginToDownload: { vi: "Đăng nhập để tải xuống", th: "เข้าสู่ระบบเพื่อดาวน์โหลด" }
+  loginToDownload: { vi: "Đăng nhập để tải xuống", th: "เข้าสู่ระบบเพื่อดาวน์โหลด" },
+  
+  // Dashboard Stats
+  statsUsers: { vi: "Người dùng", th: "ผู้ใช้งาน" },
+  statsItems: { vi: "Tài nguyên", th: "รายการ" },
+  statsViews: { vi: "Lượt truy cập", th: "ยอดเข้าชม" },
+  statsDownloads: { vi: "Lượt tải", th: "ยอดดาวน์โหลด" },
+  unitPeople: { vi: "người", th: "คน" },
+  unitItems: { vi: "mục", th: "รายการ" },
+  unitTimes: { vi: "lần", th: "ครั้ง" }
 };
