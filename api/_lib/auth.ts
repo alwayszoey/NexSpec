@@ -121,13 +121,68 @@ router.get("/me", verifyAuth, async (req: any, res) => {
   }
 });
 
-// 4. SOCIAL OAUTH (Stubs for Google/Discord mapping if needed)
-router.get("/google", (req, res) => {
-  res.status(501).send("Google OAuth Not Fully Documented. Can implement with custom frontend flow or passport-google-oauth20.");
+// 4. SOCIAL OAUTH & CALLBACKS
+
+import passport from "./passport.js";
+
+// --- Google ---
+router.get("/google", passport.authenticate("google", { scope: ["profile", "email"], session: false }));
+
+router.get("/google/callback", passport.authenticate("google", { session: false, failureRedirect: "/?error=GoogleAuthFailed" }), (req: any, res) => {
+  const user = req.user;
+  const token = jwt.sign(
+    { id: user._id, email: user.email, username: user.username },
+    JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+
+  // Use a popup callback HTML to send the token back via postMessage then close
+  res.send(`
+    <html>
+      <head><title>Authentication Successful</title></head>
+      <body>
+        <script>
+          if (window.opener) {
+            window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS', token: '${token}', user: ${JSON.stringify({ id: user._id, username: user.username, email: user.email })} }, '*');
+            window.close();
+          } else {
+            // Fallback if not opened in popup
+            window.location.href = '/?token=${token}';
+          }
+        </script>
+        <p>Authentication successful! Please wait...</p>
+      </body>
+    </html>
+  `);
 });
 
-router.get("/discord", (req, res) => {
-  res.status(501).send("Discord OAuth Not Fully Documented.");
+// --- Discord ---
+router.get("/discord", passport.authenticate("discord", { session: false }));
+
+router.get("/discord/callback", passport.authenticate("discord", { session: false, failureRedirect: "/?error=DiscordAuthFailed" }), (req: any, res) => {
+  const user = req.user;
+  const token = jwt.sign(
+    { id: user._id, email: user.email, username: user.username },
+    JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+
+  res.send(`
+    <html>
+      <head><title>Authentication Successful</title></head>
+      <body>
+        <script>
+          if (window.opener) {
+            window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS', token: '${token}', user: ${JSON.stringify({ id: user._id, username: user.username, email: user.email })} }, '*');
+            window.close();
+          } else {
+            window.location.href = '/?token=${token}';
+          }
+        </script>
+        <p>Authentication successful! Please wait...</p>
+      </body>
+    </html>
+  `);
 });
 
 export default router;

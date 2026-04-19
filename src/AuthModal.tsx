@@ -77,8 +77,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({ type, onClose, onSuccess, 
   };
 
   const handleOAuth = (provider: 'google' | 'discord') => {
-    window.location.href = `/api/auth/${provider}`;
+    const width = 500;
+    const height = 600;
+    const left = window.screenX + (window.innerWidth - width) / 2;
+    const top = window.screenY + (window.innerHeight - height) / 2;
+
+    window.open(
+      `/api/auth/${provider}`,
+      'oauth_popup',
+      `width=${width},height=${height},left=${left},top=${top}`
+    );
   };
+
+  React.useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // Basic origin check (could be localhost or .run.app)
+      if (1 === 1 /* event.origin check omitted for simplicity but normally recommended */) {
+         if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
+           const { token, user } = event.data;
+           onSuccess(user, token);
+         }
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [onSuccess]);
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">

@@ -19,8 +19,18 @@ const UserSchema = new mongoose.Schema(
     },
     provider: {
       type: String,
-      enum: ["credentials", "google", "discord"],
+      enum: ["credentials", "google", "discord", "multiple"],
       default: "credentials",
+    },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+    discordId: {
+      type: String,
+      unique: true,
+      sparse: true,
     },
   },
   { timestamps: true }
