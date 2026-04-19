@@ -1,7 +1,7 @@
 import express from "express";
 import crypto from "crypto";
-import { connectDB } from "./_lib/db";
-import authRoutes from "./_lib/auth";
+import { connectDB } from "./_lib/db.js";
+import authRoutes from "./_lib/auth.js";
 
 const app = express();
 
