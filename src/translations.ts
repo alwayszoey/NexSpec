@@ -5,7 +5,7 @@ export const translations = {
   help: { vi: "Trợ giúp & FAQ", th: "ช่วยเหลือ & FAQ" },
   socials: { vi: "Mạng xã hội (Socials)", th: "โซเชียลมีเดีย (Socials)" },
   marquee: { vi: "📢 Đừng quên đăng ký kênh YouTube để không bỏ lỡ các video mới!", th: "อย่าลืมกดติดตามแชแนล YouTube เพื่อจะได้ไม่พลาดคลิปใหม่ๆ" },
-  welcomeTitle: { vi: "Chào mừng đến với Vireth Hub", th: "ยินดีต้อนรับสู่ Vireth Hub" },
+  welcomeTitle: { vi: "Chào mừng đến với NexSpec", th: "ยินดีต้อนรับสู่ NexSpec" },
   welcomeDesc: { vi: "Tổng hợp nhiều tài nguyên miễn phí trên kênh YouTube như Script, Cấu hình, và Tool cho Free Fire, ROV, FiveM. Hãy theo dõi và sử dụng ngay!", th: "รวบรวมทรัพยากรฟรีมากมาย เช่น Script, Config และ Tool สำหรับ Free Fire, ROV, FiveM มาร่วมติดตามและใช้งานได้เลย!" },
   emptyTitle: { vi: "Chưa có mục nào", th: "ยังไม่มีรายการ" },
   emptyDesc: { vi: "Danh mục này chưa cập nhật script mới hoặc không tìm thấy nội dung. Vui lòng chờ đón nhé!", th: "หมวดหมู่นี้ยังไม่มีสคริปต์ใหม่หรือค้นหาไม่พบเนื้อหา กรุณารอติดตามนะ!" },
@@ -33,7 +33,7 @@ export const translations = {
   q2: { vi: "Q: Script có an toàn không, có bị cấm (ban) không?", th: "Q: สคริปต์ปลอดภัยหรือไม่, จะโดนแบนไหม?" },
   a2: { vi: "A: Chúng tôi đã cố gắng chọn lọc các script an toàn nhất. Nhưng lưu ý hệ thống game có thể cập nhật, vui lòng thử trên tài khoản phụ trước khi dùng chính thức!", th: "A: เราได้คัดเลือกสคริปต์ที่ปลอดภัยที่สุดมาให้แล้ว แต่โปรดทราบว่าระบบเกมอาจมีการอัปเดต แนะนำให้ทดสอบกับบัญชีรองก่อนใช้งานจริง!" },
   q3: { vi: "Q: Liên kết bị hỏng, không tải được thì phải làm sao?", th: "Q: ลิงก์เสีย, โหลดไม่ได้ ต้องทำอย่างไร?" },
-  a3: { vi: "A: Nếu liên kết không hoạt động, vui lòng bình luận dưới video YouTube kênh Vireth Hub để được khắc phục sớm nhất.", th: "A: หากลิงก์ใช้งานไม่ได้ กรุณาคอมเมนต์ใต้คลิป YouTube ช่อง Vireth Hub เพื่อให้เราจัดการแก้ไขโดยเร็วที่สุด" },
+  a3: { vi: "A: Nếu liên kết không hoạt động, vui lòng bình luận dưới video YouTube kênh NexSpec để được khắc phục sớm nhất.", th: "A: หากลิงก์ใช้งานไม่ได้ กรุณาคอมเมนต์ใต้คลิป YouTube ช่อง NexSpec เพื่อให้เราจัดการแก้ไขโดยเร็วที่สุด" },
   footerDesc: { vi: "Nơi tổng hợp script và cấu hình game cho mọi người dùng", th: "แหล่งรวบรวมสคริปต์และคอนฟิกเกมสำหรับผู้ใช้งานทุกคน" },
   socialsFollow: { vi: "Kênh theo dõi", th: "ช่องทางการติดตาม" },
   socialsFamily: { vi: "Hãy trở thành một phần gia đình của chúng tôi 🥰", th: "มาร่วมเป็นส่วนหนึ่งของครอบครัวเรา 🥰" },
@@ -91,5 +91,12 @@ export const translations = {
   authOr: { vi: "HOẶC DÙNG DỊCH VỤ", th: "หรือใช้บริการ" },
   authNoAccount: { vi: "Chưa có tài khoản? ", th: "ยังไม่มีบัญชี?" },
   authHasAccount: { vi: "Đã có tài khoản? ", th: "มีบัญชีแล้วใช่ไหม?" },
-  loginAs: { vi: "Đăng nhập với tư cách", th: "เข้าสู่ระบบในฐานะ" }
+  loginAs: { vi: "Đăng nhập với tư cách", th: "เข้าสู่ระบบในฐานะ" },
+  
+  // Profile & Remember Me Settings
+  rememberMe: { vi: "Ghi nhớ đăng nhập", th: "จดจำการเข้าสู่ระบบ" },
+  profileSettings: { vi: "Cài đặt hồ sơ", th: "การตั้งค่าโปรไฟล์" },
+  avatarUrl: { vi: "Liên kết ảnh đại diện (Avatar URL)", th: "ลิงก์รูปโปรไฟล์ (Avatar URL)" },
+  saveChanges: { vi: "Lưu thay đổi", th: "บันทึกการเปลี่ยนแปลง" },
+  profileUpdated: { vi: "Cập nhật hồ sơ thành công!", th: "อัปเดตโปรไฟล์สำเร็จแล้ว!" }
 };

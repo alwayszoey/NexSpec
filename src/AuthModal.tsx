@@ -6,7 +6,7 @@ import ReCAPTCHA from "react-google-recaptcha";
 interface AuthModalProps {
   type: 'login' | 'register' | null;
   onClose: () => void;
-  onSuccess: (user: any, token: string) => void;
+  onSuccess: (user: any, token: string, rememberMe: boolean) => void;
   t: (key: string) => string;
 }
 
@@ -16,6 +16,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ type, onClose, onSuccess, 
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   
   const [loading, setLoading] = useState(false);
@@ -37,7 +38,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ type, onClose, onSuccess, 
     try {
       const endpoint = view === 'login' ? '/api/auth/login' : '/api/auth/register';
       const payload = view === 'login' 
-        ? { email, password } 
+        ? { email, password, rememberMe } 
         : { username, email, password, recaptchaToken };
 
       const res = await fetch(endpoint, {
@@ -67,7 +68,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ type, onClose, onSuccess, 
         alert('Register Success! / Đăng ký thành công!');
       } else if (view === 'login') {
         // Success login
-        onSuccess(data.user, data.token);
+        onSuccess(data.user, data.token, rememberMe);
       }
     } catch (err: any) {
       setError(err.message || 'Connection Error');
@@ -95,7 +96,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ type, onClose, onSuccess, 
       if (1 === 1 /* event.origin check omitted for simplicity but normally recommended */) {
          if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
            const { token, user } = event.data;
-           onSuccess(user, token);
+           // Social logins default to remembering the user
+           onSuccess(user, token, true);
          }
       }
     };
@@ -182,6 +184,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ type, onClose, onSuccess, 
               className="w-full pl-11 pr-4 py-3 bg-bg-app border border-border-subtle rounded-[14px] focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 text-sm"
             />
           </div>
+
+          {view === 'login' && (
+            <div className="flex items-center gap-2 mt-1">
+              <input 
+                type="checkbox" 
+                id="rememberMe" 
+                checked={rememberMe} 
+                onChange={e => setRememberMe(e.target.checked)}
+                className="w-4 h-4 rounded border-border-subtle text-brand focus:ring-brand"
+              />
+              <label htmlFor="rememberMe" className="text-sm text-text-muted cursor-pointer select-none">
+                {t('rememberMe') || 'Remember me'}
+              </label>
+            </div>
+          )}
 
           {view === 'register' && (
             <div className="flex justify-center mt-2 overflow-hidden rounded-[8px] border border-border-subtle">

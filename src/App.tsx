@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import ReCAPTCHA from "react-google-recaptcha";
 import { translations } from './translations';
 import { AuthModal } from './AuthModal';
+import { ProfileModal } from './ProfileModal';
 
 const EMOTICONS = ['🇹🇭', '🇻🇳', '🎮', '🚀', '✨', '🎁', '🔥', '💖', '👋'];
 
@@ -26,7 +27,8 @@ export default function App() {
 
   // ====== AUTH STATES ======
   const [authModalType, setAuthModalType] = useState<'login' | 'register' | null>(null);
-  const [currentUser, setCurrentUser] = useState<{ id: string, username: string, email: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ id: string, username: string, email: string, avatarUrl?: string } | null>(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   useEffect(() => {
     // Theme Initializer (Default to Light always on first visit)
@@ -49,7 +51,9 @@ export default function App() {
     }
 
     // Check Auth Session
-    const token = localStorage.getItem('authToken');
+    const localToken = localStorage.getItem('authToken');
+    const sessionToken = sessionStorage.getItem('authToken');
+    const token = localToken || sessionToken;
     if (token) {
       fetch('/api/auth/me', {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -57,10 +61,14 @@ export default function App() {
       .then(res => res.json())
       .then(data => {
         if (data.user) {
-          setCurrentUser({ id: data.user._id, username: data.user.username, email: data.user.email });
+          setCurrentUser({ id: data.user._id, username: data.user.username, email: data.user.email, avatarUrl: data.user.avatarUrl });
         }
       })
-      .catch(err => console.error("Session check failed:", err));
+      .catch(err => {
+        console.error("Session check failed:", err);
+        localStorage.removeItem('authToken');
+        sessionStorage.removeItem('authToken');
+      });
     }
 
     // Simulate loading to ensure everything is ready
@@ -71,6 +79,7 @@ export default function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('authToken');
+    sessionStorage.removeItem('authToken');
     setCurrentUser(null);
     setIsMobileMenuOpen(false);
   };
@@ -386,7 +395,7 @@ export default function App() {
           transition={{ duration: 0.5, type: 'spring' }}
           className="bg-card-bg/95 backdrop-blur-xl max-w-md w-full p-8 rounded-[32px] text-center shadow-2xl relative z-10 border border-border-subtle"
         >
-          <img src="https://img2.pic.in.th/IMG_0060.png" alt="Logo" className="h-16 mx-auto mb-6 object-contain drop-shadow-md" />
+          <img src="https://img2.pic.in.th/IMG_0083.png" alt="Logo" className="h-16 mx-auto mb-6 object-contain drop-shadow-md" />
           
           <AnimatePresence mode="wait">
             {langSelectState === 'selecting' && (
@@ -449,7 +458,7 @@ export default function App() {
           onClick={() => { setCurrentView('home'); setSelectedItem(null); }} 
           className="flex items-center gap-3 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
         >
-          <img src="https://img2.pic.in.th/IMG_0060.png" alt="Logo" className="h-9 sm:h-10 object-contain drop-shadow-sm" />
+          <img src="https://img2.pic.in.th/IMG_0083.png" alt="Logo" className="h-9 sm:h-10 object-contain drop-shadow-sm" />
         </div>
         
         {/* Center Search Bar */}
@@ -547,11 +556,26 @@ export default function App() {
               {/* AUTH MENU */}
               {currentUser ? (
                 <div className="flex flex-col gap-1.5">
-                  <div className="px-3.5 py-2">
-                    <p className="text-xs text-text-muted">{t('loginAs')}</p>
-                    <p className="font-semibold text-sm truncate">{currentUser.username}</p>
-                    <p className="text-xs truncate text-text-muted">{currentUser.email}</p>
+                  <div className="px-3.5 py-2 flex items-center gap-3">
+                    {currentUser.avatarUrl ? (
+                      <img src={currentUser.avatarUrl} alt="Avatar" className="w-10 h-10 rounded-full object-cover border border-border-subtle" referrerPolicy="no-referrer" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-brand/10 border border-brand/20 flex px-0 items-center justify-center text-brand font-bold text-lg">
+                        {currentUser.username.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-text-muted">{t('loginAs')}</p>
+                      <p className="font-semibold text-sm truncate text-text-main">{currentUser.username}</p>
+                      <p className="text-xs truncate text-text-muted">{currentUser.email}</p>
+                    </div>
                   </div>
+                  <button 
+                    onClick={() => { setIsMobileMenuOpen(false); setShowProfileModal(true); }}
+                    className="flex items-center gap-3 p-3.5 rounded-[16px] hover:bg-brand-light text-left font-medium text-text-main transition-colors w-full group"
+                  >
+                    <Settings className="w-5 h-5 text-text-muted group-hover:text-brand transition-colors" /> {t('profileSettings') || 'Profile Settings'}
+                  </button>
                   <button 
                     onClick={handleLogout}
                     className="flex items-center gap-3 p-3.5 rounded-[16px] hover:bg-red-50 dark:hover:bg-red-500/10 text-left font-medium text-red-600 transition-colors w-full group mb-2"
@@ -901,7 +925,7 @@ export default function App() {
                       </div>
                       <div className="border border-slate-100 rounded-[16px] sm:rounded-[20px] p-5 sm:p-6 hover:shadow-md transition-shadow bg-white">
                         <h3 className="font-medium text-slate-800 mb-2 text-[14px] sm:text-[15px]">Q: Liên kết bị hỏng, không tải được thì phải làm sao?</h3>
-                        <p className="text-[13px] sm:text-[14px] font-normal text-slate-500 leading-relaxed">A: Nếu liên kết không hoạt động, vui lòng bình luận dưới video YouTube kênh Vireth Hub để được khắc phục sớm nhất.</p>
+                        <p className="text-[13px] sm:text-[14px] font-normal text-slate-500 leading-relaxed">A: Nếu liên kết không hoạt động, vui lòng bình luận dưới video YouTube kênh NexSpec để được khắc phục sớm nhất.</p>
                       </div>
                     </div>
                   </div>
@@ -932,7 +956,7 @@ export default function App() {
         <footer className="w-full border-t border-slate-200/60 bg-white/50 backdrop-blur-sm mt-8">
           <div className="max-w-[1600px] mx-auto px-4 sm:px-8 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="text-center md:text-left flex flex-col items-center md:items-start">
-              <img src="https://img2.pic.in.th/IMG_0060.png" alt="Logo" className="h-6 sm:h-7 object-contain drop-shadow-sm mb-1 opacity-80 mix-blend-multiply" />
+              <img src="https://img2.pic.in.th/IMG_0083.png" alt="Logo" className="h-6 sm:h-7 object-contain drop-shadow-sm mb-1 opacity-80 mix-blend-multiply" />
               <p className="text-[13px] text-slate-500 mt-1">{t('footerDesc')}</p>
             </div>
             <div className="flex items-center gap-6 text-[13px] font-medium text-slate-500">
@@ -940,7 +964,7 @@ export default function App() {
               <button onClick={() => setShowSocialsModal(true)} className="hover:text-brand transition-colors">{t('socialsFollow')}</button>
             </div>
             <div className="text-[12px] text-slate-400">
-              &copy; {new Date().getFullYear()} Vireth Hub. All rights reserved.
+              &copy; {new Date().getFullYear()} NexSpec. All rights reserved.
             </div>
           </div>
         </footer>
@@ -1295,11 +1319,26 @@ export default function App() {
             type={authModalType}
             onClose={() => setAuthModalType(null)}
             t={t}
-            onSuccess={(user, token) => {
-              localStorage.setItem('authToken', token);
-              setCurrentUser({ id: user.id, username: user.username, email: user.email });
+            onSuccess={(user, token, rememberMe) => {
+              if (rememberMe) {
+                localStorage.setItem('authToken', token);
+              } else {
+                sessionStorage.setItem('authToken', token);
+              }
+              setCurrentUser({ id: user.id, username: user.username, email: user.email, avatarUrl: user.avatarUrl });
               setAuthModalType(null);
             }}
+          />
+        )}
+        
+        {showProfileModal && currentUser && (
+          <ProfileModal
+            currentUser={currentUser}
+            onClose={() => setShowProfileModal(false)}
+            onUpdate={(updatedUser) => {
+              setCurrentUser(prev => prev ? { ...prev, username: updatedUser.username, avatarUrl: updatedUser.avatarUrl } : null);
+            }}
+            t={t}
           />
         )}
       </AnimatePresence>

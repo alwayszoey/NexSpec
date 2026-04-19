@@ -32,6 +32,10 @@ const UserSchema = new mongoose.Schema(
       unique: true,
       sparse: true,
     },
+    avatarUrl: {
+      type: String,
+      default: "",
+    },
   },
   { timestamps: true }
 );

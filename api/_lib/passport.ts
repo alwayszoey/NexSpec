@@ -32,11 +32,14 @@ passport.use(
         }
 
         // Else, create new user
+        const avatarUrl = profile.photos && profile.photos.length > 0 ? profile.photos[0].value : "";
+
         user = new User({
           username: profile.displayName || email.split("@")[0],
           email,
           googleId: profile.id,
           provider: "google",
+          avatarUrl,
         });
 
         await user.save();
@@ -75,11 +78,18 @@ passport.use(
           return done(null, user);
         }
 
+        let avatarUrl = "";
+        if (profile.avatar) {
+          const format = profile.avatar.startsWith("a_") ? "gif" : "png";
+          avatarUrl = `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.${format}`;
+        }
+
         user = new User({
           username: profile.username || email.split("@")[0],
           email,
           discordId: profile.id,
           provider: "discord",
+          avatarUrl,
         });
 
         await user.save();

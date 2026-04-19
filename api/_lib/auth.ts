@@ -72,7 +72,7 @@ router.post("/register", async (req, res) => {
 // 2. LOGIN ============================================
 router.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ error: "Missing Email or Password" });
@@ -83,7 +83,7 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ error: "User not found" });
     }
 
-    if (user.provider !== "credentials") {
+    if (user.provider && user.provider !== "credentials" && user.provider !== "multiple") {
       return res.status(400).json({ error: `Account uses ${user.provider} login` });
     }
 
@@ -93,16 +93,17 @@ router.post("/login", async (req, res) => {
     }
 
     // Create JWT token
+    const expiresIn = rememberMe ? "30d" : "1d";
     const token = jwt.sign(
       { id: user._id, email: user.email, username: user.username },
       JWT_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn }
     );
 
     res.json({
       success: true,
       token,
-      user: { id: user._id, username: user.username, email: user.email }
+      user: { id: user._id, username: user.username, email: user.email, avatarUrl: user.avatarUrl }
     });
   } catch (error) {
     console.error("Login Error:", error);
@@ -117,6 +118,24 @@ router.get("/me", verifyAuth, async (req: any, res) => {
     if (!user) return res.status(404).json({ error: "User not found" });
     res.json({ user });
   } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// 3.5 UPDATE CURRENT USER =============================
+router.put("/me", verifyAuth, async (req: any, res) => {
+  try {
+    const { username, avatarUrl } = req.body;
+    const user = await (User as any).findByIdAndUpdate(
+      req.user.id,
+      { username, avatarUrl },
+      { new: true, runValidators: true }
+    ).select("-password");
+    
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json({ success: true, user });
+  } catch (err) {
+    console.error("Update User Error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
