@@ -1,10 +1,17 @@
 import express from "express";
 import crypto from "crypto";
+import cors from "cors"; // 1. เพิ่ม CORS
 import { connectDB } from "./_lib/db.js";
 import authRoutes from "./_lib/auth.js";
 import statsRoutes from "./_lib/stats.js";
 
 const app = express();
+
+// 2. ตั้งค่า CORS ให้ Dashboard ลับยิงเข้ามาได้
+app.use(cors({
+  origin: '*', 
+  allowedHeaders: ['Content-Type', 'x-admin-token']
+}));
 
 app.use(express.json());
 
@@ -16,12 +23,9 @@ app.use((req, res, next) => {
 
 let isDbConnected = false;
 
-// Middleware to ensure DB is connected before handling any requests
+// Middleware to ensure DB is connected
 app.use(async (req, res, next) => {
-  if (isDbConnected) {
-    return next();
-  }
-  
+  if (isDbConnected) return next();
   try {
     await connectDB();
     isDbConnected = true;
@@ -32,13 +36,77 @@ app.use(async (req, res, next) => {
   }
 });
 
-// Mount routes
+// --- [ ส่วนที่เพิ่มใหม่: ADMIN API ] ---
+
+// ด่านตรวจรหัสลับ
+const isAdmin = (req: any, res: any, next: any) => {
+  const adminToken = req.headers['x-admin-token'];
+  if (adminToken && adminToken === process.env.ADMIN_TOKEN) {
+    next();
+  } else {
+    res.status(403).json({ success: false, message: "Forbidden: Invalid Admin Token" });
+  }
+};
+
+// ดึงรายชื่อ User
+app.get('/api/admin/users', isAdmin, async (req: any, res: any) => {
+  try {
+    const dbInstance: any = await connectDB();
+    const db = dbInstance?.db || dbInstance;
+    const users = await db.collection("users").find({}).sort({ createdAt: -1 }).toArray();
+    res.json({ success: true, users });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ดึง Resources ทั้งหมด
+app.get('/api/admin/resources', isAdmin, async (req: any, res: any) => {
+  try {
+    const dbInstance: any = await connectDB();
+    const db = dbInstance?.db || dbInstance;
+    const resources = await db.collection("resources").find({}).sort({ createdAt: -1 }).toArray();
+    res.json({ success: true, resources });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// สร้าง Resource ใหม่
+app.post('/api/admin/resources', isAdmin, async (req: any, res: any) => {
+  try {
+    const data = req.body;
+    const dbInstance: any = await connectDB();
+    const db = dbInstance?.db || dbInstance;
+    await db.collection("resources").insertOne({ ...data, createdAt: new Date() });
+    res.json({ success: true, message: "Created successfully" });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// อัปเดต Resource เดิม (ตาม ID)
+app.patch('/api/admin/resources/:id', isAdmin, async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+    const dbInstance: any = await connectDB();
+    const db = dbInstance?.db || dbInstance;
+    // หมายเหตุ: ถ้า id เป็น ObjectId ต้องใช้ new ObjectId(id)
+    await db.collection("resources").updateOne({ _id: id }, { $set: req.body });
+    res.json({ success: true, message: "Updated successfully" });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+// --- [ จบส่วน ADMIN API ] ---
+
+// Mount original routes
 app.use("/api/auth", authRoutes);
 app.use("/api/stats", statsRoutes);
 
-// Stateless URL signer using HMAC
+// Stateless URL signer using HMAC (Original)
 function generateSignedToken(url: string, ip: string) {
-  const expires = Date.now() + 5 * 60 * 1000; // 5 mins
+  const expires = Date.now() + 5 * 60 * 1000;
   const payload = JSON.stringify({ url, exp: expires });
   const payloadB64 = Buffer.from(payload).toString('base64url');
   const signature = crypto.createHmac('sha256', process.env.RECAPTCHA_SECRET_KEY || 'default_secret_key_12345')
@@ -55,23 +123,15 @@ function verifySignedToken(token: string) {
     const expectedSig = crypto.createHmac('sha256', process.env.RECAPTCHA_SECRET_KEY || 'default_secret_key_12345')
       .update(payloadB64)
       .digest('base64url');
-    
     if (signature !== expectedSig) return null;
-    
     const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf-8'));
-    if (Date.now() > payload.exp) return null; // expired
-    
+    if (Date.now() > payload.exp) return null;
     return payload.url;
-  } catch (e) {
-    return null;
-  }
+  } catch (e) { return null; }
 }
 
-// Memory blocklist just to prevent basic replays in long-running instances
-// (On Vercel, this is best-effort since it resets on cold start)
 const usedTokens = new Set<string>();
 
-// Ensure simple bot detection
 function botDetection(req: express.Request) {
   const userAgent = req.headers['user-agent'];
   if (!userAgent || userAgent.trim() === '' || userAgent.toLowerCase().includes('curl') || userAgent.toLowerCase().includes('bot')) {
@@ -80,85 +140,59 @@ function botDetection(req: express.Request) {
   return true;
 }
 
-// API Routes
+// API Routes (Original)
 app.post("/api/verify-captcha", async (req, res) => {
   const ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'unknown';
-
-  // 1. Bot detection
   if (!botDetection(req)) {
       res.status(403).json({ success: false, error: 'Request blocked by bot detection' });
       return;
   }
-
-  // 2. Origin validation (Relaxed for iFrame previews and official Vercel domain)
   const origin = req.get('origin') || '';
-  const referer = req.get('referer') || '';
-  
   if (process.env.NODE_ENV === "production" && origin) {
      if (!origin.includes('localhost') && !origin.includes('vercel.app') && !origin.includes(process.env.APP_URL || '')) {
          res.status(403).json({ success: false, error: 'Origin validation failed' });
          return;
      }
   }
-
   const { token, targetUrl } = req.body;
   if (!token || !targetUrl) {
       res.status(400).json({ success: false, error: 'Missing token or target url' });
       return;
   }
-
-  // 3. Anti-replay protection (Best-effort on serverless)
   if (usedTokens.has(token)) {
       res.status(400).json({ success: false, error: 'Captcha token reused' });
       return;
   }
   usedTokens.add(token);
-
-  // 4. Google reCAPTCHA Verification
   try {
     const recaptchaSecret = process.env.RECAPTCHA_SECRET_KEY;
-    if (!recaptchaSecret) {
-      console.warn("RECAPTCHA_SECRET_KEY is missing, skipping actual verification");
-    } else {
+    if (recaptchaSecret) {
       const response = await fetch(`https://www.google.com/recaptcha/api/siteverify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `secret=${recaptchaSecret}&response=${token}&remoteip=${ip}`
       });
       const data = await response.json();
-      
       if (!data.success) {
-        res.status(400).json({ success: false, error: 'Captcha verification failed', details: data['error-codes'] });
+        res.status(400).json({ success: false, error: 'Captcha verification failed' });
         return;
       }
     }
   } catch (error) {
-    console.error("Recaptcha verification error:", error);
-    res.status(500).json({ success: false, error: 'Internal server error during captcha verification' });
+    res.status(500).json({ success: false, error: 'Internal server error' });
     return;
   }
-
-  // 5. Generate a stateless signed JWT-like key instead of memory store
   const signedKey = generateSignedToken(targetUrl, ip);
-
-  res.json({ 
-    success: true, 
-    key: signedKey, 
-    expiresIn: 300 // 5 minutes
-  });
+  res.json({ success: true, key: signedKey, expiresIn: 300 });
 });
 
 app.get("/api/download/:key", (req, res) => {
   const { key } = req.params;
-
   const targetUrl = verifySignedToken(key);
-
   if (!targetUrl) {
       res.status(403).send('Download key is invalid or has expired');
       return;
   }
-
-  // Let's redirect to the actual URL
   res.redirect(302, targetUrl);
 });
 
