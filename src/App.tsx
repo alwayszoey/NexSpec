@@ -1,0 +1,1308 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Search, ShieldAlert, Download, X, RefreshCcw, LayoutGrid, Layers, 
+  Archive, Settings, FileText, Check, Zap, Menu, ArrowLeft, 
+  Home, HelpCircle, Share2, Facebook, Instagram, MessageCircle,
+  Play, ChevronRight, Loader2, Youtube, Send, MessageSquare, Sun, Moon, Lock, UserPlus, LogOut
+} from 'lucide-react';
+import { resourcesData, ResourceItem } from './data';
+import { motion, AnimatePresence } from 'motion/react';
+import ReCAPTCHA from "react-google-recaptcha";
+import { translations } from './translations';
+import { AuthModal } from './AuthModal';
+
+const EMOTICONS = ['🇹🇭', '🇻🇳', '🎮', '🚀', '✨', '🎁', '🔥', '💖', '👋'];
+
+type ViewState = 'home' | 'details' | 'help';
+type AppLang = 'vi' | 'th';
+
+export default function App() {
+  const [lang, setLang] = useState<AppLang | null>(null);
+  const [isAppLoading, setIsAppLoading] = useState(true);
+
+  const [langSelectState, setLangSelectState] = useState<'selecting' | 'recaptcha' | 'checking' | 'done'>('done');
+  
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+  // ====== AUTH STATES ======
+  const [authModalType, setAuthModalType] = useState<'login' | 'register' | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ id: string, username: string, email: string } | null>(null);
+
+  useEffect(() => {
+    // Theme Initializer (Default to Light always on first visit)
+    const savedTheme = localStorage.getItem('appTheme') as 'light' | 'dark';
+    if (savedTheme === 'dark') {
+      setTheme('dark');
+      document.documentElement.classList.add('dark');
+    } else {
+      setTheme('light');
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('appTheme', 'light');
+    }
+
+    const stored = localStorage.getItem('appLang') as AppLang;
+    if (stored === 'vi' || stored === 'th') {
+      setLang(stored);
+      setLangSelectState('done');
+    } else {
+      setLangSelectState('selecting');
+    }
+
+    // Check Auth Session
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      fetch('/api/auth/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.user) {
+          setCurrentUser({ id: data.user._id, username: data.user.username, email: data.user.email });
+        }
+      })
+      .catch(err => console.error("Session check failed:", err));
+    }
+
+    // Simulate loading to ensure everything is ready
+    setTimeout(() => {
+      setIsAppLoading(false);
+    }, 1200);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    setCurrentUser(null);
+    setIsMobileMenuOpen(false);
+  };
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(nextTheme);
+    localStorage.setItem('appTheme', nextTheme);
+    if (nextTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
+
+  const t = (key: keyof typeof translations) => {
+    return translations[key]?.[lang || 'vi'] || translations[key]?.['vi'];
+  };
+
+  const getLocalized = (val: string | { vi: string, th: string } | undefined): string => {
+    if (!val) return '';
+    if (typeof val === 'string') return val;
+    return val[lang || 'vi'] || val['vi'];
+  };
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentView, setCurrentView] = useState<ViewState>('home');
+  const [selectedItem, setSelectedItem] = useState<ResourceItem | null>(null);
+  const [activeDownloadUrl, setActiveDownloadUrl] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState('Tất cả tài nguyên');
+  
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showSocialsModal, setShowSocialsModal] = useState(false);
+  
+  const categories = ['Tất cả tài nguyên', 'Aimbet', 'Bypass', 'ProxyPin', 'Scripts', 'Macros', 'MOD'];
+
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  
+  // Feedback States
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackText, setFeedbackText] = useState('');
+  const [feedbackStatus, setFeedbackStatus] = useState<'idle' | 'submitting' | 'success'>('idle');
+
+  type StepStatus = 'idle' | 'checking' | 'completed' | 'error';
+  const [step1Status, setStep1Status] = useState<StepStatus>('idle');
+  const [step2Status, setStep2Status] = useState<StepStatus>('idle');
+  const step1OpenedAt = useRef<number>(0);
+  const step2OpenedAt = useRef<number>(0);
+  const [isChecked, setIsChecked] = useState(false);
+  const [countdown, setCountdown] = useState(15);
+  const [isCounting, setIsCounting] = useState(false);
+  const [isNetworkChecking, setIsNetworkChecking] = useState(false);
+  const [networkError, setNetworkError] = useState<string | null>(null);
+  const [downloadKey, setDownloadKey] = useState<string | null>(null);
+
+  // Auto-redirect to home grid if user types in search
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    if (currentView !== 'home') {
+      setCurrentView('home');
+    }
+    if (selectedItem) setSelectedItem(null);
+  };
+
+  const filteredResources = resourcesData.filter(item => {
+    const isAll = activeCategory === 'Tất cả tài nguyên' || activeCategory === translations.allResources.vi || activeCategory === translations.allResources.th;
+    const matchesCategory = isAll || item.category === activeCategory;
+    
+    // Getting localized strings for accurate searching
+    const titleText = getLocalized(item.title);
+    const ms = titleText.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          item.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesCategory && ms;
+  });
+
+  const handleOpenDetails = (item: ResourceItem) => {
+    setSelectedItem(item);
+    setCurrentView('details');
+  };
+
+  const handleGetLink = (e?: React.MouseEvent, item?: ResourceItem, specificLink?: string) => {
+    if (e) e.stopPropagation();
+    if (item) setSelectedItem(item);
+    
+    // Default to item.link if specificLink is not provided (for backwards compatibility)
+    const targetUrl = specificLink || (item ? item.link : selectedItem?.link);
+    setActiveDownloadUrl(targetUrl || null);
+    
+    setStep1Status('idle');
+    setStep2Status('idle');
+    setIsChecked(false);
+    setCountdown(15);
+    setIsCounting(false);
+    setNetworkError(null);
+    setIsNetworkChecking(false);
+    setDownloadKey(null);
+    setShowVerifyModal(true);
+  };
+
+  const handleVerifyRecaptcha = async (token: string | null) => {
+    if (!token) return;
+    if (step1Status !== 'completed' || step2Status !== 'completed') {
+      alert(t('alertSteps'));
+      return;
+    }
+    if (isChecked || isNetworkChecking) return;
+
+    setIsNetworkChecking(true);
+    setNetworkError(null);
+
+    // --- REINSTATE CLIENT-SIDE VPN / PROXY CHECK ---
+    let isVpn = false;
+    let errorMessage = "";
+
+    try {
+      // 1. IP Check via GeoJS (Great for detecting Cloudflare WARP/1.1.1.1 and Cloud hosts)
+      const geoRes = await fetch('https://get.geojs.io/v1/ip/geo.json', { cache: 'no-store' });
+      if (geoRes.ok) {
+        const geoData = await geoRes.json();
+        const org = (geoData.organization || "").toLowerCase();
+        
+        if (org.includes('cloudflare') || org.includes('warp') || org.includes('digitalocean') || org.includes('amazon') || org.includes('google cloud') || org.includes('microsoft')) {
+           isVpn = true;
+           errorMessage = "❌ Phát hiện kết nối VPN hoặc 1.1.1.1 (WARP). Vui lòng tắt và thao tác lại! / พบการเชื่อมต่อ VPN หรือ 1.1.1.1 (WARP) โปรดปิดและลองอีกครั้ง!";
+        }
+      }
+    } catch (err) {
+      console.warn("GeoJS API Network Warning (Adblock/Brave):", err);
+    }
+
+    if (!isVpn) {
+      try {
+        // 2. IP Check via ipwho.is (Backup - Fully supports HTTPS)
+        const proxyRes = await fetch('https://ipwho.is/', { cache: 'no-store' });
+        if (proxyRes.ok) {
+          const proxyData = await proxyRes.json();
+          const org = (proxyData.connection?.org || "").toLowerCase();
+          
+          if (proxyData.security && (proxyData.security.vpn || proxyData.security.proxy || proxyData.security.tor)) {
+             isVpn = true;
+             errorMessage = "❌ Phát hiện sử dụng VPN hoặc Proxy. Vui lòng tắt trước khi tiếp tục! / ตรวจพบการใช้ VPN หรือ Proxy โปรดปิดก่อนดำเนินการต่อ!";
+          } else if (org.includes('cloudflare') || org.includes('warp')) {
+             isVpn = true;
+             errorMessage = "❌ Phát hiện kết nối VPN hoặc 1.1.1.1 (WARP). Vui lòng tắt và thao tác lại! / พบการเชื่อมต่อ VPN หรือ 1.1.1.1 (WARP) โปรดปิดและลองอีกครั้ง!";
+          }
+        }
+      } catch (err) {
+        console.warn("IPWhoIs API Network Warning:", err);
+      }
+    }
+
+    if (isVpn) {
+      setNetworkError(errorMessage);
+      setIsNetworkChecking(false);
+      // Reset ReCAPTCHA (optional, but they'd have to reload or close/open modal to try again anyway)
+      return; 
+    }
+    // --- END VPN CHECK ---
+
+    try {
+      const response = await fetch('/api/verify-captcha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token,
+          targetUrl: activeDownloadUrl || ''
+        })
+      });
+
+      const textResponse = await response.text();
+      let data;
+      try {
+        data = JSON.parse(textResponse);
+      } catch (parseErr) {
+        throw new Error(`Server returned invalid response: ${textResponse.substring(0, 50)}...`);
+      }
+      
+      if (!response.ok || !data.success) {
+        setNetworkError(data.error || "Captcha verification failed");
+        setIsNetworkChecking(false);
+        return;
+      }
+
+      // Success
+      setDownloadKey(data.key);
+      setIsChecked(true);
+      setIsCounting(true);
+      setIsNetworkChecking(false);
+    } catch (err: any) {
+      console.error(err);
+      setNetworkError(`Error: ${err.message || 'Network connection failed'}`);
+      setIsNetworkChecking(false);
+    }
+  };
+
+  const handleFinalRedirect = () => {
+    if (selectedItem && downloadKey) {
+      if (countdown > 0 || !isChecked) {
+        alert(t('alertTimer'));
+        return;
+      }
+      
+      window.open(`/api/download/${downloadKey}`, '_blank');
+      setShowVerifyModal(false);
+    }
+  };
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isCounting && countdown > 0) {
+      timer = setTimeout(() => setCountdown(c => c - 1), 1000);
+    } else if (isCounting && countdown === 0) {
+      setIsCounting(false);
+    }
+    return () => clearTimeout(timer);
+  }, [isCounting, countdown]);
+
+  useEffect(() => {
+    const handleDocumentFocus = () => {
+      // Add a small delay to simulate processing and let the page render properly
+      setTimeout(() => {
+        const now = Date.now();
+        
+        setStep1Status(prev => {
+          if (prev === 'checking') {
+            const timeDiff = now - step1OpenedAt.current;
+            if (timeDiff >= 12000) { // 12 seconds cooldown
+              return 'completed';
+            } else {
+              alert(t('alertErrYT'));
+              return 'error';
+            }
+          }
+          return prev;
+        });
+
+        setStep2Status(prev => {
+          if (prev === 'checking') {
+            const timeDiff = now - step2OpenedAt.current;
+            if (timeDiff >= 5000) { // 5 seconds cooldown
+              return 'completed';
+            } else {
+              alert(t('alertErrTG'));
+              return 'error';
+            }
+          }
+          return prev;
+        });
+      }, 800);
+    };
+
+    window.addEventListener('focus', handleDocumentFocus);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        handleDocumentFocus();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleDocumentFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
+  const handleLanguageSelect = (selected: AppLang) => {
+    setLang(selected);
+    localStorage.setItem('appLang', selected);
+    setLangSelectState('checking');
+    setTimeout(() => {
+      setLangSelectState('done');
+    }, 1500); // Wait 1.5s reading the welcome message
+  };
+
+  const handleRecaptchaChange = (token: string | null) => {
+    // Kept to prevent breaking just in case, but no longer used for language select
+  };
+
+  if (langSelectState !== 'done') {
+    return (
+      <div className="fixed inset-0 overflow-hidden bg-bg-app z-[999] flex flex-col justify-center items-center p-4">
+        {/* Floating Emojis Background */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+          {Array.from({ length: 25 }).map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute opacity-20 text-3xl sm:text-4xl"
+              initial={{ 
+                top: '-10%', 
+                left: `${Math.random() * 100}%`, 
+                rotate: 0 
+              }}
+              animate={{ 
+                top: '110%', 
+                left: `${Math.random() * 100}%`, 
+                rotate: Math.random() * 360 
+              }}
+              transition={{ 
+                duration: 6 + Math.random() * 6, 
+                repeat: Infinity, 
+                ease: 'linear', 
+                delay: Math.random() * 5 
+              }}
+            >
+              {EMOTICONS[Math.floor(Math.random() * EMOTICONS.length)]}
+            </motion.div>
+          ))}
+        </div>
+
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, type: 'spring' }}
+          className="bg-card-bg/95 backdrop-blur-xl max-w-md w-full p-8 rounded-[32px] text-center shadow-2xl relative z-10 border border-border-subtle"
+        >
+          <img src="https://img2.pic.in.th/IMG_0060.png" alt="Logo" className="h-16 mx-auto mb-6 object-contain drop-shadow-md" />
+          
+          <AnimatePresence mode="wait">
+            {langSelectState === 'selecting' && (
+              <motion.div key="selecting" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
+                <h2 className="text-[26px] font-bold text-text-main mb-1 tracking-tight">Chọn Ngôn Ngữ</h2>
+                <h2 className="text-[20px] font-medium text-text-muted mb-8">เลือกภาษาของคุณ</h2>
+                
+                <div className="space-y-4">
+                  <button 
+                    onClick={() => handleLanguageSelect('vi')}
+                    className="w-full flex items-center justify-center gap-4 py-4 rounded-[20px] bg-bg-app hover:bg-brand/10 border-2 border-brand text-brand transition-all text-lg font-bold cursor-pointer shadow-sm hover:shadow"
+                  >
+                    <span className="text-2xl">🇻🇳</span> Tiếng Việt (Mặc định)
+                  </button>
+                  <button 
+                    onClick={() => handleLanguageSelect('th')}
+                    className="w-full flex items-center justify-center gap-4 py-4 rounded-[20px] bg-bg-app hover:bg-card-bg border-2 border-border-subtle hover:border-brand hover:text-brand transition-all text-lg font-medium text-text-main cursor-pointer shadow-sm hover:shadow"
+                  >
+                    <span className="text-2xl">🇹🇭</span> ภาษาไทย
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {langSelectState === 'checking' && (
+              <motion.div key="checking" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="py-8">
+                <Loader2 className="w-12 h-12 text-brand animate-spin mx-auto mb-6" />
+                <h2 className="text-[22px] font-bold text-text-main mb-2">{translations.welcomeTitle[lang || 'vi']}</h2>
+                <p className="text-[15px] font-medium text-text-muted">{translations.loadingData[lang || 'vi']}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Define translated categories array
+  const activeCategories = [t('allResources'), 'Aimbet', 'Bypass', 'ProxyPin', 'Scripts', 'Macros', 'MOD'];
+
+  if (isAppLoading && lang) {
+    return (
+      <div className="fixed inset-0 bg-slate-50 z-[9999] flex flex-col justify-center items-center">
+        <Loader2 className="w-10 h-10 text-brand animate-spin mb-4" />
+        <h2 className="text-slate-700 font-medium text-[16px]">{t('loadingData')}</h2>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-[100dvh] overflow-hidden bg-bg-app text-text-main font-sans selection:bg-brand selection:text-white">
+      
+      {/* ========================================================================= */}
+      {/* TOP NAVBAR */}
+      {/* ========================================================================= */}
+      <nav className="sticky top-0 z-40 bg-card-bg/95 backdrop-blur-xl border-b border-border-subtle px-4 sm:px-8 py-3.5 flex items-center justify-between gap-3 shadow-[0_4px_30px_rgba(0,0,0,0.02)]">
+        
+        {/* Logo Section */}
+        <div 
+          onClick={() => { setCurrentView('home'); setSelectedItem(null); }} 
+          className="flex items-center gap-3 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+        >
+          <img src="https://img2.pic.in.th/IMG_0060.png" alt="Logo" className="h-9 sm:h-10 object-contain drop-shadow-sm" />
+        </div>
+        
+        {/* Center Search Bar */}
+        <div className="flex-1 max-w-2xl relative mx-auto">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <Search className="h-4 w-4 text-slate-400" />
+          </div>
+          <input 
+            type="text" 
+            placeholder={t('searchPlaceholder')}
+            value={searchQuery}
+            onChange={handleSearchChange}
+            className="w-full py-2.5 pl-11 pr-4 bg-bg-app border border-border-subtle focus:bg-card-bg rounded-[16px] text-[14px] sm:text-[15px] shadow-inner focus:outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 transition-all placeholder:text-text-muted font-normal text-text-main"
+          />
+        </div>
+
+        {/* Right Actions & Burger Menu */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0 relative">
+          
+          <button 
+            onClick={toggleTheme}
+            className="p-2 sm:p-2.5 text-text-muted bg-card-bg border border-border-subtle hover:bg-bg-app rounded-[12px] transition-colors shadow-sm"
+          >
+            {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5 text-amber-400" />}
+          </button>
+
+          <button 
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="p-2 sm:p-2.5 text-text-muted bg-card-bg border border-border-subtle hover:bg-bg-app rounded-[12px] transition-colors shadow-sm"
+          >
+            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
+      </nav>
+
+      {/* ANNOUNCEMENT BANNER */}
+      <div className="bg-brand overflow-hidden h-8 relative flex items-center shrink-0 w-full">
+        <div className="animate-marquee flex items-center h-full absolute whitespace-nowrap px-4">
+          <div className="shrink-0 flex items-center whitespace-nowrap">
+            <svg stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 shrink-0 mx-3 text-white" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <span className="text-xs font-medium text-white">
+              {t('marquee')}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* BURGER MENU DROPDOWN */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="fixed inset-0 top-[68px] bg-black/40 backdrop-blur-sm z-40"
+            />
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="absolute top-[68px] right-0 sm:right-6 w-full sm:w-[280px] bg-card-bg border-b sm:border border-border-subtle sm:rounded-[24px] shadow-2xl z-50 p-4 flex flex-col gap-1.5"
+            >
+              <button 
+                onClick={() => { setIsMobileMenuOpen(false); setCurrentView('home'); setSelectedItem(null); }} 
+                className="flex items-center gap-3 p-3.5 rounded-[16px] hover:bg-brand-light text-left font-medium text-text-main hover:text-brand transition-colors w-full group"
+              >
+                <Home className="w-5 h-5 text-text-muted group-hover:text-brand transition-colors" /> {t('home')}
+              </button>
+              <button 
+                onClick={() => { setIsMobileMenuOpen(false); setCurrentView('help'); setSelectedItem(null); }} 
+                className="flex items-center gap-3 p-3.5 rounded-[16px] hover:bg-brand-light text-left font-medium text-text-main hover:text-brand transition-colors w-full group"
+              >
+                <HelpCircle className="w-5 h-5 text-text-muted group-hover:text-brand transition-colors" /> {t('help')}
+              </button>
+              <button 
+                onClick={() => { setIsMobileMenuOpen(false); setShowSocialsModal(true); }} 
+                className="flex items-center gap-3 p-3.5 rounded-[16px] hover:bg-brand-light text-left font-medium text-text-main hover:text-brand transition-colors w-full group"
+              >
+                <Share2 className="w-5 h-5 text-text-muted group-hover:text-brand transition-colors" /> {t('socials')}
+              </button>
+              <button 
+                onClick={() => { setIsMobileMenuOpen(false); setShowFeedbackModal(true); }} 
+                className="flex items-center gap-3 p-3.5 rounded-[16px] hover:bg-brand-light text-left font-medium text-text-main hover:text-brand transition-colors w-full group mb-2"
+              >
+                <MessageSquare className="w-5 h-5 text-text-muted group-hover:text-brand transition-colors" /> {t('feedbackMenu')}
+              </button>
+              
+              <div className="h-px bg-border-subtle w-full mb-1"></div>
+
+              {/* AUTH MENU */}
+              {currentUser ? (
+                <div className="flex flex-col gap-1.5">
+                  <div className="px-3.5 py-2">
+                    <p className="text-xs text-text-muted">{t('loginAs')}</p>
+                    <p className="font-semibold text-sm truncate">{currentUser.username}</p>
+                    <p className="text-xs truncate text-text-muted">{currentUser.email}</p>
+                  </div>
+                  <button 
+                    onClick={handleLogout}
+                    className="flex items-center gap-3 p-3.5 rounded-[16px] hover:bg-red-50 dark:hover:bg-red-500/10 text-left font-medium text-red-600 transition-colors w-full group mb-2"
+                  >
+                    <LogOut className="w-5 h-5 text-red-500 group-hover:text-red-600 transition-colors" /> {t('logout')}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button 
+                    onClick={() => { setIsMobileMenuOpen(false); setAuthModalType('login'); }} 
+                    className="flex items-center gap-3 p-3.5 rounded-[16px] hover:bg-brand-light text-left font-medium text-text-main hover:text-brand transition-colors w-full group"
+                  >
+                    <Lock className="w-5 h-5 text-text-muted group-hover:text-brand transition-colors" /> {t('login')}
+                  </button>
+                  <button 
+                    onClick={() => { setIsMobileMenuOpen(false); setAuthModalType('register'); }} 
+                    className="flex items-center gap-3 p-3.5 rounded-[16px] hover:bg-brand-light text-left font-medium text-text-main hover:text-brand transition-colors w-full group mb-2"
+                  >
+                    <UserPlus className="w-5 h-5 text-text-muted group-hover:text-brand transition-colors" /> {t('register')}
+                  </button>
+                </>
+              )}
+
+              <div className="h-px bg-border-subtle w-full mb-1"></div>
+              
+              <button 
+                onClick={() => { setIsMobileMenuOpen(false); setLang(lang === 'vi' ? 'th' : 'vi'); localStorage.setItem('appLang', lang === 'vi' ? 'th' : 'vi'); }} 
+                className="flex items-center gap-3 p-3.5 rounded-[16px] hover:bg-bg-app text-left font-medium text-text-main transition-colors w-full group mt-1"
+              >
+                <RefreshCcw className="w-5 h-5 text-text-muted group-hover:text-amber-500 transition-colors" /> 
+                <span className="flex-1">{t('changeLang')}</span>
+                <span className="text-xl leading-none">{lang === 'vi' ? '🇻🇳' : '🇹🇭'}</span>
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ========================================================================= */}
+      {/* MAIN CONTENT AREA */}
+      {/* ========================================================================= */}
+      <main className="flex-1 overflow-y-auto w-full relative">
+        <AnimatePresence mode="wait">
+          
+          {/* ---------------------------------------------------- */}
+          {/* PAGE 1: RESOURCES GRID */}
+          {/* ---------------------------------------------------- */}
+          {currentView === 'home' && (
+            <motion.div 
+              key="grid-view"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="max-w-[1600px] mx-auto px-4 sm:px-8 py-8 w-full"
+            >
+              <div className="mb-6 sm:mb-8">
+                <h1 className="text-[20px] sm:text-[24px] lg:text-[28px] font-semibold text-slate-900 m-0 leading-tight tracking-tight">{t('welcomeTitle')}</h1>
+                <p className="text-slate-500 text-[13px] sm:text-[14px] mt-1.5 font-normal mb-5 leading-relaxed max-w-2xl">{t('welcomeDesc')}</p>
+                
+                {/* Promotional Banner */}
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.4, delay: 0.1 }}
+                  className="w-full mb-6 rounded-[16px] sm:rounded-[20px] overflow-hidden shadow-sm border border-slate-100 bg-white relative shiny-effect"
+                >
+                  <img 
+                    alt="Carousel" 
+                    fetchPriority="high" 
+                    loading="eager" 
+                    width="1200" 
+                    height="400" 
+                    decoding="async" 
+                    className="w-full h-auto object-cover object-center max-h-[100px] sm:max-h-[140px] md:max-h-[180px] lg:max-h-[220px]" 
+                    src="https://img2.pic.in.th/Banner-Discord.png" 
+                  />
+                </motion.div>
+
+                <div className="flex items-center gap-3 overflow-x-auto pb-4 hide-scrollbar">
+                  {activeCategories.map((tab) => {
+                    const isActive = activeCategory === (tab === t('allResources') ? 'Tất cả tài nguyên' : tab);
+                    return (
+                      <button
+                        key={tab}
+                        onClick={() => setActiveCategory(tab === t('allResources') ? 'Tất cả tài nguyên' : tab)}
+                        className={`flex items-center gap-2 whitespace-nowrap px-5 py-3 rounded-[16px] text-[14px] font-medium transition-all duration-200 ${
+                          isActive 
+                            ? 'bg-brand text-white shadow-lg shadow-brand/20' 
+                            : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                        }`}
+                      >
+                        {tab === t('allResources') ? <LayoutGrid className="w-4 h-4" /> : 
+                         tab === 'Backgrounds' ? <Layers className="w-4 h-4" /> :
+                         <Archive className="w-4 h-4" />}
+                        {tab}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 pb-20">
+                <AnimatePresence mode="popLayout">
+                  {filteredResources.map((item, index) => (
+                    <motion.div 
+                      layout
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.2, delay: index * 0.03 }}
+                      key={item.id}
+                      onClick={() => handleOpenDetails(item)}
+                      className="group bg-white rounded-[24px] p-2.5 border border-slate-100 shadow-[0_8px_30px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_40px_rgba(106,154,251,0.12)] hover:-translate-y-1.5 transition-all duration-300 cursor-pointer flex flex-col"
+                    >
+                      <div className="h-[180px] bg-slate-100 rounded-[18px] overflow-hidden relative">
+                        <motion.img 
+                          whileHover={{ scale: 1.05 }}
+                          transition={{ duration: 0.4 }}
+                          src={item.imageUrl} 
+                          alt={getLocalized(item.title)} 
+                          className="w-full h-full object-cover" 
+                          referrerPolicy="no-referrer" 
+                        />
+                        <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-md px-3 py-1.5 text-[11px] font-medium text-brand rounded-full shadow-sm">
+                          {item.category}
+                        </div>
+                      </div>
+                      
+                      <div className="p-4 flex-1 flex flex-col">
+                        <h3 className="text-[17px] font-medium text-slate-800 mb-1.5 leading-snug line-clamp-1 group-hover:text-brand transition-colors">{getLocalized(item.title)}</h3>
+                        <p className="text-[13px] text-slate-500 leading-relaxed mb-4 line-clamp-2 min-h-[40px] font-normal">
+                          {getLocalized(item.shortDescription)}
+                        </p>
+                        
+                        <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-50">
+                          <div className="flex items-center gap-2 text-[12px] font-medium text-slate-400">
+                            <FileText className="w-3.5 h-3.5" />
+                            {item.fileSize || '--'} MB
+                          </div>
+                          <button 
+                            onClick={(e) => handleGetLink(e, item)}
+                            className="bg-brand-light text-brand p-2.5 rounded-[12px] group-hover:bg-brand group-hover:text-white transition-all shadow-sm group-hover:shadow-brand/30"
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+                
+                {filteredResources.length === 0 && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="col-span-full py-28 flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-100 rounded-[32px] bg-white/50 backdrop-blur-sm"
+                  >
+                    <div className="w-16 h-16 bg-slate-50 border border-slate-100 rounded-[20px] flex items-center justify-center mb-4">
+                      <Archive className="w-8 h-8 text-slate-300" />
+                    </div>
+                    <h3 className="text-[18px] font-semibold text-slate-700">{t('emptyTitle')}</h3>
+                    <p className="text-[14px] mt-2 font-normal text-slate-500 max-w-sm text-center">{t('emptyDesc')}</p>
+                  </motion.div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* ---------------------------------------------------- */}
+          {/* PAGE 2: ITEM DETAILS PAGE */}
+          {/* ---------------------------------------------------- */}
+          {currentView === 'details' && selectedItem && (
+            <motion.div 
+              key="details-view"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="max-w-[1000px] mx-auto px-5 sm:px-8 py-6 sm:py-8 pb-32 sm:pb-12 w-full"
+            >
+              <button 
+                onClick={() => { setCurrentView('home'); setSelectedItem(null); }}
+                className="flex items-center gap-2 text-slate-500 hover:text-brand font-medium mb-6 transition-colors group px-2 text-[14px] sm:text-[15px]"
+              >
+                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 group-hover:-translate-x-1 transition-transform" />
+                {t('backToHome')}
+              </button>
+
+              <div className="flex flex-col lg:flex-row gap-6 lg:gap-12">
+                <div className="w-full lg:w-1/2">
+                  <div className="w-full aspect-[4/3] sm:aspect-video lg:aspect-[4/3] bg-slate-100 rounded-[24px] sm:rounded-[32px] overflow-hidden relative shadow-lg shadow-slate-200/50">
+                    <img src={selectedItem.imageUrl} alt={getLocalized(selectedItem.title)} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    <div className="absolute top-4 left-4 bg-white/80 backdrop-blur-md px-3 py-1.5 text-[11px] sm:text-[12px] font-medium text-slate-800 rounded-full shadow-sm">
+                      {selectedItem.category}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="w-full lg:w-1/2 flex flex-col">
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {selectedItem.tags.map((tag, idx) => (
+                      <span key={idx} className="bg-brand-light text-brand px-3 py-1 rounded-full text-[11px] sm:text-[12px] font-medium">
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                  
+                  <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 mb-5 tracking-tight leading-[1.3]">
+                    {getLocalized(selectedItem.title)}
+                  </h1>
+
+                  {/* Video Clip Button */}
+                  <button className="w-full flex items-center gap-3 px-4 py-3 rounded-[12px] transition-all hover:opacity-80 border border-slate-200 bg-white text-slate-800 shadow-sm mb-4">
+                    <Play className="w-4 h-4 opacity-50" fill="currentColor" />
+                    <div className="flex-1 text-left line-clamp-1">
+                      <p className="text-xs font-semibold">{t('videoPreviewTitle')}</p>
+                      <p className="text-[10px] text-slate-500">{t('videoPreviewDesc')}</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 opacity-30" />
+                  </button>
+
+                  {/* Details Block */}
+                  <div className="rounded-[16px] p-4 sm:p-5 mb-5 bg-white border border-slate-200 shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-brand/60"></div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider mb-2.5 text-slate-400">
+                      {t('infoTitle')}
+                    </p>
+                    <p className="text-[13px] sm:text-[14px] leading-relaxed break-words whitespace-pre-line text-slate-700 font-normal markdown-body">
+                      {getLocalized(selectedItem.fullDescription)}
+                    </p>
+                  </div>
+
+                  {selectedItem.warning && (
+                    <div className="text-red-700 border-l-4 border-red-400 bg-red-50 p-4 rounded-[12px] sm:rounded-[16px] flex gap-3 mb-6">
+                      <ShieldAlert className="w-5 h-5 shrink-0 mt-0.5 text-red-500" />
+                      <div>
+                        <div className="font-medium mb-0.5 text-[13px] sm:text-[14px]">{t('friendlyNote')}</div>
+                        <div className="text-[12px] sm:text-[13px] leading-relaxed opacity-90 font-normal">{getLocalized(selectedItem.warning)}</div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-auto grid grid-cols-2 gap-4 p-4 sm:p-5 bg-slate-50 rounded-[16px] sm:rounded-[20px] mb-6">
+                    <div>
+                      <p className="text-[10px] sm:text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">{t('fileSize')}</p>
+                      <p className="text-[14px] sm:text-[15px] font-medium text-slate-800 flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-slate-400" /> {selectedItem.fileSize || 'N/A'} MB
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] sm:text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">{t('dateAdded')}</p>
+                      <p className="text-[14px] sm:text-[15px] font-medium text-slate-800">{selectedItem.dateAdded}</p>
+                    </div>
+                  </div>
+
+                  {selectedItem.downloadLinks && selectedItem.downloadLinks.length > 0 ? (
+                    <div className="flex flex-col gap-3">
+                      <h3 className="text-[14px] font-semibold text-slate-700">{t('downloadVersion')}</h3>
+                      {selectedItem.downloadLinks.map((dl, idx) => (
+                        <button 
+                          key={idx}
+                          onClick={() => handleGetLink(undefined, selectedItem, dl.url)}
+                          className="w-full py-4 bg-brand text-white rounded-[16px] sm:rounded-[20px] font-medium text-[15px] sm:text-[16px] text-center hover:opacity-90 hover:shadow-xl hover:shadow-brand/30 active:scale-95 transition-all flex items-center justify-center gap-3 group"
+                        >
+                          <Download className="w-5 h-5 sm:w-6 sm:h-6 fill-white/20 group-hover:-translate-y-1 transition-transform" />
+                          {dl.label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={() => handleGetLink(undefined, selectedItem)}
+                      className="w-full py-4 bg-brand text-white rounded-[16px] sm:rounded-[20px] font-medium text-[15px] sm:text-[16px] text-center hover:opacity-90 hover:shadow-xl hover:shadow-brand/30 active:scale-95 transition-all flex items-center justify-center gap-3 group"
+                    >
+                      <Download className="w-5 h-5 sm:w-6 sm:h-6 fill-white/20 group-hover:-translate-y-1 transition-transform" />
+                      {t('freeDownload')}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ---------------------------------------------------- */}
+          {/* PAGE 3: HELP & FAQ PAGE */}
+          {/* ---------------------------------------------------- */}
+          {currentView === 'help' && (
+             <motion.div 
+               key="help-view"
+               initial={{ opacity: 0, y: 10 }}
+               animate={{ opacity: 1, y: 0 }}
+               exit={{ opacity: 0, y: -10 }}
+               transition={{ duration: 0.2 }}
+               className="max-w-[1000px] mx-auto px-4 sm:px-8 py-8 w-full"
+             >
+               <button 
+                 onClick={() => setCurrentView('home')}
+                 className="flex items-center gap-2 text-slate-500 hover:text-brand font-medium mb-8 transition-colors group px-2"
+               >
+                 <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                 {t('backHelp')}
+               </button>
+
+               <div className="bg-white rounded-[24px] sm:rounded-[32px] p-6 sm:p-10 shadow-sm border border-slate-100 mb-8">
+                 <h1 className="text-xl sm:text-2xl font-semibold text-slate-800 mb-2">{t('helpHeader')}</h1>
+                 <p className="text-slate-500 font-normal mb-8 sm:mb-10 text-[14px] sm:text-[15px]">{t('helpSubHeader')}</p>
+                 
+                 {/* How to use */}
+                 <div className="mb-10 sm:mb-12">
+                   <h2 className="text-[16px] sm:text-[18px] font-semibold text-brand mb-5 flex items-center gap-2">
+                      <LayoutGrid className="w-4 h-4 sm:w-5 sm:h-5"/> {t('howToUse')}
+                   </h2>
+                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+                     <div className="bg-slate-50 p-5 sm:p-6 rounded-[20px] sm:rounded-[24px]">
+                       <div className="w-8 h-8 sm:w-10 sm:h-10 bg-brand-light text-brand rounded-full flex items-center justify-center font-medium mb-3 sm:mb-4 text-[14px] sm:text-[16px]">1</div>
+                       <h3 className="font-medium text-[14px] sm:text-[15px] text-slate-800 mb-2">{t('step1Title')}</h3>
+                       <p className="text-[13px] sm:text-[14px] font-normal text-slate-500 leading-relaxed">{t('step1Desc')}</p>
+                     </div>
+                     <div className="bg-slate-50 p-5 sm:p-6 rounded-[20px] sm:rounded-[24px]">
+                       <div className="w-8 h-8 sm:w-10 sm:h-10 bg-brand-light text-brand rounded-full flex items-center justify-center font-medium mb-3 sm:mb-4 text-[14px] sm:text-[16px]">2</div>
+                       <h3 className="font-medium text-[14px] sm:text-[15px] text-slate-800 mb-2">{t('step2Title')}</h3>
+                       <p className="text-[13px] sm:text-[14px] font-normal text-slate-500 leading-relaxed">{t('step2Desc')}</p>
+                     </div>
+                     <div className="bg-slate-50 p-5 sm:p-6 rounded-[20px] sm:rounded-[24px]">
+                       <div className="w-8 h-8 sm:w-10 sm:h-10 bg-brand-light text-brand rounded-full flex items-center justify-center font-medium mb-3 sm:mb-4 text-[14px] sm:text-[16px]">3</div>
+                       <h3 className="font-medium text-[14px] sm:text-[15px] text-slate-800 mb-2">{t('step3Title')}</h3>
+                       <p className="text-[13px] sm:text-[14px] font-normal text-slate-500 leading-relaxed">{t('step3Desc')}</p>
+                     </div>
+                   </div>
+                 </div>
+
+                 {/* FAQ */}
+                 <div>
+                    <h2 className="text-[16px] sm:text-[18px] font-semibold text-brand mb-5 flex items-center gap-2">
+                      <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5"/> Câu hỏi thường gặp (FAQ)
+                    </h2>
+                    <div className="space-y-3 sm:space-y-4">
+                      <div className="border border-slate-100 rounded-[16px] sm:rounded-[20px] p-5 sm:p-6 hover:shadow-md transition-shadow bg-white">
+                        <h3 className="font-medium text-slate-800 mb-2 text-[14px] sm:text-[15px]">Q: Tải miễn phí thật không? Có mất tiền không?</h3>
+                        <p className="text-[13px] sm:text-[14px] font-normal text-slate-500 leading-relaxed">A: Miễn phí 100%. Các script và công cụ được chia sẻ để sử dụng miễn phí trên kênh YouTube. Không thu bất kỳ khoản phí nào.</p>
+                      </div>
+                      <div className="border border-slate-100 rounded-[16px] sm:rounded-[20px] p-5 sm:p-6 hover:shadow-md transition-shadow bg-white">
+                        <h3 className="font-medium text-slate-800 mb-2 text-[14px] sm:text-[15px]">Q: Script có an toàn không, có bị cấm (ban) không?</h3>
+                        <p className="text-[13px] sm:text-[14px] font-normal text-slate-500 leading-relaxed">A: Chúng tôi đã cố gắng chọn lọc các script an toàn nhất. Nhưng lưu ý hệ thống game có thể cập nhật, vui lòng thử trên tài khoản phụ trước khi dùng chính thức!</p>
+                      </div>
+                      <div className="border border-slate-100 rounded-[16px] sm:rounded-[20px] p-5 sm:p-6 hover:shadow-md transition-shadow bg-white">
+                        <h3 className="font-medium text-slate-800 mb-2 text-[14px] sm:text-[15px]">Q: Liên kết bị hỏng, không tải được thì phải làm sao?</h3>
+                        <p className="text-[13px] sm:text-[14px] font-normal text-slate-500 leading-relaxed">A: Nếu liên kết không hoạt động, vui lòng bình luận dưới video YouTube kênh Vireth Hub để được khắc phục sớm nhất.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Feedback CTA */}
+                  <div className="mt-12 bg-brand/5 border border-brand/20 p-6 sm:p-8 rounded-[24px] sm:rounded-[32px] text-center flex flex-col items-center">
+                    <div className="w-12 h-12 bg-brand-light rounded-full flex items-center justify-center mb-4">
+                      <MessageSquare className="w-6 h-6 text-brand" />
+                    </div>
+                    <h3 className="text-[16px] sm:text-[18px] font-semibold text-brand mb-2">{t('feedbackMenu')}</h3>
+                    <p className="text-[14px] text-slate-500 mb-6 max-w-sm">{t('feedbackDesc')}</p>
+                    <button 
+                      onClick={() => setShowFeedbackModal(true)} 
+                      className="px-6 py-2.5 bg-brand text-white font-medium rounded-full hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all w-full sm:w-auto flex items-center justify-center gap-2"
+                    >
+                      {t('feedbackTitle')} <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+               </div>
+             </motion.div>
+          )}
+
+        </AnimatePresence>
+
+        {/* ========================================================================= */}
+        {/* GLOBAL FOOTER */}
+        {/* ========================================================================= */}
+        <footer className="w-full border-t border-slate-200/60 bg-white/50 backdrop-blur-sm mt-8">
+          <div className="max-w-[1600px] mx-auto px-4 sm:px-8 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="text-center md:text-left flex flex-col items-center md:items-start">
+              <img src="https://img2.pic.in.th/IMG_0060.png" alt="Logo" className="h-6 sm:h-7 object-contain drop-shadow-sm mb-1 opacity-80 mix-blend-multiply" />
+              <p className="text-[13px] text-slate-500 mt-1">{t('footerDesc')}</p>
+            </div>
+            <div className="flex items-center gap-6 text-[13px] font-medium text-slate-500">
+              <button onClick={() => setCurrentView('help')} className="hover:text-brand transition-colors">{t('help')}</button>
+              <button onClick={() => setShowSocialsModal(true)} className="hover:text-brand transition-colors">{t('socialsFollow')}</button>
+            </div>
+            <div className="text-[12px] text-slate-400">
+              &copy; {new Date().getFullYear()} Vireth Hub. All rights reserved.
+            </div>
+          </div>
+        </footer>
+
+      </main>
+
+      {/* ========================================================================= */}
+      {/* SOCIALS MODAL */}
+      {/* ========================================================================= */}
+      <AnimatePresence>
+        {showSocialsModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+             <motion.div 
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               exit={{ opacity: 0 }}
+               className="absolute inset-0 bg-black/40 backdrop-blur-md"
+               onClick={() => setShowSocialsModal(false)}
+             />
+             <motion.div 
+               initial={{ opacity: 0, scale: 0.95, y: 20 }}
+               animate={{ opacity: 1, scale: 1, y: 0 }}
+               exit={{ opacity: 0, scale: 0.95, y: 20 }}
+               className="bg-card-bg w-full max-w-[360px] p-6 sm:p-8 rounded-[24px] sm:rounded-[32px] shadow-[0_20px_60px_rgba(0,0,0,0.15)] relative border border-border-subtle z-10 max-h-[90dvh] overflow-y-auto hide-scrollbar"
+             >
+               <button 
+                 onClick={() => setShowSocialsModal(false)}
+                 className="absolute top-5 right-5 bg-bg-app text-text-muted hover:text-text-main hover:bg-border-subtle p-2.5 rounded-full transition-colors"
+               >
+                 <X className="w-5 h-5" />
+               </button>
+
+               <div className="text-center mb-6 mt-2">
+                 <div className="w-16 h-16 bg-brand-light rounded-[20px] flex items-center justify-center mx-auto mb-4">
+                    <Share2 className="w-8 h-8 text-brand" />
+                 </div>
+                 <h2 className="m-0 mb-2 text-xl font-semibold text-text-main">{t('socialsFollow')}</h2>
+                 <p className="text-[14px] text-text-muted font-normal">{t('socialsFamily')}</p>
+               </div>
+
+               <div className="space-y-3">
+                 <a href="#" onClick={(e) => { e.preventDefault(); alert(t('fbLink')); }} className="flex items-center gap-4 bg-bg-app hover:bg-brand hover:text-white group p-4 rounded-[16px] transition-all cursor-pointer border border-transparent hover:border-brand">
+                   <Facebook className="w-5 h-5 text-[#1877F2] group-hover:text-white transition-colors" />
+                   <span className="font-medium text-text-main group-hover:text-white transition-colors">Assets Hub Fanpage</span>
+                 </a>
+                 <a href="#" onClick={(e) => { e.preventDefault(); alert(t('igLink')); }} className="flex items-center gap-4 bg-bg-app hover:bg-brand hover:text-white group p-4 rounded-[16px] transition-all cursor-pointer border border-transparent hover:border-brand">
+                   <Instagram className="w-5 h-5 text-[#E4405F] group-hover:text-white transition-colors" />
+                   <span className="font-medium text-text-main group-hover:text-white transition-colors">@assetshub.th</span>
+                 </a>
+                 <a href="#" onClick={(e) => { e.preventDefault(); alert(t('dcLink')); }} className="flex items-center gap-4 bg-bg-app hover:bg-brand hover:text-white group p-4 rounded-[16px] transition-all cursor-pointer border border-transparent hover:border-brand">
+                   <MessageCircle className="w-5 h-5 text-[#00B2FF] group-hover:text-white transition-colors" />
+                   <span className="font-medium text-text-main group-hover:text-white transition-colors">Assets Community</span>
+                 </a>
+               </div>
+             </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ========================================================================= */}
+      {/* FEEDBACK MODAL */}
+      {/* ========================================================================= */}
+      <AnimatePresence>
+        {showFeedbackModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+             <motion.div 
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               exit={{ opacity: 0 }}
+               className="absolute inset-0 bg-black/40 backdrop-blur-md"
+               onClick={() => setShowFeedbackModal(false)}
+             />
+             <motion.div 
+               initial={{ opacity: 0, scale: 0.95, y: 20 }}
+               animate={{ opacity: 1, scale: 1, y: 0 }}
+               exit={{ opacity: 0, scale: 0.95, y: 20 }}
+               className="bg-card-bg w-full max-w-[400px] p-6 sm:p-8 rounded-[24px] sm:rounded-[32px] shadow-[0_20px_60px_rgba(0,0,0,0.15)] relative border border-border-subtle z-10"
+             >
+               <button 
+                 onClick={() => setShowFeedbackModal(false)}
+                 className="absolute top-5 right-5 bg-bg-app text-text-muted hover:text-text-main hover:bg-border-subtle p-2.5 rounded-full transition-colors"
+               >
+                 <X className="w-5 h-5" />
+               </button>
+
+               <div className="text-center mb-6 mt-2">
+                 <div className="w-16 h-16 bg-brand-light rounded-[20px] flex items-center justify-center mx-auto mb-4">
+                    <MessageSquare className="w-8 h-8 text-brand" />
+                 </div>
+                 <h2 className="m-0 mb-2 text-xl font-semibold text-text-main">{t('feedbackTitle')}</h2>
+                 <p className="text-[14px] text-text-muted font-normal">{t('feedbackDesc')}</p>
+               </div>
+
+               {feedbackStatus === 'success' ? (
+                 <motion.div 
+                   initial={{ opacity: 0, scale: 0.9 }}
+                   animate={{ opacity: 1, scale: 1 }}
+                   className="text-center py-6 bg-emerald-900/20 rounded-[20px] border border-emerald-500/20"
+                 >
+                   <span className="text-4xl mb-3 block">🎉</span>
+                   <span className="text-emerald-500 font-medium">
+                     {t('feedbackSuccess')}
+                   </span>
+                 </motion.div>
+               ) : (
+                 <div className="flex flex-col gap-4">
+                   <textarea 
+                     value={feedbackText}
+                     onChange={(e) => setFeedbackText(e.target.value)}
+                     placeholder={t('feedbackPlaceholder')}
+                     className="w-full bg-bg-app border border-border-subtle rounded-[20px] p-4 text-[14px] sm:text-[15px] focus:outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 h-[120px] resize-none transition-all placeholder:text-text-muted/50 text-text-main"
+                   />
+                   <button 
+                     disabled={!feedbackText.trim() || feedbackStatus === 'submitting'}
+                     onClick={() => {
+                        setFeedbackStatus('submitting');
+                        setTimeout(() => {
+                          setFeedbackStatus('success');
+                          setTimeout(() => {
+                             setShowFeedbackModal(false);
+                             setFeedbackText('');
+                             setFeedbackStatus('idle');
+                          }, 2000);
+                        }, 1000);
+                     }}
+                     className={`w-full py-4 rounded-[20px] font-medium text-[15px] transition-all flex items-center justify-center gap-2 ${
+                       feedbackText.trim() && feedbackStatus !== 'submitting' 
+                         ? 'bg-brand text-white hover:shadow-xl hover:shadow-brand/30 active:scale-95 cursor-pointer' 
+                         : 'bg-bg-app text-text-muted cursor-not-allowed border border-border-subtle'
+                     }`}
+                   >
+                     {feedbackStatus === 'submitting' ? <Loader2 className="w-5 h-5 animate-spin" /> : t('feedbackSubmit')}
+                   </button>
+                 </div>
+               )}
+             </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ========================================================================= */}
+      {/* reCAPTCHA VERIFICATION MODAL */}
+      {/* ========================================================================= */}
+      <AnimatePresence>
+        {showVerifyModal && selectedItem && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-card-bg w-full max-w-[420px] p-6 sm:p-8 rounded-[24px] sm:rounded-[32px] shadow-[0_20px_60px_rgba(0,0,0,0.15)] relative border border-border-subtle z-10 max-h-[90dvh] overflow-y-auto hide-scrollbar"
+            >
+              <button 
+                onClick={() => setShowVerifyModal(false)}
+                className="absolute top-5 right-5 bg-bg-app text-text-muted hover:text-text-main hover:bg-border-subtle p-2.5 rounded-full transition-colors z-20"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              
+              <div className="text-center mb-8 mt-2">
+                <div className="w-16 h-16 bg-brand-light rounded-[20px] flex items-center justify-center mx-auto mb-4">
+                   <ShieldAlert className="w-8 h-8 text-brand" />
+                </div>
+                <h2 className="m-0 mb-2 text-[22px] font-semibold text-text-main">{t('verifySafe')}</h2>
+                <p className="text-[14px] text-text-muted font-normal mb-4">{t('verifyHuman')}</p>
+                
+                {/* Anti-VPN Warning Banner */}
+                <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-[12px] text-left flex items-start gap-3">
+                  <ShieldAlert className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="text-[13px] font-semibold text-red-500 mb-0.5">{t('verifyWarning')}</h3>
+                    <p className="text-[12px] text-red-500/80 leading-relaxed" dangerouslySetInnerHTML={{ __html: t('verifyWarningDesc') }}></p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Steps Container */}
+              <div className="flex flex-col gap-3 mb-6">
+                
+                {/* Step 1 */}
+                <div className="bg-bg-app border border-border-subtle rounded-[16px] p-4 shadow-sm flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                     <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step1Status === 'completed' ? 'bg-emerald-500/20 text-emerald-500' : step1Status === 'error' ? 'bg-red-500/20 text-red-500' : 'bg-rose-500/20 text-rose-500'}`}>
+                        {step1Status === 'completed' ? <Check className="w-4 h-4" /> : <Youtube className="w-4 h-4" />}
+                     </div>
+                     <div className="flex flex-col">
+                       <span className={`text-[15px] font-medium tracking-tight ${step1Status === 'completed' ? 'text-text-muted line-through' : 'text-text-main'}`}>
+                         {t('verifyYT')}
+                       </span>
+                       {step1Status === 'checking' && <span className="text-[12px] text-brand font-medium">{t('verifyYTWait')}</span>}
+                       {step1Status === 'error' && <span className="text-[12px] text-red-500 font-medium">{t('verifyYTErr')}</span>}
+                     </div>
+                  </div>
+                  <button 
+                    onClick={() => { window.open('https://youtube.com', '_blank'); step1OpenedAt.current = Date.now(); setStep1Status('checking'); }}
+                    disabled={step1Status === 'completed'}
+                    className={`px-4 py-2 rounded-[12px] text-[13px] font-medium transition-all flex-shrink-0 flex items-center gap-2 ${
+                      step1Status === 'completed' ? 'bg-emerald-500 text-white opacity-70 cursor-not-allowed' : 
+                      step1Status === 'checking' ? 'bg-amber-500 text-white cursor-pointer hover:bg-amber-600 animate-pulse' :
+                      'bg-rose-600 text-white hover:bg-rose-700 shadow-sm cursor-pointer'
+                    }`}
+                  >
+                    {step1Status === 'checking' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    {step1Status === 'completed' ? t('verifyDone') : step1Status === 'checking' ? t('verifyCheck') : step1Status === 'error' ? t('verifyRetry') : t('verifyDo')}
+                  </button>
+                </div>
+
+                {/* Step 2 */}
+                <div className="bg-bg-app border border-border-subtle rounded-[16px] p-4 shadow-sm flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                     <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step2Status === 'completed' ? 'bg-emerald-500/20 text-emerald-500' : step2Status === 'error' ? 'bg-red-500/20 text-red-500' : 'bg-blue-500/20 text-blue-500'}`}>
+                        {step2Status === 'completed' ? <Check className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+                     </div>
+                     <div className="flex flex-col">
+                       <span className={`text-[15px] font-medium tracking-tight ${step2Status === 'completed' ? 'text-text-muted line-through' : 'text-text-main'}`}>
+                         {t('verifyTG')}
+                       </span>
+                       {step2Status === 'checking' && <span className="text-[12px] text-brand font-medium">{t('verifyTGWait')}</span>}
+                       {step2Status === 'error' && <span className="text-[12px] text-red-500 font-medium">{t('verifyTGErr')}</span>}
+                     </div>
+                  </div>
+                  <button 
+                    onClick={() => { window.open('https://t.me', '_blank'); step2OpenedAt.current = Date.now(); setStep2Status('checking'); }}
+                    disabled={step2Status === 'completed'}
+                    className={`px-4 py-2 rounded-[12px] text-[13px] font-medium transition-all flex-shrink-0 flex items-center gap-2 ${
+                      step2Status === 'completed' ? 'bg-emerald-500 text-white opacity-70 cursor-not-allowed' : 
+                      step2Status === 'checking' ? 'bg-amber-500 text-white cursor-pointer hover:bg-amber-600 animate-pulse' :
+                      'bg-[#0088cc] text-white hover:bg-[#0077b3] shadow-sm cursor-pointer'
+                    }`}
+                  >
+                    {step2Status === 'checking' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    {step2Status === 'completed' ? t('verifyDone') : step2Status === 'checking' ? t('verifyCheck') : step2Status === 'error' ? t('verifyRetry') : t('verifyDo')}
+                  </button>
+                </div>
+
+                {/* Step 3 (Verified Check Block) */}
+                <div className={`flex justify-center transition-opacity duration-300 ${(step1Status !== 'completed' || step2Status !== 'completed') ? 'opacity-60 grayscale pointer-events-none' : 'opacity-100'}`}>
+                  {isChecked ? (
+                     <div className="bg-emerald-50 border border-emerald-200 rounded-[16px] p-4 text-emerald-600 flex items-center justify-center gap-3 w-full shadow-sm">
+                       <Check className="w-5 h-5"/> {t('noRobot')} - Verified
+                     </div>
+                  ) : isNetworkChecking ? (
+                     <div className="bg-bg-app border border-border-subtle rounded-[16px] p-4 text-brand flex items-center justify-center gap-3 w-full shadow-sm">
+                       <Loader2 className="w-5 h-5 animate-spin"/> Verifying...
+                     </div>
+                  ) : (
+                     <div className="mx-auto rounded-[8px] overflow-hidden shadow-sm inline-block relative">
+                        <ReCAPTCHA
+                          sitekey="6Lflgr4sAAAAAF8MveDgfE1Va2ImRfynRsLFP1nl"
+                          onChange={handleVerifyRecaptcha}
+                          theme={theme}
+                        />
+                        {(step1Status !== 'completed' || step2Status !== 'completed') && (
+                          <div className="absolute inset-0 z-10" onClick={() => alert(t('alertSteps'))}></div>
+                        )}
+                     </div>
+                  )}
+                </div>
+
+              </div>
+
+              <AnimatePresence>
+                {networkError && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }} 
+                    animate={{ opacity: 1, height: 'auto' }} 
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="bg-red-50 text-red-600 text-[13px] font-medium p-3 rounded-[12px] border border-red-200 text-center mb-6">
+                      {networkError}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Timer & Confirmation block */}
+              <div className="h-[90px] flex items-center justify-center mb-6">
+                {isChecked && isCounting && (
+                   <motion.div 
+                     initial={{ opacity: 0, scale: 0.9 }} 
+                     animate={{ opacity: 1, scale: 1 }} 
+                     className="w-full relative bg-brand-light rounded-[20px] border border-brand/10 overflow-hidden h-full flex flex-col items-center justify-center"
+                   >
+                     <motion.div 
+                       className="absolute top-0 left-0 bottom-0 bg-brand/10"
+                       initial={{ width: 0 }}
+                       animate={{ width: `${((15 - countdown) / 15) * 100}%` }}
+                       transition={{ ease: "linear", duration: 1 }}
+                     />
+                     <div className="relative z-10 flex flex-col items-center justify-center">
+                        <div className="flex items-end gap-1 text-brand mb-0.5">
+                           <motion.div 
+                             key={countdown}
+                             initial={{ opacity: 0, y: -10 }}
+                             animate={{ opacity: 1, y: 0 }}
+                             className="text-[36px] font-semibold leading-none tracking-tighter"
+                           >
+                             {countdown}
+                           </motion.div>
+                           <span className="text-[16px] font-medium mb-1">s</span>
+                        </div>
+                        <div className="text-[12px] font-medium text-brand/70 uppercase tracking-widest flex items-center gap-1.5">
+                          <RefreshCcw className="w-3 h-3 animate-spin"/> {t('generatingLink')}
+                        </div>
+                     </div>
+                   </motion.div>
+                )}
+                
+                {isChecked && !isCounting && countdown === 0 && (
+                   <motion.div 
+                     initial={{ opacity: 0, scale: 0.9 }} 
+                     animate={{ opacity: 1, scale: 1 }} 
+                     className="w-full text-center p-4 bg-emerald-50 border border-emerald-100 rounded-[20px] shadow-sm flex items-center justify-center gap-3"
+                   >
+                     <div className="bg-emerald-100 p-1.5 rounded-full">
+                       <Check className="w-5 h-5 text-emerald-600" strokeWidth={3} />
+                     </div>
+                     <span className="text-emerald-700 text-[15px] font-medium">
+                       {t('readyDl')}
+                     </span>
+                   </motion.div>
+                )}
+              </div>
+
+              {/* Final CTA Button */}
+              <button 
+                disabled={!(!isCounting && isChecked && countdown === 0)}
+                onClick={handleFinalRedirect}
+                className={`w-full py-4.5 rounded-[20px] text-[15px] font-medium text-center transition-all flex items-center justify-center gap-2 group ${
+                  !isCounting && isChecked && countdown === 0 
+                    ? 'bg-brand text-white hover:opacity-90 hover:shadow-xl hover:shadow-brand/30 hover:-translate-y-1 active:scale-95 cursor-pointer' 
+                    : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                }`}
+              >
+                {!isChecked ? t('waitingVerify') : (countdown > 0 ? t('gettingLink') : t('goDownload'))}
+              </button>
+
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {authModalType && (
+          <AuthModal
+            type={authModalType}
+            onClose={() => setAuthModalType(null)}
+            t={t}
+            onSuccess={(user, token) => {
+              localStorage.setItem('authToken', token);
+              setCurrentUser({ id: user.id, username: user.username, email: user.email });
+              setAuthModalType(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
