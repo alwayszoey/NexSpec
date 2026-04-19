@@ -1,10 +1,16 @@
 import express from "express";
 import crypto from "crypto";
+import cors from "cors";
 import { connectDB } from "./_lib/db.js";
 import authRoutes from "./_lib/auth.js";
 import statsRoutes from "./_lib/stats.js";
 
 const app = express();
+
+app.use(cors({
+  origin: '*',
+  allowedHeaders: ['Content-Type', 'x-admin-token']
+}));
 
 app.use(express.json());
 
@@ -35,6 +41,55 @@ app.use(async (req, res, next) => {
 // Mount routes
 app.use("/api/auth", authRoutes);
 app.use("/api/stats", statsRoutes);
+
+// --- Admin Middleware & Routes ---
+const isAdmin = (req: any, res: any, next: any) => {
+  const adminToken = req.headers['x-admin-token'];
+  if (adminToken && adminToken === process.env.ADMIN_TOKEN) {
+    next();
+  } else {
+    res.status(403).json({ success: false, message: "รหัสลับไม่ถูกต้อง!" });
+  }
+};
+
+app.get("/api/admin/users", isAdmin, async (req: any, res: any) => {
+  try {
+    const dbInstance: any = await connectDB(); 
+    const db = dbInstance?.db || dbInstance;
+    const users = await db.collection("users").find({}).toArray();
+    res.json({ success: true, data: users });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.patch("/api/admin/update-user", isAdmin, async (req: any, res: any) => {
+  try {
+    const { userId, updateData } = req.body;
+    const dbInstance: any = await connectDB();
+    const db = dbInstance?.db || dbInstance;
+    await db.collection("users").updateOne(
+      { _id: userId }, 
+      { $set: updateData }
+    );
+    res.json({ success: true, message: "อัปเดตข้อมูลสำเร็จ!" });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/api/admin/products", isAdmin, async (req: any, res: any) => {
+  try {
+    const newProduct = req.body;
+    const dbInstance: any = await connectDB();
+    const db = dbInstance?.db || dbInstance;
+    await db.collection("products").insertOne(newProduct);
+    res.json({ success: true, message: "เพิ่มสินค้าเข้า Database แล้ว!" });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+// ---------------------------------
 
 // Stateless URL signer using HMAC
 function generateSignedToken(url: string, ip: string) {
@@ -90,7 +145,7 @@ app.post("/api/verify-captcha", async (req, res) => {
       return;
   }
 
-  // 2. Origin validation (Relaxed for iFrame previews and official Vercel domain)
+  // 2. Origin validation
   const origin = req.get('origin') || '';
   const referer = req.get('referer') || '';
   
@@ -107,7 +162,7 @@ app.post("/api/verify-captcha", async (req, res) => {
       return;
   }
 
-  // 3. Anti-replay protection (Best-effort on serverless)
+  // 3. Anti-replay protection
   if (usedTokens.has(token)) {
       res.status(400).json({ success: false, error: 'Captcha token reused' });
       return;
@@ -138,7 +193,7 @@ app.post("/api/verify-captcha", async (req, res) => {
     return;
   }
 
-  // 5. Generate a stateless signed JWT-like key instead of memory store
+  // 5. Generate a stateless signed JWT-like key
   const signedKey = generateSignedToken(targetUrl, ip);
 
   res.json({ 
@@ -158,7 +213,6 @@ app.get("/api/download/:key", (req, res) => {
       return;
   }
 
-  // Let's redirect to the actual URL
   res.redirect(302, targetUrl);
 });
 
