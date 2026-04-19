@@ -162,10 +162,19 @@ export default function App() {
 
   const handleGetLink = (e?: React.MouseEvent, item?: ResourceItem, specificLink?: string) => {
     if (e) e.stopPropagation();
-    if (item) setSelectedItem(item);
     
-    // Default to item.link if specificLink is not provided (for backwards compatibility)
-    const targetUrl = specificLink || (item ? item.link : selectedItem?.link);
+    // Determine which item we are acting on
+    const targetItem = item || selectedItem;
+    if (targetItem) setSelectedItem(targetItem);
+    
+    // Check if item requires login and user is not logged in
+    if (targetItem?.requiresLogin && !currentUser) {
+      setAuthModalType('login');
+      return;
+    }
+    
+    // Default to targetItem.link if specificLink is not provided
+    const targetUrl = specificLink || targetItem?.link;
     setActiveDownloadUrl(targetUrl || null);
     
     setStep1Status('idle');
@@ -842,8 +851,17 @@ export default function App() {
                           onClick={() => handleGetLink(undefined, selectedItem, dl.url)}
                           className="w-full py-4 bg-brand text-white rounded-[16px] sm:rounded-[20px] font-medium text-[15px] sm:text-[16px] text-center hover:opacity-90 hover:shadow-xl hover:shadow-brand/30 active:scale-95 transition-all flex items-center justify-center gap-3 group"
                         >
-                          <Download className="w-5 h-5 sm:w-6 sm:h-6 fill-white/20 group-hover:-translate-y-1 transition-transform" />
-                          {dl.label}
+                          {selectedItem.requiresLogin && !currentUser ? (
+                            <>
+                              <Lock className="w-5 h-5 sm:w-6 sm:h-6 fill-white/20 group-hover:-translate-y-1 transition-transform" />
+                              {t('loginToDownload') || 'Login to Download'}
+                            </>
+                          ) : (
+                            <>
+                              <Download className="w-5 h-5 sm:w-6 sm:h-6 fill-white/20 group-hover:-translate-y-1 transition-transform" />
+                              {dl.label}
+                            </>
+                          )}
                         </button>
                       ))}
                     </div>
@@ -852,8 +870,17 @@ export default function App() {
                       onClick={() => handleGetLink(undefined, selectedItem)}
                       className="w-full py-4 bg-brand text-white rounded-[16px] sm:rounded-[20px] font-medium text-[15px] sm:text-[16px] text-center hover:opacity-90 hover:shadow-xl hover:shadow-brand/30 active:scale-95 transition-all flex items-center justify-center gap-3 group"
                     >
-                      <Download className="w-5 h-5 sm:w-6 sm:h-6 fill-white/20 group-hover:-translate-y-1 transition-transform" />
-                      {t('freeDownload')}
+                      {selectedItem.requiresLogin && !currentUser ? (
+                        <>
+                          <Lock className="w-5 h-5 sm:w-6 sm:h-6 fill-white/20 group-hover:-translate-y-1 transition-transform" />
+                          {t('loginToDownload') || 'Login to Download'}
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-5 h-5 sm:w-6 sm:h-6 fill-white/20 group-hover:-translate-y-1 transition-transform" />
+                          {t('freeDownload')}
+                        </>
+                      )}
                     </button>
                   )}
                 </div>

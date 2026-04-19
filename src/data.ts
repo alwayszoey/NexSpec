@@ -23,12 +23,13 @@ export interface ResourceItem {
   category: string;
   dateAdded: string; // Format: YYYY-MM-DD
   fileSize?: string;
+  requiresLogin?: boolean;
 }
 
 // ============================================================================
 // Hướng dẫn thêm/sửa dữ liệu / คำแนะนำในการเพิ่มข้อมูล (EASY EDIT SECTION)
 // ============================================================================
-// คุณสามารถใส่ข้อความเป็น String ธรรมดา หรือ { vi: "...", th: "..." } เพิ่งรองรับ 2 ภาษาอัตโนมัติ
+// Bạn có thể đăng một văn bản thông thường Object hoặc { vi: "...", th: "..." } chỉ hỗ trợ 2 ngôn ngữ tự động
 // ============================================================================
 
 export const resourcesData: ResourceItem[] = [
@@ -63,7 +64,8 @@ export const resourcesData: ResourceItem[] = [
     },
     category: "Script",
     dateAdded: "2026-04-19",
-    fileSize: "0.0346"
+    fileSize: "0.0346",
+    requiresLogin: true
   },
   {
     id: "2",

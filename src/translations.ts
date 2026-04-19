@@ -98,5 +98,8 @@ export const translations = {
   profileSettings: { vi: "Cài đặt hồ sơ", th: "การตั้งค่าโปรไฟล์" },
   avatarUrl: { vi: "Liên kết ảnh đại diện (Avatar URL)", th: "ลิงก์รูปโปรไฟล์ (Avatar URL)" },
   saveChanges: { vi: "Lưu thay đổi", th: "บันทึกการเปลี่ยนแปลง" },
-  profileUpdated: { vi: "Cập nhật hồ sơ thành công!", th: "อัปเดตโปรไฟล์สำเร็จแล้ว!" }
+  profileUpdated: { vi: "Cập nhật hồ sơ thành công!", th: "อัปเดตโปรไฟล์สำเร็จแล้ว!" },
+  
+  // Login Required
+  loginToDownload: { vi: "Đăng nhập để tải xuống", th: "เข้าสู่ระบบเพื่อดาวน์โหลด" }
 };
