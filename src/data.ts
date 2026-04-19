@@ -65,7 +65,6 @@ export const resourcesData: ResourceItem[] = [
     category: "Script",
     dateAdded: "2026-04-19",
     fileSize: "0.0346",
-    requiresLogin: true
   },
   {
     id: "2",
@@ -87,5 +86,6 @@ export const resourcesData: ResourceItem[] = [
     category: "Mod",
     dateAdded: "2026-04-19",
     fileSize: "0.0346"
+    requiresLogin: true
   }
 ];
