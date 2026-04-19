@@ -84,7 +84,7 @@ export const resourcesData: ResourceItem[] = [
     imageUrl: "https://picsum.photos/seed/aimbot/800/500",
     link: "https://www.mediafire.com/file/k8d1yvgzcp3w56s/Freestyle_0.1.json/file?dkey=9o6wvtoyc1c&r=77",
     tags: ["Mod", "Script", "ProxyPin"],
-    category: "Mod",
+    category: "MOD",
     dateAdded: "2026-04-19",
     fileSize: "0.0346"
   }
