@@ -1,6 +1,6 @@
 import express from 'express';
 import Stat from './Stat.model.js';
-import User from './User.model.js';
+import { User } from './User.model.js';
 import { connectDB } from './db.js';
 
 const router = express.Router();
