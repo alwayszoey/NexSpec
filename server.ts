@@ -2,7 +2,6 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import dotenv from "dotenv";
-import cors from "cors";
 
 import apiApp from "./api/index.js";
 
@@ -10,9 +9,6 @@ dotenv.config();
 
 const app = express();
 const PORT = 3000;
-
-app.use(cors());
-app.use(express.json());
 
 // Mount API routes
 app.use(apiApp);
