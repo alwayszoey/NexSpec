@@ -473,7 +473,7 @@ export default function App() {
                     onClick={() => handleLanguageSelect('vi')}
                     className="w-full flex items-center justify-center gap-4 py-4 rounded-[20px] bg-bg-app hover:bg-brand/10 border-2 border-brand text-brand transition-all text-lg font-bold cursor-pointer shadow-sm hover:shadow"
                   >
-                    <span className="text-2xl">🇻🇳</span> Tiếng Việt (Mặc định)
+                    <span className="text-2xl">🇻🇳</span> Tiếng Việt
                   </button>
                   <button 
                     onClick={() => handleLanguageSelect('th')}
