@@ -64,8 +64,7 @@ export const resourcesData: ResourceItem[] = [
     },
     category: "Script",
     dateAdded: "2026-04-19",
-    fileSize: "0.0346",
-    requiresLogin: true
+    fileSize: "0.0346"
   },
   {
     id: "2",
@@ -86,6 +85,7 @@ export const resourcesData: ResourceItem[] = [
     tags: ["Mod", "Script", "ProxyPin"],
     category: "MOD",
     dateAdded: "2026-04-19",
-    fileSize: "0.0346"
+    fileSize: "0.0346",
+    requiresLogin: true
   }
 ];
