@@ -34,6 +34,31 @@ export interface ResourceItem {
 
 export const resourcesData: ResourceItem[] = [
   {
+    id: "3",
+    title: {
+      vi: "🌟 Filza File Manager iOS 18-26",
+      th: "🌟 Filza File Manager iOS 18-26"
+    },
+    shortDescription: {
+      vi: "🐟 Share cho ae con hàng Filza cực ngon, bao chỉnh sửa file hệ thống cho iOS đời cao nhé.",
+      th: "🐟 แจก Filza ตัวเด็ดให้พี่น้อง แก้ไขไฟล์ระบบสำหรับ iOS เวอร์ชั่นสูงๆ ได้ลื่นๆ เลยครับ"
+    },
+    fullDescription: {
+      vi: "🐟 Share cho ae con hàng Filza cực ngon, bao chỉnh sửa file hệ thống cho iOS đời cao nhé.\n\nAe cân nhắc kĩ trước khi làm, tránh trường hợp xoá nhầm file xong k có file gốc đắp vào là ăn cám đấy =))) Có lỗi j cứ hú tui nhé!",
+      th: "🐟 แจก Filza ตัวเด็ดให้พี่น้อง แอพแก้ไขไฟล์ระบบของ iOS เวอร์ชั่นใหม่ๆ แบบลื่นสุดๆ\n\nโปรดพิจารณาและอ่านให้ดีก่อนลงมือทำ ระวังลบไฟล์ผิดแล้วไม่มีไฟล์ต้นฉบับมาแทน จะซวยเอานะครับ =))) ถ้ามีError เกิดขึ้นทักมาบอกผมได้เลย!"
+    },
+    imageUrl: "https://img1.pic.in.th/images/IMG_012196467b8b130aef59.png",
+    link: "https://example.com", 
+    warning: {
+      vi: "⚠️ Lưu ý cực quan trọng (Ae đọc kĩ):\n• Bản này chỉnh sửa (edit) file trực tiếp trên máy thì cực mượt, ổn áp luôn.\n• NHƯNG: Hiện tại vẫn chưa cho upload/import file từ ngoài vào được nhé ae. Chỉ vọc vạch mấy file có sẵn thôi.",
+      th: "⚠️ หมายเหตุสำคัญมาก (โปรดอ่านอย่างละเอียด):\n• เวอร์ชั่นนี้แก้ไข (edit) ไฟล์โดยตรงบนอุปกรณ์ได้ลื่นไหลมากๆ ใช้งานได้เสถียร\n• แต่ว่า: ขณะนี้ยังไม่อนุญาตให้อัปโหลด/นำเข้า (Import) ไฟล์จากภายนอกเข้ามาได้ ทำได้เพียงศึกษาและแก้ไขไฟล์ที่มีอยู่แล้วในเครื่องเท่านั้น"
+    },
+    tags: ["iOS 18-26", "Filza", "System"],
+    category: "App",
+    dateAdded: "2026-04-20",
+    requiresLogin: false
+  },
+  {
     id: "1",
     title: {
       vi: "Universal Aimbot Script V3 (No Recoil)",

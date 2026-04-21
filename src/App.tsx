@@ -155,12 +155,14 @@ export default function App() {
   const [currentView, setCurrentView] = useState<ViewState>('home');
   const [selectedItem, setSelectedItem] = useState<ResourceItem | null>(null);
   const [activeDownloadUrl, setActiveDownloadUrl] = useState<string | null>(null);
-  const [activeCategory, setActiveCategory] = useState('Tất cả tài nguyên');
+  const [activeCategory, setActiveCategory] = useState('ALL');
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showSocialsModal, setShowSocialsModal] = useState(false);
   
-  const categories = ['Tất cả tài nguyên', 'Aimbet', 'Bypass', 'ProxyPin', 'Scripts', 'Macros', 'MOD'];
+  // Extract unique categories from resourcesData, prepending 'ALL'
+  const allCategoriesSet = new Set(resourcesData.map(item => item.category));
+  const categories = ['ALL', ...Array.from(allCategoriesSet)];
 
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   
@@ -191,7 +193,7 @@ export default function App() {
   };
 
   const filteredResources = resourcesData.filter(item => {
-    const isAll = activeCategory === 'Tất cả tài nguyên' || activeCategory === translations.allResources.vi || activeCategory === translations.allResources.th;
+    const isAll = activeCategory === 'ALL';
     const matchesCategory = isAll || item.category === activeCategory;
     
     // Getting localized strings for accurate searching
@@ -755,22 +757,22 @@ export default function App() {
                 </motion.div>
 
                 <div className="flex items-center gap-3 overflow-x-auto pb-4 hide-scrollbar">
-                  {activeCategories.map((tab) => {
-                    const isActive = activeCategory === (tab === t('allResources') ? 'Tất cả tài nguyên' : tab);
+                  {categories.map((tab) => {
+                    const isActive = activeCategory === tab;
                     return (
                       <button
                         key={tab}
-                        onClick={() => setActiveCategory(tab === t('allResources') ? 'Tất cả tài nguyên' : tab)}
+                        onClick={() => setActiveCategory(tab)}
                         className={`flex items-center gap-2 whitespace-nowrap px-5 py-3 rounded-[16px] text-[14px] font-medium transition-all duration-200 ${
                           isActive 
                             ? 'bg-brand text-white shadow-lg shadow-brand/20' 
                             : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:border-slate-300'
                         }`}
                       >
-                        {tab === t('allResources') ? <LayoutGrid className="w-4 h-4" /> : 
+                        {tab === 'ALL' ? <LayoutGrid className="w-4 h-4" /> : 
                          tab === 'Backgrounds' ? <Layers className="w-4 h-4" /> :
                          <Archive className="w-4 h-4" />}
-                        {tab}
+                        {tab === 'ALL' ? t('allResources') : tab}
                       </button>
                     );
                   })}
@@ -1028,20 +1030,20 @@ export default function App() {
                  {/* FAQ */}
                  <div>
                     <h2 className="text-[16px] sm:text-[18px] font-semibold text-brand mb-5 flex items-center gap-2">
-                      <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5"/> Câu hỏi thường gặp (FAQ)
+                       <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5"/> {t('faqHeader')}
                     </h2>
                     <div className="space-y-3 sm:space-y-4">
                       <div className="border border-slate-100 rounded-[16px] sm:rounded-[20px] p-5 sm:p-6 hover:shadow-md transition-shadow bg-white">
-                        <h3 className="font-medium text-slate-800 mb-2 text-[14px] sm:text-[15px]">Q: Tải miễn phí thật không? Có mất tiền không?</h3>
-                        <p className="text-[13px] sm:text-[14px] font-normal text-slate-500 leading-relaxed">A: Miễn phí 100%. Các script và công cụ được chia sẻ để sử dụng miễn phí trên kênh YouTube. Không thu bất kỳ khoản phí nào.</p>
+                        <h3 className="font-medium text-slate-800 mb-2 text-[14px] sm:text-[15px]">{t('q1')}</h3>
+                        <p className="text-[13px] sm:text-[14px] font-normal text-slate-500 leading-relaxed">{t('a1')}</p>
                       </div>
                       <div className="border border-slate-100 rounded-[16px] sm:rounded-[20px] p-5 sm:p-6 hover:shadow-md transition-shadow bg-white">
-                        <h3 className="font-medium text-slate-800 mb-2 text-[14px] sm:text-[15px]">Q: Script có an toàn không, có bị cấm (ban) không?</h3>
-                        <p className="text-[13px] sm:text-[14px] font-normal text-slate-500 leading-relaxed">A: Chúng tôi đã cố gắng chọn lọc các script an toàn nhất. Nhưng lưu ý hệ thống game có thể cập nhật, vui lòng thử trên tài khoản phụ trước khi dùng chính thức!</p>
+                        <h3 className="font-medium text-slate-800 mb-2 text-[14px] sm:text-[15px]">{t('q2')}</h3>
+                        <p className="text-[13px] sm:text-[14px] font-normal text-slate-500 leading-relaxed">{t('a2')}</p>
                       </div>
                       <div className="border border-slate-100 rounded-[16px] sm:rounded-[20px] p-5 sm:p-6 hover:shadow-md transition-shadow bg-white">
-                        <h3 className="font-medium text-slate-800 mb-2 text-[14px] sm:text-[15px]">Q: Liên kết bị hỏng, không tải được thì phải làm sao?</h3>
-                        <p className="text-[13px] sm:text-[14px] font-normal text-slate-500 leading-relaxed">A: Nếu liên kết không hoạt động, vui lòng bình luận dưới video YouTube kênh NexSpec để được khắc phục sớm nhất.</p>
+                        <h3 className="font-medium text-slate-800 mb-2 text-[14px] sm:text-[15px]">{t('q3')}</h3>
+                        <p className="text-[13px] sm:text-[14px] font-normal text-slate-500 leading-relaxed">{t('a3')}</p>
                       </div>
                     </div>
                   </div>
