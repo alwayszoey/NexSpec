@@ -140,7 +140,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ type, onClose, onSuccess, 
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 text-[13px] px-4 py-3 rounded-[12px] mb-4">
+          <div className="bg-red-500/10 border border-red-500/20 text-red-500 text-[13px] px-4 py-3 rounded-[12px] mb-4">
             {error}
           </div>
         )}
@@ -229,9 +229,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ type, onClose, onSuccess, 
              <button 
                onClick={() => handleOAuth('google')}
                type="button" 
-               className="flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 py-2.5 rounded-[12px] hover:bg-slate-50 transition-colors text-sm font-medium"
+               className="flex items-center justify-center gap-2 bg-bg-app border border-border-subtle text-text-main py-2.5 rounded-[12px] hover:bg-border-subtle transition-colors text-sm font-medium"
              >
-               <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-4 h-4" />
+               <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-4 h-4 bg-white rounded-full" />
                Google
              </button>
              <button 

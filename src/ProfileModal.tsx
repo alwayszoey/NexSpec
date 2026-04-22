@@ -102,13 +102,13 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentUser, onClose
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 text-[13px] px-4 py-3 rounded-[12px] mb-4">
+          <div className="bg-red-500/10 border border-red-500/20 text-red-500 text-[13px] px-4 py-3 rounded-[12px] mb-4">
             {error}
           </div>
         )}
 
         {success && (
-          <div className="bg-green-50 border border-green-200 text-green-700 text-[13px] px-4 py-3 rounded-[12px] mb-4">
+          <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[13px] px-4 py-3 rounded-[12px] mb-4">
             {success}
           </div>
         )}
