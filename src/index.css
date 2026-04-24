@@ -2,18 +2,21 @@
 @import "tailwindcss";
 
 :root {
-  /* 🎨 ============================================ */
-  /* Tuỳ chỉnh các màu chủ đạo của trang web dễ dàng tại đây! */
-  /* ============================================ */
-  --theme-brand: #6a9afb;         /* Màu chính của web (Nút nhấn, Logo, Banner) */
-  --theme-brand-hover: #568ced;   /* Màu nút chính khi di chuột (hover) */
-  --theme-brand-light: #edf3ff;   /* Màu nền nhạt (Nút phụ, nền bộ đếm) */
+  /* ==========================================================
+   🎨 คู่มือการเปลี่ยนสี่เว็บไซต์ (สำหรับเจ้าของร้าน/แอดมิน) 🎨
+   ========================================================== 
+   เปลี่ยนสีหลักของระบบได้ที่นี่ เฉพาะคุณเท่านั้นที่เห็น (หลังบ้าน/โค้ด)
+   วิธีแก้: เปลี่ยนโค้ด HEX ด้านล่าง (เช่น #1e293b)
+  */
+  --theme-brand: #6a9afb;         /* สีหลักของแบรนด์ (ปุ่มหลัก, โลโก้, สีเน้น) */
+  --theme-brand-hover: #568ced;   /* สีปุ่มหลักเมื่อเอาเมาส์ชี้ */
+  --theme-brand-light: #edf3ff;   /* สีพื้นหลังแบบอ่อน (ใช้ในปุ่มรอง, องค์ประกอบเน้นข้อความ) */
   
-  --theme-bg-app: #f5f8ff;        /* Màu nền của toàn bộ web */
-  --theme-card-bg: #ffffff;       /* Màu nền khung thông tin/cửa sổ */
-  --theme-border: #f1f5f9;        /* Viền */
-  --theme-text-main: #1e293b;     /* Màu văn bản chính */
-  --theme-text-muted: #64748b;    /* Màu văn bản phụ (Màu xám) */
+  --theme-bg-app: #f5f8ff;        /* สีพื้นหลังของทั้งเว็บ */
+  --theme-card-bg: #ffffff;       /* สีพื้นหลังของการ์ดและหน้าต่าง (Modal) */
+  --theme-border: #f1f5f9;        /* สีขอบ (Border) */
+  --theme-text-main: #1e293b;     /* สีตัวหนังสือเนื้อหาหลัก */
+  --theme-text-muted: #64748b;    /* สีตัวหนังสือรอง (สีเทา) */
 }
 
 .dark {

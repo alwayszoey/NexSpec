@@ -59,4 +59,20 @@ router.post('/download', async (req, res) => {
   }
 });
 
+// Reset downloads to 0
+router.post('/reset', async (req, res) => {
+  try {
+    // @ts-ignore
+    const stats = await Stat.findOneAndUpdate(
+      { name: 'global' },
+      { $set: { downloads: 0 } },
+      { new: true, upsert: true }
+    );
+    res.json({ success: true, downloads: stats?.downloads || 0 });
+  } catch (error) {
+    console.error("Error resetting download:", error);
+    res.status(500).json({ success: false, error: "Server Error" });
+  }
+});
+
 export default router;

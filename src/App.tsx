@@ -83,7 +83,7 @@ export default function App() {
   const [lang, setLang] = useState<AppLang | null>(null);
   const [isAppLoading, setIsAppLoading] = useState(true);
 
-  const [langSelectState, setLangSelectState] = useState<'selecting' | 'recaptcha' | 'checking' | 'done'>('done');
+  const [welcomeState, setWelcomeState] = useState<'welcome' | 'checking' | 'done'>('done');
   
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
@@ -115,12 +115,13 @@ export default function App() {
       localStorage.setItem('appTheme', 'light');
     }
 
-    const stored = localStorage.getItem('appLang') as AppLang;
-    if (stored === 'vi' || stored === 'th') {
-      setLang(stored);
-      setLangSelectState('done');
+    const hasVisited = localStorage.getItem('hasVisitedStore');
+    if (hasVisited) {
+      setLang('th');
+      setWelcomeState('done');
     } else {
-      setLangSelectState('selecting');
+      setLang('th');
+      setWelcomeState('welcome');
     }
 
     // Check Auth Session
@@ -144,17 +145,22 @@ export default function App() {
       });
     }
 
-    // Fetch initial app stats
-    fetch('/api/stats')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          const newStats = { users: data.users, views: data.views, downloads: data.downloads };
-          setAppStats(newStats);
-          localStorage.setItem('cachedStats', JSON.stringify(newStats));
-        }
-      })
-      .catch(err => console.error("Failed to fetch stats:", err));
+    // Fetch initial app stats and setup polling for real-time updates
+    const fetchStats = () => {
+      fetch('/api/stats')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            const newStats = { users: data.users, views: data.views, downloads: data.downloads };
+            setAppStats(newStats);
+            localStorage.setItem('cachedStats', JSON.stringify(newStats));
+          }
+        })
+        .catch(err => { /* quiet fail */ });
+    };
+
+    fetchStats();
+    const statsInterval = setInterval(fetchStats, 3000);
 
     // Increment view counter if not viewed this session
     if (!sessionStorage.getItem('hasViewed')) {
@@ -176,7 +182,9 @@ export default function App() {
     // Simulate loading to ensure everything is ready
     setTimeout(() => {
       setIsAppLoading(false);
-    }, 100);
+    }, 1000);
+
+    return () => clearInterval(statsInterval);
   }, []);
 
   const handleLogout = () => {
@@ -472,12 +480,11 @@ export default function App() {
     };
   }, []);
 
-  const handleLanguageSelect = (selected: AppLang) => {
-    setLang(selected);
-    localStorage.setItem('appLang', selected);
-    setLangSelectState('checking');
+  const handleEnterStore = () => {
+    localStorage.setItem('hasVisitedStore', 'true');
+    setWelcomeState('checking');
     setTimeout(() => {
-      setLangSelectState('done');
+      setWelcomeState('done');
     }, 1500); // Wait 1.5s reading the welcome message
   };
 
@@ -485,7 +492,7 @@ export default function App() {
     // Kept to prevent breaking just in case, but no longer used for language select
   };
 
-  if (langSelectState !== 'done') {
+  if (welcomeState !== 'done') {
     return (
       <div className="fixed inset-0 overflow-hidden bg-bg-app z-[999] flex flex-col justify-center items-center p-4">
         {/* Floating Emojis Background */}
@@ -525,33 +532,27 @@ export default function App() {
           <img src="https://img2.pic.in.th/IMG_0083.png" alt="Logo" className="h-16 mx-auto mb-6 object-contain drop-shadow-md" />
           
           <AnimatePresence mode="wait">
-            {langSelectState === 'selecting' && (
-              <motion.div key="selecting" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
-                <h2 className="text-[26px] font-bold text-text-main mb-1 tracking-tight">Chọn Ngôn Ngữ</h2>
-                <h2 className="text-[20px] font-medium text-text-muted mb-8">เลือกภาษาของคุณ</h2>
+            {welcomeState === 'welcome' && (
+              <motion.div key="welcome" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
+                <h2 className="text-[22px] sm:text-[26px] font-bold text-text-main mb-2 tracking-tight">ยินดีต้อนรับสู่ร้านค้า</h2>
+                <h2 className="text-[15px] sm:text-[16px] font-normal text-text-muted mb-8 leading-relaxed">
+                  ศูนย์รวมซอร์สโค้ดและสคริปต์คุณภาพสูง พร้อมใช้สำหรับโปรเจกต์ของคุณ
+                </h2>
                 
-                <div className="space-y-4">
-                  <button 
-                    onClick={() => handleLanguageSelect('vi')}
-                    className="w-full flex items-center justify-center gap-4 py-4 rounded-[20px] bg-bg-app hover:bg-brand/10 border-2 border-brand text-brand transition-all text-lg font-bold cursor-pointer shadow-sm hover:shadow"
-                  >
-                    <span className="text-2xl">🇻🇳</span> Tiếng Việt
-                  </button>
-                  <button 
-                    onClick={() => handleLanguageSelect('th')}
-                    className="w-full flex items-center justify-center gap-4 py-4 rounded-[20px] bg-bg-app hover:bg-card-bg border-2 border-border-subtle hover:border-brand hover:text-brand transition-all text-lg font-medium text-text-main cursor-pointer shadow-sm hover:shadow"
-                  >
-                    <span className="text-2xl">🇹🇭</span> ภาษาไทย
-                  </button>
-                </div>
+                <button 
+                  onClick={handleEnterStore}
+                  className="w-full flex items-center justify-center gap-3 py-4 rounded-[16px] bg-brand hover:brightness-110 border-2 border-transparent text-white transition-all text-[16px] font-bold cursor-pointer shadow-lg shadow-brand/20 active:scale-[0.98]"
+                >
+                  เข้าสู่ร้านค้า <ChevronRight className="w-5 h-5 opacity-80" />
+                </button>
               </motion.div>
             )}
 
-            {langSelectState === 'checking' && (
+            {welcomeState === 'checking' && (
               <motion.div key="checking" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="py-8">
                 <Loader2 className="w-12 h-12 text-brand animate-spin mx-auto mb-6" />
-                <h2 className="text-[22px] font-bold text-text-main mb-2">{translations.welcomeTitle[lang || 'vi']}</h2>
-                <p className="text-[15px] font-medium text-text-muted">{translations.loadingData[lang || 'vi']}</p>
+                <h2 className="text-[22px] font-bold text-text-main mb-2">กำลังเตรียมข้อมูลร้านค้า...</h2>
+                <p className="text-[15px] font-medium text-text-muted">โปรดรอสักครู่</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -729,16 +730,6 @@ export default function App() {
                 </>
               )}
 
-              <div className="h-px bg-border-subtle w-full mb-1"></div>
-              
-              <button 
-                onClick={() => { setIsMobileMenuOpen(false); setLang(lang === 'vi' ? 'th' : 'vi'); localStorage.setItem('appLang', lang === 'vi' ? 'th' : 'vi'); }} 
-                className="flex items-center gap-3 p-3.5 rounded-[16px] hover:bg-bg-app text-left font-medium text-text-main transition-colors w-full group mt-1"
-              >
-                <RefreshCcw className="w-5 h-5 text-text-muted group-hover:text-amber-500 transition-colors" /> 
-                <span className="flex-1">{t('changeLang')}</span>
-                <span className="text-xl leading-none">{lang === 'vi' ? '🇻🇳' : '🇹🇭'}</span>
-              </button>
             </motion.div>
           </>
         )}
@@ -777,11 +768,11 @@ export default function App() {
                     alt="Carousel" 
                     fetchPriority="high" 
                     loading="eager" 
-                    width="1200" 
-                    height="400" 
+                    width="2000" 
+                    height="600" 
                     decoding="async" 
-                    className="w-full h-auto object-cover object-center max-h-[100px] sm:max-h-[140px] md:max-h-[180px] lg:max-h-[220px]" 
-                    src="https://img2.pic.in.th/Banner-Discord.png" 
+                    className="w-full h-auto aspect-[10/3] object-cover object-center" 
+                    src="https://i.postimg.cc/8zb4Q7C4/2000x600-20260425003051.png" 
                   />
                 </motion.div>
 
@@ -848,7 +839,7 @@ export default function App() {
                         // Pick an image
                         let imgPath = "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1640&auto=format&fit=crop";
                         if (tab === 'ALL') {
-                          imgPath = "https://img2.pic.in.th/Banner-Discord.png"
+                          imgPath = "https://i.postimg.cc/8zb4Q7C4/2000x600-20260425003051.png"
                         } else {
                           const match = resourcesData.find(i => i.category === tab);
                           if (match) imgPath = match.imageUrl;
@@ -867,7 +858,7 @@ export default function App() {
                                   ? 'border-brand bg-brand/10 shadow-[0_0_15px_rgba(36,168,235,0.12)]' 
                                   : 'border-border-subtle bg-bg-app hover:border-brand/80'
                               }`}>
-                                <div className="relative overflow-hidden rounded-md bg-bg-app aspect-[1640/500]">
+                                <div className="relative overflow-hidden rounded-md bg-bg-app aspect-[10/3]">
                                   <img 
                                     className="w-full h-full object-cover rounded-md transition-[opacity,transform] duration-500 ease-out opacity-100 group-hover:scale-[1.02]" 
                                     alt={tab === 'ALL' ? t('allResources') : tab} 
@@ -895,9 +886,11 @@ export default function App() {
                                           <Star className="w-3 h-3 fill-brand text-brand" /> แนะนำ
                                         </span>
                                       )}
-                                      <span className="inline-flex items-center gap-1 rounded-full border border-brand/40 bg-brand/15 px-2 py-0.5 text-[11px] font-semibold text-brand">
-                                        <Flame className="w-3 h-3 fill-brand text-brand" /> ยอดฮิต
-                                      </span>
+                                      {appStats.downloads >= 100 && (
+                                        <span className="inline-flex items-center gap-1 rounded-full border border-brand/40 bg-brand/15 px-2 py-0.5 text-[11px] font-semibold text-brand">
+                                          <Flame className="w-3 h-3 fill-brand text-brand" /> ยอดฮิต
+                                        </span>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -962,12 +955,14 @@ export default function App() {
                         >
                           <div className="relative flex-1 z-10 bg-card-bg border border-border-subtle group-hover:border-brand transition-colors duration-200 rounded-md sm:rounded-lg p-1.5 sm:p-2 flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.02)] group-hover:shadow-[0_8px_30px_rgba(106,154,251,0.12)]">
                             
-                            <div className="absolute top-1 right-1 z-30 pointer-events-none">
-                              <div className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-red-500 to-orange-500 px-2 py-1 border border-orange-300/40">
-                                <Flame className="w-3 h-3 text-white fill-white" />
-                                <span className="text-[10px] sm:text-[11px] font-semibold text-white">ยอดฮิต</span>
+                            {appStats.downloads >= 100 && (
+                              <div className="absolute top-1 right-1 z-30 pointer-events-none">
+                                <div className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-red-500 to-orange-500 px-2 py-1 border border-orange-300/40">
+                                  <Flame className="w-3 h-3 text-white fill-white" />
+                                  <span className="text-[10px] sm:text-[11px] font-semibold text-white">ยอดฮิต</span>
+                                </div>
                               </div>
-                            </div>
+                            )}
 
                             <div className="relative z-20 rounded-md overflow-hidden bg-bg-app aspect-square">
                               <motion.img 
@@ -999,7 +994,7 @@ export default function App() {
                               <div className="flex items-center space-x-2 mt-2">
                                 <button 
                                   onClick={(e) => { e.stopPropagation(); handleOpenDetails(item); }}
-                                  className="inline-flex shrink-0 items-center justify-center whitespace-nowrap text-sm font-medium outline-none select-none transition-all duration-150 py-1.5 px-3 w-full rounded-xl bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600 text-white hover:brightness-110 active:scale-[0.98] shadow-sm hover:shadow-brand/30"
+                                  className="inline-flex shrink-0 items-center justify-center whitespace-nowrap text-sm font-medium outline-none select-none transition-all duration-150 py-1.5 px-3 w-full rounded-xl bg-brand text-white hover:brightness-110 active:scale-[0.98] shadow-sm hover:shadow-brand/30"
                                 >
                                   <Download className="w-4 h-4 mr-1.5" /> รับลิงก์
                                 </button>
@@ -1007,7 +1002,7 @@ export default function App() {
 
                               <div className="mt-2.5 flex items-center justify-center">
                                 <p className="text-[10px] sm:text-[11px] inline-flex items-center gap-1 text-text-muted">
-                                  <Flame className="w-3 h-3 shrink-0 text-orange-500 fill-orange-500" /> ขายแล้ว {pseudoSold || 42} ชิ้น
+                                  <Flame className="w-3 h-3 shrink-0 text-orange-500 fill-orange-500" /> ขายแล้ว {appStats.downloads} ชิ้น
                                 </p>
                               </div>
                             </div>
@@ -1109,19 +1104,6 @@ export default function App() {
                       </div>
                     </div>
                   )}
-
-                  <div className="mt-auto grid grid-cols-2 gap-4 p-4 sm:p-5 bg-bg-app border border-border-subtle rounded-[16px] sm:rounded-[20px] mb-6">
-                    <div>
-                      <p className="text-[10px] sm:text-[11px] font-medium text-text-muted uppercase tracking-widest mb-1.5">{t('fileSize')}</p>
-                      <p className="text-[14px] sm:text-[15px] font-medium text-text-main flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-text-muted" /> {selectedItem.fileSize || 'N/A'} MB
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] sm:text-[11px] font-medium text-text-muted uppercase tracking-widest mb-1.5">{t('dateAdded')}</p>
-                      <p className="text-[14px] sm:text-[15px] font-medium text-text-main">{selectedItem.dateAdded}</p>
-                    </div>
-                  </div>
 
                   {selectedItem.downloadLinks && selectedItem.downloadLinks.length > 0 ? (
                     <div className="flex flex-col gap-3">

@@ -27,7 +27,7 @@ import crypto from 'crypto';
 import multer from 'multer';
 import { verifyAuth } from './_lib/auth.js';
 import { connectDB } from './_lib/db.js';
-import { User } from './_lib/_models/Topup.model.js';
+import { User } from './_lib/User.model.js';
 
 const router = express.Router();
 
