@@ -5,7 +5,7 @@ export const translations = {
   help: { vi: "Trợ giúp & FAQ", th: "ช่วยเหลือ & FAQ" },
   socials: { vi: "Mạng xã hội", th: "ช่องทางการติดต่อ" },
   marquee: { vi: "📢 Đừng quên đăng ký kênh...", th: "📢 ยินดีต้อนรับเข้าสู่ร้านค้าของเรา แหล่งรวมสคริปต์, ซอร์สโค้ดเว็บไซต์ และคอนฟิกคุณภาพสูง!" },
-  welcomeTitle: { vi: "Chào mừng...", th: "ยินดีต้อนรับสู่ NexSpec Shop" },
+  welcomeTitle: { vi: "Chào mừng...", th: "ยินดีต้อนรับสู่ Zetrix Shop" },
   welcomeDesc: { vi: "Tổng hợp...", th: "ศูนย์รวมซอร์สโค้ดเว็บไซต์, สคริปต์เกม, และคอนฟิกระบบคุณภาพเยี่ยม พร้อมทีมงานซัพพอร์ตตลอดการใช้งาน เลือกชมสินค้าได้เลย!" },
   emptyTitle: { vi: "Chưa có mục nào", th: "ยังไม่มีสินค้าในหมวดหมู่นี้" },
   emptyDesc: { vi: "Danh mục này...", th: "หมวดหมู่นี้ยังไม่มีการอัปเดตสินค้าใหม่ กรุณารอติดตามเร็วๆ นี้" },
