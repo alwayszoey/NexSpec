@@ -62,7 +62,7 @@ function PromoPopup() {
     <div style={{ position: 'fixed', inset: '0px', zIndex: 99999, background: 'rgba(0, 0, 0, 0.75)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', overflow: 'auto' }}>
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'nowrap', gap: '0px', maxWidth: '100%' }}>
         <div style={{ position: 'relative', transform: 'rotate(0deg)', boxShadow: 'rgba(0, 0, 0, 0.5) 0px 20px 60px', borderRadius: '14px', transition: 'transform 200ms' }}>
-          <a href="https://discord.gg/KcKcPM43c2" target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
+          <a href="https://discord.gg/hSuBbnwWZY" target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
             <img src="https://img2.pic.in.th/never.png" alt="" style={{ display: 'block', width: '500px', height: '500px', maxWidth: '90vw', maxHeight: '80vh', objectFit: 'cover', borderRadius: '14px' }} />
           </a>
           <button aria-label="ปิด" onClick={handleClose} style={{ position: 'absolute', top: '-12px', right: '-12px', width: '32px', height: '32px', borderRadius: '50%', background: 'rgb(255, 255, 255)', color: 'rgb(0, 0, 0)', border: '0px', fontSize: '16px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'rgba(0, 0, 0, 0.3) 0px 4px 12px' }}>✕</button>
