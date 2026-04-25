@@ -13,6 +13,7 @@ export interface ResourceItem {
   shortDescription: StringOrObj;
   fullDescription: StringOrObj;
   imageUrl: string;
+  videoUrl?: string;
   link?: string;
   downloadLinks?: DownloadLink[];
   warning?: StringOrObj;
@@ -40,6 +41,7 @@ export const resourcesData: ResourceItem[] = [
 [+] ระบบจับไม่ได้ชัวร์ๆ ทะลุสบาย 100%
 💥 เฉพาะ iOS เท่านั้น!!`,
     imageUrl: "https://picsum.photos/seed/aimbot/800/500",
+    videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", // รองรับ YouTube หรือวีดีโออื่นๆ ได้เช่นกัน
     link: "https://www.mediafire.com/file/k8d1yvgzcp3w56s/Freestyle_0.1.json/file?dkey=9o6wvtoyc1c&r=77",
     tags: ["Aimbot", "Script", "ProxyPin"],
     warning: "คำเตือน: ",

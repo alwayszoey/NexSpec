@@ -51,7 +51,7 @@ export const translations = {
   verifyCheck: "กำลังตรวจสอบ...",
   verifyRetry: "ลองใหม่",
   verifyDo: "ดำเนินการ",
-  verifyTG: "ขั้นตอนที่ 2: เข้าร่วมกลุ่มหรือเซิร์ฟเวอร์ Discord",
+  verifyTG: "ขั้นตอนที่ 2: เข้าร่วมเซิร์ฟเวอร์ Discord",
   verifyTGWait: "⏳ กำลังตรวจสอบสถานะ...",
   verifyTGErr: "⚠️ ตรวจพบว่าคุณยังไม่ได้เข้าร่วม กรุณาดำเนินการให้เสร็จสิ้น!",
   verifyWaitText: "ยืนยัน & รอระบบประมวลผล 15 วินาที",

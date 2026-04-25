@@ -3,7 +3,7 @@ import {
   Search, ShieldAlert, Download, X, RefreshCcw, LayoutGrid, Layers, 
   Archive, Settings, FileText, Check, Zap, Menu, ArrowLeft, 
   Home, HelpCircle, Share2, Facebook, Instagram, MessageCircle,
-  Play, ChevronRight, Loader2, Youtube, Send, MessageSquare, Sun, Moon, Lock, UserPlus, LogOut, Users, Eye, Star, Flame, ShoppingCart
+  Play, ChevronRight, Loader2, Youtube, Send, MessageSquare, Sun, Moon, Lock, UserPlus, LogOut, Users, Eye, Star, Flame, ShoppingCart, Sparkles
 } from 'lucide-react';
 import { resourcesData, ResourceItem } from './data';
 import { motion, AnimatePresence } from 'motion/react';
@@ -37,16 +37,25 @@ const StatsCard = ({ icon: Icon, title, value, unit }: { icon: any, title: strin
   </div>
 );
 
+// ============================================================================
+// 📌 COMPONENT: PromoPopup (แก้ไข Popup แจ้งเตือน/โฆษณา ตอนเข้าเว็บได้ที่นี่)
+// ============================================================================
 function PromoPopup() {
   const [isOpen, setIsOpen] = useState(false);
   const [dontShow1Hour, setDontShow1Hour] = useState(false);
 
   useEffect(() => {
+    // Only show if they've visited before (so welcome screen doesn't overlap) or just wait until welcome state is done
     const hiddenUntil = localStorage.getItem('hidePromoUntil');
     if (hiddenUntil && Date.now() < parseInt(hiddenUntil, 10)) {
       return;
     }
-    setIsOpen(true);
+    
+    // Slight delay so it poops up nicely after page load
+    const t = setTimeout(() => {
+      setIsOpen(true);
+    }, 1500);
+    return () => clearTimeout(t);
   }, []);
 
   const handleClose = () => {
@@ -56,29 +65,58 @@ function PromoPopup() {
     setIsOpen(false);
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div style={{ position: 'fixed', inset: '0px', zIndex: 99999, background: 'rgba(0, 0, 0, 0.75)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', overflow: 'auto' }}>
-      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'nowrap', gap: '0px', maxWidth: '100%' }}>
-        <div style={{ position: 'relative', transform: 'rotate(0deg)', boxShadow: 'rgba(0, 0, 0, 0.5) 0px 20px 60px', borderRadius: '14px', transition: 'transform 200ms' }}>
-          <a href="https://discord.gg/hSuBbnwWZY" target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
-            <img src="https://img2.pic.in.th/never.png" alt="" style={{ display: 'block', width: '500px', height: '500px', maxWidth: '90vw', maxHeight: '80vh', objectFit: 'cover', borderRadius: '14px' }} />
-          </a>
-          <button aria-label="ปิด" onClick={handleClose} style={{ position: 'absolute', top: '-12px', right: '-12px', width: '32px', height: '32px', borderRadius: '50%', background: 'rgb(255, 255, 255)', color: 'rgb(0, 0, 0)', border: '0px', fontSize: '16px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'rgba(0, 0, 0, 0.3) 0px 4px 12px' }}>✕</button>
-        </div>
-      </div>
-      <div style={{ position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', zIndex: 100000, background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(10px)', padding: '10px 16px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.15)', display: 'flex', alignItems: 'center', gap: '12px', color: 'rgb(255, 255, 255)', fontSize: '13px', flexWrap: 'wrap', maxWidth: 'calc(100% - 40px)' }}>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-          <input type="checkbox" checked={dontShow1Hour} onChange={(e) => setDontShow1Hour(e.target.checked)} style={{ accentColor: 'var(--theme-brand)' }} />
-          <span>ไม่แสดงอีก 1 ชั่วโมง</span>
-        </label>
-        <button onClick={handleClose} style={{ padding: '6px 14px', background: 'rgb(255, 255, 255)', color: 'rgb(0, 0, 0)', border: '0px', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}>ปิดทั้งหมด</button>
-      </div>
-    </div>
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, transition: { duration: 0.3 } }}
+          className="fixed inset-0 z-[99999] bg-black/75 backdrop-blur-sm flex flex-col items-center justify-center p-5 overflow-auto"
+        >
+          <motion.div 
+            initial={{ scale: 0.8, y: 50, opacity: 0, rotate: -5 }}
+            animate={{ scale: 1, y: 0, opacity: 1, rotate: 0, transition: { type: "spring", bounce: 0.5, duration: 0.6 } }}
+            exit={{ scale: 0.8, y: -50, opacity: 0, rotate: 5, transition: { duration: 0.3, type: "tween", ease: "easeInOut" } }}
+            className="relative shadow-2xl rounded-2xl max-w-full"
+          >
+            <a href="https://discord.gg/hSuBbnwWZY" target="_blank" rel="noopener noreferrer" className="block outline-none ring-offset-2 ring-offset-black focus-visible:ring-2 focus-visible:ring-brand rounded-2xl">
+              <img src="https://img2.pic.in.th/never.png" alt="Join Discord" className="block w-[500px] h-[500px] max-w-[90vw] max-h-[80vh] object-cover rounded-2xl" />
+            </a>
+            
+            <button 
+              aria-label="ปิด" 
+              onClick={handleClose} 
+              className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-white text-black border-none text-base font-bold cursor-pointer flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.3)] hover:scale-110 active:scale-95 transition-transform z-10"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0, transition: { delay: 0.3 } }}
+            exit={{ opacity: 0, y: 20, transition: { duration: 0.2 } }}
+            className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[100000] bg-black/20 backdrop-blur-[24px] px-5 py-3 rounded-2xl border border-white/20 flex items-center gap-4 text-white text-[13px] flex-wrap w-max max-w-[calc(100%-40px)] shadow-[0_8px_32px_0_rgba(0,0,0,0.3)]"
+          >
+            <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap">
+              <input type="checkbox" checked={dontShow1Hour} onChange={(e) => setDontShow1Hour(e.target.checked)} className="accent-brand w-4 h-4 cursor-pointer" />
+              <span className="font-medium text-white/90">ไม่แสดงอีก 1 ชั่วโมง</span>
+            </label>
+            <div className="w-[1px] h-4 bg-white/20 mx-1"></div>
+            <button onClick={handleClose} className="px-4 py-1.5 bg-white/20 hover:bg-white/30 text-white border border-white/20 rounded-xl text-[13px] font-semibold cursor-pointer active:scale-95 transition-all whitespace-nowrap shadow-sm">
+              ปิดทั้งหมด
+            </button>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
+// ============================================================================
+// 📌 COMPONENT: App (ส่วนหลักของเว็บไซต์ รวบรวมหน้าต่างๆ ไว้ที่นี่)
+// ============================================================================
 export default function App() {
   const [lang, setLang] = useState<AppLang | null>(null);
   const [isAppLoading, setIsAppLoading] = useState(true);
@@ -87,6 +125,9 @@ export default function App() {
   
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
+  // ==========================================
+  // 📌 ตัวแปร State ต่างๆ ในระบบ
+  // ==========================================
   // ====== AUTH STATES ======
   const [authModalType, setAuthModalType] = useState<'login' | 'register' | null>(null);
   const [currentUser, setCurrentUser] = useState<{ id: string, username: string, email: string, avatarUrl?: string } | null>(null);
@@ -115,7 +156,12 @@ export default function App() {
       localStorage.setItem('appTheme', 'light');
     }
 
-    setWelcomeState('welcome');
+    const hasVisited = localStorage.getItem('hasVisitedStore');
+    if (hasVisited) {
+      setWelcomeState('done');
+    } else {
+      setWelcomeState('welcome');
+    }
 
     // Check Auth Session
     const localToken = localStorage.getItem('authToken');
@@ -485,6 +531,9 @@ export default function App() {
     // Kept to prevent breaking just in case, but no longer used for language select
   };
 
+  // ============================================================================
+  // 📌 1. หน้าต่างต้อนรับก่อนเข้าเว็บ (Welcome Screen)
+  // ============================================================================
   if (welcomeState !== 'done') {
     return (
       <div className="fixed inset-0 overflow-hidden bg-bg-app z-[999] flex flex-col justify-center items-center p-4">
@@ -522,7 +571,7 @@ export default function App() {
           transition={{ duration: 0.6, type: 'spring', bounce: 0.5 }}
           className="bg-card-bg/95 backdrop-blur-xl max-w-md w-full p-8 rounded-[32px] text-center shadow-2xl relative z-10 border border-border-subtle"
         >
-          <span className="text-3xl mx-auto mb-6 block font-black italic tracking-tighter bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent drop-shadow-md">Zorix Shop</span>
+          <img src="https://img2.pic.in.th/IMG_0083.png" alt="Logo" className="h-16 mx-auto mb-6 object-contain drop-shadow-md" />
           
           <AnimatePresence mode="wait">
             {welcomeState === 'welcome' && (
@@ -566,6 +615,9 @@ export default function App() {
     );
   }
 
+  // ============================================================================
+  // 📌 RENDER - โครงสร้าง HTML ทั้งหมดของเว็บ
+  // ============================================================================
   return (
     <div className="flex flex-col h-[100dvh] overflow-hidden bg-bg-app text-text-main font-sans selection:bg-brand selection:text-white">
       
@@ -581,7 +633,7 @@ export default function App() {
           onClick={() => { setCurrentView('home'); setSelectedItem(null); }} 
           className="flex items-center gap-3 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
         >
-          <span className="text-xl sm:text-2xl font-black italic tracking-tighter bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent drop-shadow-sm">Zorix Shop</span>
+          <img src="https://img2.pic.in.th/IMG_0083.png" alt="Logo" className="h-9 sm:h-10 object-contain drop-shadow-sm" />
         </div>
         
         {/* Center Search Bar */}
@@ -737,7 +789,10 @@ export default function App() {
           {/* ---------------------------------------------------- */}
           {/* PAGE 1: RESOURCES GRID */}
           {/* ---------------------------------------------------- */}
-          {currentView === 'home' && (
+          {/* ============================================================================ */}
+        {/* 📌 2. หน้าแรก (Home View) */}
+        {/* ============================================================================ */}
+        {currentView === 'home' && (
             <motion.div 
               key="grid-view"
               initial={{ opacity: 0, y: 10 }}
@@ -895,6 +950,100 @@ export default function App() {
                     </div>
                   </div>
                 </section>
+
+                {/* ---------------------------------------------------- */}
+                {/* RECOMMENDED PRODUCTS SECTION */}
+                {/* ---------------------------------------------------- */}
+                <div className="w-full relative mt-8 pt-6 border-t border-border-subtle">
+                  <div className="flex items-center space-x-2 justify-between">
+                    <div>
+                      <h3 className="font-semibold text-xl sm:text-2xl text-text-main line-clamp-1">สินค้าที่คุณอาจสนใจ</h3>
+                      <p className="text-xs sm:text-sm text-text-muted mt-1 inline-flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4 text-brand" /> แนะนำสินค้ายอดฮิต
+                      </p>
+                    </div>
+                    <div>
+                      <button 
+                        onClick={() => { setActiveCategory('ALL'); setCurrentView('category'); }}
+                        className="inline-flex shrink-0 items-center justify-center whitespace-nowrap font-medium transition-colors duration-150 py-1.5 px-3 text-xs sm:text-sm rounded-xl bg-card-bg text-text-main border border-border-subtle hover:bg-bg-app shadow-sm gap-1.5"
+                      >
+                        <ShoppingCart className="w-4 h-4" /> ดูทั้งหมด
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5 pb-12">
+                    {resourcesData.slice(0, 5).map((item, index) => {
+                       return (
+                        <motion.div 
+                          layout
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          transition={{ duration: 0.2, delay: index * 0.03 }}
+                          key={"rec-" + item.id}
+                          onClick={() => handleOpenDetails(item)}
+                          className="relative rounded-md sm:rounded-lg group overflow-hidden cursor-pointer p-0 bg-transparent flex flex-col shadow-sm"
+                        >
+                          <div className="relative flex-1 z-10 bg-card-bg border border-border-subtle group-hover:border-brand transition-colors duration-200 rounded-md sm:rounded-lg p-1.5 sm:p-2 flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.02)] group-hover:shadow-[0_8px_30px_rgba(106,154,251,0.12)]">
+                            
+                            {appStats.downloads >= 100 && (
+                              <div className="absolute top-1 right-1 z-30 pointer-events-none">
+                                <div className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-red-500 to-orange-500 px-2 py-1 border border-orange-300/40">
+                                  <Flame className="w-3 h-3 text-white fill-white" />
+                                  <span className="text-[10px] sm:text-[11px] font-semibold text-white">ยอดฮิต</span>
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="relative z-20 rounded-md overflow-hidden bg-bg-app aspect-square">
+                              <motion.img 
+                                whileHover={{ scale: 1.05 }}
+                                transition={{ duration: 0.4 }}
+                                src={item.imageUrl} 
+                                alt={getLocalized(item.title)} 
+                                className="w-full h-full object-cover sm:object-contain object-center transition-opacity duration-500 ease-out" 
+                                referrerPolicy="no-referrer" 
+                              />
+                            </div>
+                            
+                            <div className="relative z-20 mt-2 flex-1 flex flex-col">
+                              <h3 className="text-sm sm:text-base font-bold text-text-main line-clamp-1 group-hover:text-brand transition-colors">{getLocalized(item.title)}</h3>
+                              <p className="text-[11px] sm:text-xs text-brand line-clamp-1 mt-1 font-medium bg-brand/10 w-fit px-1.5 py-0.5 rounded-md border border-brand/20">
+                                ✦ {getLocalized(item.shortDescription) || 'คุณสมบัติพิเศษ'}
+                              </p>
+                              
+                              <div className="flex items-center mt-3 justify-between space-x-2 pt-2 border-t border-border-subtle mt-auto">
+                                <p className="text-xs sm:text-sm font-medium text-text-main inline-flex items-center">
+                                  <span className="text-lg sm:text-xl font-bold leading-none">฿</span>
+                                  <span className="text-lg sm:text-xl font-bold leading-none text-brand ml-[1px]">0</span>
+                                </p>
+                                <p className="text-[10px] sm:text-[11px] rounded px-1.5 py-0.5 border inline-flex items-center gap-1 border-border-subtle text-text-muted bg-bg-app">
+                                  <Archive className="w-3 h-3 shrink-0" /> คงเหลือ ∞
+                                </p>
+                              </div>
+                              
+                              <div className="flex items-center space-x-2 mt-2">
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); handleOpenDetails(item); }}
+                                  className="inline-flex shrink-0 items-center justify-center whitespace-nowrap text-sm font-medium outline-none select-none transition-[transform,background-color,color,border-color,box-shadow,opacity] duration-150 py-1.5 px-3 w-full rounded-xl bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)] group"
+                                >
+                                  <ShoppingCart className="w-4 h-4 mr-1.5 shrink-0 [transform:perspective(700px)_rotateY(0deg)] [transform-style:preserve-3d] transition-transform duration-700 group-hover:[transform:perspective(700px)_rotateY(360deg)]" /> ซื้อสินค้า
+                                </button>
+                              </div>
+
+                              <div className="mt-2.5 flex items-center justify-center">
+                                <p className="text-[10px] sm:text-[11px] inline-flex items-center gap-1 text-text-muted">
+                                  <Flame className="w-3 h-3 shrink-0 text-orange-500 fill-orange-500" /> ขายแล้ว {appStats.downloads + index * 10} ชิ้น
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                       )
+                    })}
+                  </div>
+                </div>
               </div>
             </motion.div>
           )}
@@ -902,7 +1051,10 @@ export default function App() {
           {/* ---------------------------------------------------- */}
           {/* PAGE 1.5: CATEGORY PAGE WITH BACK BUTTON */}
           {/* ---------------------------------------------------- */}
-          {currentView === 'category' && (
+          {/* ============================================================================ */}
+        {/* 📌 3. หน้าร้านค้า / หมวดหมู่สินค้า (Category View) */}
+        {/* ============================================================================ */}
+        {currentView === 'category' && (
             <motion.div 
               key="category-view"
               initial={{ opacity: 0, x: 20 }}
@@ -1027,7 +1179,10 @@ export default function App() {
           {/* ---------------------------------------------------- */}
           {/* PAGE 2: ITEM DETAILS PAGE */}
           {/* ---------------------------------------------------- */}
-          {currentView === 'details' && selectedItem && (
+          {/* ============================================================================ */}
+        {/* 📌 4. หน้ารายละเอียดสินค้า (Product Details View) */}
+        {/* ============================================================================ */}
+        {currentView === 'details' && selectedItem && (
             <motion.div 
               key="details-view"
               initial={{ opacity: 0, y: 10 }}
@@ -1068,14 +1223,16 @@ export default function App() {
                   </h1>
 
                   {/* Video Clip Button */}
-                  <button className="w-full flex items-center gap-3 px-4 py-3 rounded-[12px] transition-all hover:opacity-80 border border-border-subtle bg-card-bg text-text-main shadow-[0_2px_10px_rgba(0,0,0,0.02)] mb-4">
-                    <Play className="w-4 h-4 opacity-50" fill="currentColor" />
-                    <div className="flex-1 text-left line-clamp-1">
-                      <p className="text-xs font-semibold">{t('videoPreviewTitle')}</p>
-                      <p className="text-[10px] text-text-muted">{t('videoPreviewDesc')}</p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 opacity-30" />
-                  </button>
+                  {selectedItem.videoUrl && (
+                    <button onClick={() => window.open(selectedItem.videoUrl, '_blank')} className="w-full flex items-center gap-3 px-4 py-3 rounded-[12px] transition-all hover:opacity-80 border border-border-subtle bg-card-bg text-text-main shadow-[0_2px_10px_rgba(0,0,0,0.02)] mb-4 cursor-pointer">
+                      <Play className="w-4 h-4 opacity-50" fill="currentColor" />
+                      <div className="flex-1 text-left line-clamp-1">
+                        <p className="text-xs font-semibold">{t('videoPreviewTitle')}</p>
+                        <p className="text-[10px] text-text-muted">{t('videoPreviewDesc')}</p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 opacity-30" />
+                    </button>
+                  )}
 
                   {/* Details Block */}
                   <div className="rounded-[16px] p-4 sm:p-5 mb-5 bg-card-bg border border-border-subtle shadow-[0_2px_10px_rgba(0,0,0,0.02)] relative overflow-hidden">
@@ -1086,6 +1243,33 @@ export default function App() {
                     <p className="text-[13px] sm:text-[14px] leading-relaxed break-words whitespace-pre-line text-text-main font-normal markdown-body">
                       {getLocalized(selectedItem.fullDescription)}
                     </p>
+                  </div>
+
+                  {/* Product Info Block */}
+                  <div className="rounded-[16px] p-4 sm:p-5 mb-5 bg-card-bg border border-border-subtle shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                      <h5 className="text-text-main font-bold text-base sm:text-lg flex items-center mb-4">
+                        <Archive className="w-5 h-5 mr-2 text-brand" /> ข้อมูลของสินค้า
+                      </h5>
+                      <div className="px-4 py-3 rounded-[12px] border border-border-subtle bg-bg-app flex flex-col gap-2.5">
+                          <div className="flex justify-between items-center text-sm mt-1">
+                            <span className="text-text-muted">ชื่อสินค้า :</span>
+                            <span className="text-text-main font-medium line-clamp-1 text-right ml-4">{getLocalized(selectedItem.title)}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-text-muted">จำนวนคงเหลือ :</span>
+                            <span className="text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md font-semibold text-xs border border-emerald-500/20">∞ ไม่จำกัด</span>
+                          </div>
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-text-muted">ยอดขาย :</span>
+                            <span className="text-text-main font-medium">{(appStats.downloads + 50).toLocaleString()} ชิ้น</span>
+                          </div>
+                          <div className="flex justify-between items-center text-sm mb-1">
+                            <span className="text-text-muted">สถานะ :</span>
+                            <span className="text-brand bg-brand/10 px-2 py-0.5 rounded-md font-semibold text-xs flex items-center gap-1 border border-brand/20">
+                              <Check className="w-3 h-3" /> พร้อมใช้งาน
+                            </span>
+                          </div>
+                      </div>
                   </div>
 
                   {selectedItem.warning && (
@@ -1147,7 +1331,10 @@ export default function App() {
           {/* ---------------------------------------------------- */}
           {/* PAGE 3: HELP & FAQ PAGE */}
           {/* ---------------------------------------------------- */}
-          {currentView === 'help' && (
+          {/* ============================================================================ */}
+        {/* 📌 5. หน้าช่วยเหลือ / วิธีรับสินค้า (Help View) */}
+        {/* ============================================================================ */}
+        {currentView === 'help' && (
              <motion.div 
                key="help-view"
                initial={{ opacity: 0, y: 10 }}
@@ -1239,7 +1426,7 @@ export default function App() {
         <footer className="w-full border-t border-border-subtle bg-card-bg/50 backdrop-blur-sm mt-8">
           <div className="max-w-[1600px] mx-auto px-4 sm:px-8 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="text-center md:text-left flex flex-col items-center md:items-start">
-              <span className="text-xl font-black italic tracking-tighter bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent drop-shadow-sm mb-1 opacity-80">Zorix Shop</span>
+              <img src="https://img2.pic.in.th/IMG_0083.png" alt="Logo" className="h-6 sm:h-7 object-contain drop-shadow-sm mb-1 opacity-80 mix-blend-multiply" />
               <p className="text-[13px] text-text-muted mt-1">{t('footerDesc')}</p>
             </div>
             <div className="flex items-center gap-6 text-[13px] font-medium text-text-muted">
@@ -1247,7 +1434,7 @@ export default function App() {
               <button onClick={() => setShowSocialsModal(true)} className="hover:text-brand transition-colors">{t('socialsFollow')}</button>
             </div>
             <div className="text-[12px] text-text-muted/70">
-              &copy; {new Date().getFullYear()} NexSpec. All rights reserved.
+              &copy; {new Date().getFullYear()} Zorix Shop. All rights reserved.
             </div>
           </div>
         </footer>
@@ -1258,7 +1445,10 @@ export default function App() {
       {/* SOCIALS MODAL */}
       {/* ========================================================================= */}
       <AnimatePresence>
-        {showSocialsModal && (
+        {/* ============================================================================ */}
+      {/* 📌 หน้าต่าง Pop-up แสดงช่องทางติดต่อ Social Media */}
+      {/* ============================================================================ */}
+      {showSocialsModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
              <motion.div 
                initial={{ opacity: 0 }}
@@ -1311,7 +1501,10 @@ export default function App() {
       {/* FEEDBACK MODAL */}
       {/* ========================================================================= */}
       <AnimatePresence>
-        {showFeedbackModal && (
+        {/* ============================================================================ */}
+      {/* 📌 หน้าต่าง Pop-up Feedback แจ้งปัญหา / แนะนำ */}
+      {/* ============================================================================ */}
+      {showFeedbackModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
              <motion.div 
                initial={{ opacity: 0 }}
@@ -1392,7 +1585,10 @@ export default function App() {
       {/* reCAPTCHA VERIFICATION MODAL */}
       {/* ========================================================================= */}
       <AnimatePresence>
-        {showVerifyModal && selectedItem && (
+        {/* ============================================================================ */}
+      {/* 📌 หน้าต่าง Pop-up ยืนยันการรับสินค้า (Verification Modal) */}
+      {/* ============================================================================ */}
+      {showVerifyModal && selectedItem && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div 
               initial={{ opacity: 0 }}
@@ -1464,8 +1660,8 @@ export default function App() {
                 {/* Step 2 */}
                 <div className="bg-bg-app border border-border-subtle rounded-[16px] p-4 shadow-sm flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                     <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step2Status === 'completed' ? 'bg-emerald-500/20 text-emerald-500' : step2Status === 'error' ? 'bg-red-500/20 text-red-500' : 'bg-blue-500/20 text-blue-500'}`}>
-                        {step2Status === 'completed' ? <Check className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+                     <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step2Status === 'completed' ? 'bg-emerald-500/20 text-emerald-500' : step2Status === 'error' ? 'bg-red-500/20 text-red-500' : 'bg-[#5865F2]/20 text-[#5865F2]'}`}>
+                        {step2Status === 'completed' ? <Check className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
                      </div>
                      <div className="flex flex-col">
                        <span className={`text-[15px] font-medium tracking-tight ${step2Status === 'completed' ? 'text-text-muted line-through' : 'text-text-main'}`}>
@@ -1476,12 +1672,12 @@ export default function App() {
                      </div>
                   </div>
                   <button 
-                    onClick={() => { window.open('https://t.me', '_blank'); step2OpenedAt.current = Date.now(); setStep2Status('checking'); }}
+                    onClick={() => { window.open('https://discord.com', '_blank'); step2OpenedAt.current = Date.now(); setStep2Status('checking'); }}
                     disabled={step2Status === 'completed'}
                     className={`px-4 py-2 rounded-[12px] text-[13px] font-medium transition-all flex-shrink-0 flex items-center gap-2 ${
                       step2Status === 'completed' ? 'bg-emerald-500 text-white opacity-70 cursor-not-allowed' : 
                       step2Status === 'checking' ? 'bg-amber-500 text-white cursor-pointer hover:bg-amber-600 animate-pulse' :
-                      'bg-[#0088cc] text-white hover:bg-[#0077b3] shadow-sm cursor-pointer'
+                      'bg-[#5865F2] text-white hover:bg-[#4752C4] shadow-sm cursor-pointer'
                     }`}
                   >
                     {step2Status === 'checking' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
@@ -1597,7 +1793,10 @@ export default function App() {
         )}
       </AnimatePresence>
       <AnimatePresence>
-        {authModalType && (
+        {/* ============================================================================ */}
+      {/* 📌 หน้าต่าง Pop-up ล็อกอิน / สมัครสมาชิก (Auth Modal) */}
+      {/* ============================================================================ */}
+      {authModalType && (
           <AuthModal
             type={authModalType}
             onClose={() => setAuthModalType(null)}
@@ -1614,7 +1813,10 @@ export default function App() {
           />
         )}
         
-        {showProfileModal && currentUser && (
+        {/* ============================================================================ */}
+      {/* 📌 หน้าต่าง Pop-up โปรไฟล์ส่วนตัว (Profile Modal) */}
+      {/* ============================================================================ */}
+      {showProfileModal && currentUser && (
           <ProfileModal
             currentUser={currentUser}
             onClose={() => setShowProfileModal(false)}
