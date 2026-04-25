@@ -1672,7 +1672,7 @@ export default function App() {
                      </div>
                   </div>
                   <button 
-                    onClick={() => { window.open('https://discord.com', '_blank'); step2OpenedAt.current = Date.now(); setStep2Status('checking'); }}
+                    onClick={() => { window.open('https://discord.gg/hSuBbnwWZY', '_blank'); step2OpenedAt.current = Date.now(); setStep2Status('checking'); }}
                     disabled={step2Status === 'completed'}
                     className={`px-4 py-2 rounded-[12px] text-[13px] font-medium transition-all flex-shrink-0 flex items-center gap-2 ${
                       step2Status === 'completed' ? 'bg-emerald-500 text-white opacity-70 cursor-not-allowed' : 
