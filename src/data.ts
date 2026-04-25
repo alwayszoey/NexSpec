@@ -33,7 +33,7 @@ export interface ResourceItem {
 export const resourcesData: ResourceItem[] = [
   {
     id: "1",
-    title: "หัวหลุด! แจกโปร Aimbot V3",
+    title: "หัวหลุด! แจกสคริปต์ Aimbot V3",
     shortDescription: "สคริปต์ล็อกหัวเป๊ะๆ & ปืนนิ่งกริ๊บ (No Recoil)",
     fullDescription: `AimBot💥โคตรตึง
 [+] ล็อกหัว 99% (โนแบนล้านเปอร์เซ็นต์!)
