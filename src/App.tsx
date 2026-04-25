@@ -772,7 +772,7 @@ export default function App() {
                     height="600" 
                     decoding="async" 
                     className="w-full h-auto aspect-[10/3] object-cover object-center" 
-                    src="https://i.postimg.cc/8zb4Q7C4/2000x600-20260425003051.png" 
+                    src="https://i.postimg.cc/Y0hV630n/2000x600-20260425063819.png" 
                   />
                 </motion.div>
 
