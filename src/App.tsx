@@ -3,7 +3,7 @@ import {
   Search, ShieldAlert, Download, X, RefreshCcw, LayoutGrid, Layers, 
   Archive, Settings, FileText, Check, Zap, Menu, ArrowLeft, 
   Home, HelpCircle, Share2, Facebook, Instagram, MessageCircle,
-  Play, ChevronRight, Loader2, Youtube, Send, MessageSquare, Sun, Moon, Lock, UserPlus, LogOut, Users, Eye, Star, Flame
+  Play, ChevronRight, Loader2, Youtube, Send, MessageSquare, Sun, Moon, Lock, UserPlus, LogOut, Users, Eye, Star, Flame, ShoppingCart
 } from 'lucide-react';
 import { resourcesData, ResourceItem } from './data';
 import { motion, AnimatePresence } from 'motion/react';
@@ -115,14 +115,7 @@ export default function App() {
       localStorage.setItem('appTheme', 'light');
     }
 
-    const hasVisited = localStorage.getItem('hasVisitedStore');
-    if (hasVisited) {
-      setLang('th');
-      setWelcomeState('done');
-    } else {
-      setLang('th');
-      setWelcomeState('welcome');
-    }
+    setWelcomeState('welcome');
 
     // Check Auth Session
     const localToken = localStorage.getItem('authToken');
@@ -206,13 +199,13 @@ export default function App() {
   };
 
   const t = (key: keyof typeof translations) => {
-    return translations[key]?.[lang || 'vi'] || translations[key]?.['vi'];
+    return translations[key] || key;
   };
 
-  const getLocalized = (val: string | { vi: string, th: string } | undefined): string => {
+  const getLocalized = (val: any): string => {
     if (!val) return '';
     if (typeof val === 'string') return val;
-    return val[lang || 'vi'] || val['vi'];
+    return val['th'] || val['vi'] || '';
   };
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -524,17 +517,17 @@ export default function App() {
         </div>
 
         <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, type: 'spring' }}
+          initial={{ opacity: 0, scale: 0.8, y: 50 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.6, type: 'spring', bounce: 0.5 }}
           className="bg-card-bg/95 backdrop-blur-xl max-w-md w-full p-8 rounded-[32px] text-center shadow-2xl relative z-10 border border-border-subtle"
         >
-          <img src="https://img2.pic.in.th/IMG_0083.png" alt="Logo" className="h-16 mx-auto mb-6 object-contain drop-shadow-md" />
+          <span className="text-3xl mx-auto mb-6 block font-black italic tracking-tighter bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent drop-shadow-md">Zorix Shop</span>
           
           <AnimatePresence mode="wait">
             {welcomeState === 'welcome' && (
-              <motion.div key="welcome" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
-                <h2 className="text-[22px] sm:text-[26px] font-bold text-text-main mb-2 tracking-tight">ยินดีต้อนรับสู่ร้านค้า</h2>
+              <motion.div key="welcome" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }}>
+                <h2 className="text-[22px] sm:text-[26px] font-bold text-text-main mb-2 tracking-tight">ยินดีต้อนรับสู่ Zorix Shop</h2>
                 <h2 className="text-[15px] sm:text-[16px] font-normal text-text-muted mb-8 leading-relaxed">
                   ศูนย์รวมซอร์สโค้ดและสคริปต์คุณภาพสูง พร้อมใช้สำหรับโปรเจกต์ของคุณ
                 </h2>
@@ -543,7 +536,7 @@ export default function App() {
                   onClick={handleEnterStore}
                   className="w-full flex items-center justify-center gap-3 py-4 rounded-[16px] bg-brand hover:brightness-110 border-2 border-transparent text-white transition-all text-[16px] font-bold cursor-pointer shadow-lg shadow-brand/20 active:scale-[0.98]"
                 >
-                  เข้าสู่ร้านค้า <ChevronRight className="w-5 h-5 opacity-80" />
+                  เข้าสู่ Zorix Shop <ChevronRight className="w-5 h-5 opacity-80" />
                 </button>
               </motion.div>
             )}
@@ -588,7 +581,7 @@ export default function App() {
           onClick={() => { setCurrentView('home'); setSelectedItem(null); }} 
           className="flex items-center gap-3 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
         >
-          <img src="https://img2.pic.in.th/IMG_0083.png" alt="Logo" className="h-9 sm:h-10 object-contain drop-shadow-sm" />
+          <span className="text-xl sm:text-2xl font-black italic tracking-tighter bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent drop-shadow-sm">Zorix Shop</span>
         </div>
         
         {/* Center Search Bar */}
@@ -994,9 +987,9 @@ export default function App() {
                               <div className="flex items-center space-x-2 mt-2">
                                 <button 
                                   onClick={(e) => { e.stopPropagation(); handleOpenDetails(item); }}
-                                  className="inline-flex shrink-0 items-center justify-center whitespace-nowrap text-sm font-medium outline-none select-none transition-all duration-150 py-1.5 px-3 w-full rounded-xl bg-brand text-white hover:brightness-110 active:scale-[0.98] shadow-sm hover:shadow-brand/30"
+                                  className="inline-flex shrink-0 items-center justify-center whitespace-nowrap text-sm font-medium outline-none select-none transition-[transform,background-color,color,border-color,box-shadow,opacity] duration-150 py-1.5 px-3 w-full rounded-xl bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)] group"
                                 >
-                                  <Download className="w-4 h-4 mr-1.5" /> รับลิงก์
+                                  <ShoppingCart className="w-4 h-4 mr-1.5 shrink-0 [transform:perspective(700px)_rotateY(0deg)] [transform-style:preserve-3d] transition-transform duration-700 group-hover:[transform:perspective(700px)_rotateY(360deg)]" /> ซื้อสินค้า
                                 </button>
                               </div>
 
@@ -1112,7 +1105,7 @@ export default function App() {
                         <button 
                           key={idx}
                           onClick={() => handleGetLink(undefined, selectedItem, dl.url)}
-                          className="w-full py-4 bg-brand text-white rounded-[16px] sm:rounded-[20px] font-medium text-[15px] sm:text-[16px] text-center hover:opacity-90 hover:shadow-xl hover:shadow-brand/30 active:scale-95 transition-all flex items-center justify-center gap-3 group"
+                          className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[16px] sm:rounded-[20px] text-[15px] sm:text-[16px] font-medium outline-none select-none touch-manipulation [-webkit-tap-highlight-color:transparent] transition-[transform,background-color,color,border-color,box-shadow,opacity] duration-150 ease-out enabled:cursor-pointer enabled:hover:-translate-y-px enabled:active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 motion-reduce:transform-none motion-reduce:transition-none [&_svg]:pointer-events-none [&_svg]:shrink-0 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 w-full py-4 px-4 group cursor-pointer flex-1 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white shadow-[0_10px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.22)] hover:-translate-y-0.5 hover:brightness-110 hover:shadow-[0_14px_32px_rgba(59,130,246,0.42),inset_0_1px_0_rgba(255,255,255,0.3)]"
                         >
                           {selectedItem.requiresLogin && !currentUser ? (
                             <>
@@ -1121,7 +1114,7 @@ export default function App() {
                             </>
                           ) : (
                             <>
-                              <Download className="w-5 h-5 sm:w-6 sm:h-6 fill-white/20 group-hover:-translate-y-1 transition-transform" />
+                              <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 [transform:perspective(700px)_rotateY(0deg)] [transform-style:preserve-3d] transition-transform duration-700 group-hover:[transform:perspective(700px)_rotateY(360deg)]" />
                               {dl.label}
                             </>
                           )}
@@ -1131,7 +1124,7 @@ export default function App() {
                   ) : (
                     <button 
                       onClick={() => handleGetLink(undefined, selectedItem)}
-                      className="w-full py-4 bg-brand text-white rounded-[16px] sm:rounded-[20px] font-medium text-[15px] sm:text-[16px] text-center hover:opacity-90 hover:shadow-xl hover:shadow-brand/30 active:scale-95 transition-all flex items-center justify-center gap-3 group"
+                      className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[16px] sm:rounded-[20px] text-[15px] sm:text-[16px] font-medium outline-none select-none touch-manipulation [-webkit-tap-highlight-color:transparent] transition-[transform,background-color,color,border-color,box-shadow,opacity] duration-150 ease-out enabled:cursor-pointer enabled:hover:-translate-y-px enabled:active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 motion-reduce:transform-none motion-reduce:transition-none [&_svg]:pointer-events-none [&_svg]:shrink-0 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 w-full py-4 px-4 group cursor-pointer flex-1 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white shadow-[0_10px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.22)] hover:-translate-y-0.5 hover:brightness-110 hover:shadow-[0_14px_32px_rgba(59,130,246,0.42),inset_0_1px_0_rgba(255,255,255,0.3)]"
                     >
                       {selectedItem.requiresLogin && !currentUser ? (
                         <>
@@ -1140,8 +1133,8 @@ export default function App() {
                         </>
                       ) : (
                         <>
-                          <Download className="w-5 h-5 sm:w-6 sm:h-6 fill-white/20 group-hover:-translate-y-1 transition-transform" />
-                          รับลิงก์
+                          <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 [transform:perspective(700px)_rotateY(0deg)] [transform-style:preserve-3d] transition-transform duration-700 group-hover:[transform:perspective(700px)_rotateY(360deg)]" />
+                          ซื้อสินค้า
                         </>
                       )}
                     </button>
@@ -1246,7 +1239,7 @@ export default function App() {
         <footer className="w-full border-t border-border-subtle bg-card-bg/50 backdrop-blur-sm mt-8">
           <div className="max-w-[1600px] mx-auto px-4 sm:px-8 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="text-center md:text-left flex flex-col items-center md:items-start">
-              <img src="https://img2.pic.in.th/IMG_0083.png" alt="Logo" className="h-6 sm:h-7 object-contain drop-shadow-sm mb-1 opacity-80 mix-blend-multiply" />
+              <span className="text-xl font-black italic tracking-tighter bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent drop-shadow-sm mb-1 opacity-80">Zorix Shop</span>
               <p className="text-[13px] text-text-muted mt-1">{t('footerDesc')}</p>
             </div>
             <div className="flex items-center gap-6 text-[13px] font-medium text-text-muted">
@@ -1298,15 +1291,15 @@ export default function App() {
                <div className="space-y-3">
                  <a href="#" onClick={(e) => { e.preventDefault(); alert(t('fbLink')); }} className="flex items-center gap-4 bg-bg-app hover:bg-brand hover:text-white group p-4 rounded-[16px] transition-all cursor-pointer border border-transparent hover:border-brand">
                    <Facebook className="w-5 h-5 text-[#1877F2] group-hover:text-white transition-colors" />
-                   <span className="font-medium text-text-main group-hover:text-white transition-colors">Assets Hub Fanpage</span>
+                   <span className="font-medium text-text-main group-hover:text-white transition-colors">Zorix Shop Fanpage</span>
                  </a>
                  <a href="#" onClick={(e) => { e.preventDefault(); alert(t('igLink')); }} className="flex items-center gap-4 bg-bg-app hover:bg-brand hover:text-white group p-4 rounded-[16px] transition-all cursor-pointer border border-transparent hover:border-brand">
                    <Instagram className="w-5 h-5 text-[#E4405F] group-hover:text-white transition-colors" />
-                   <span className="font-medium text-text-main group-hover:text-white transition-colors">@assetshub.th</span>
+                   <span className="font-medium text-text-main group-hover:text-white transition-colors">@zorix.shop</span>
                  </a>
                  <a href="#" onClick={(e) => { e.preventDefault(); alert(t('dcLink')); }} className="flex items-center gap-4 bg-bg-app hover:bg-brand hover:text-white group p-4 rounded-[16px] transition-all cursor-pointer border border-transparent hover:border-brand">
                    <MessageCircle className="w-5 h-5 text-[#00B2FF] group-hover:text-white transition-colors" />
-                   <span className="font-medium text-text-main group-hover:text-white transition-colors">Assets Community</span>
+                   <span className="font-medium text-text-main group-hover:text-white transition-colors">Zorix Community</span>
                  </a>
                </div>
              </motion.div>
