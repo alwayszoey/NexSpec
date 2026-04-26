@@ -145,6 +145,40 @@ export default function App() {
     return { users: 0, views: 0, downloads: 0 };
   });
 
+// ── OAuth: รับ token จาก popup (postMessage) ──────────────────────────────
+useEffect(() => {
+  const handleOAuthMessage = (event: MessageEvent) => {
+    if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
+      const { token, user } = event.data;
+      if (!token || !user) return;
+      localStorage.setItem('authToken', token);
+      setCurrentUser({ id: user.id, username: user.username, email: user.email, avatarUrl: user.avatarUrl });
+    }
+  };
+  window.addEventListener('message', handleOAuthMessage);
+  return () => window.removeEventListener('message', handleOAuthMessage);
+}, []);
+
+// ── OAuth: รับ token จาก URL fallback (?token=...) ───────────────────────
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const urlToken = params.get('token');
+  if (!urlToken) return;
+  window.history.replaceState({}, document.title, window.location.pathname);
+  localStorage.setItem('authToken', urlToken);
+  fetch('/api/auth/me', {
+    headers: { 'Authorization': `Bearer ${urlToken}` }
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.user) {
+        setCurrentUser({ id: data.user._id, username: data.user.username, email: data.user.email, avatarUrl: data.user.avatarUrl });
+      }
+    })
+    .catch(() => localStorage.removeItem('authToken'));
+}, []);
+
+  
   useEffect(() => {
     // Theme Initializer (Default to Light always on first visit)
     const savedTheme = localStorage.getItem('appTheme') as 'light' | 'dark';
