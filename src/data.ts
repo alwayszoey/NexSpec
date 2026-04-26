@@ -35,13 +35,13 @@ export interface ResourceItem {
 export const resourcesData: ResourceItem[] = [
   {
     id: "1",
-    title: "แจก SRC Xandria",
+    title: "SRC บอทหลายเมนู Xandria",
     shortDescription: "SRC บอทเมนูทุกอย่าง 0.1.4.4 - Xandria Releases FIXED",
     fullDescription: `รายละเอียด:
 [+] SRC บอทเมนูทุกอย่าง ครบจบในตัวเดียว
 [+] เป็นเวอร์ชั่น 0.1.4.4_-_Xandria_-_Releases_FIXED
 [+] พร้อมวิธีการใช้งานเบื้องต้น`,
-    imageUrl: "https://picsum.photos/seed/xandria/800/500",
+    imageUrl: "https://img1.pic.in.th/images/-5_20260426220753.png",
     videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", // รองรับ YouTube หรือวีดีโออื่นๆ ได้เช่นกัน
     link: "https://www.mediafire.com/file/k8d1yvgzcp3w56s/Freestyle_0.1.json/file?dkey=9o6wvtoyc1c&r=77",
     actionType: "purchase",
