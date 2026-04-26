@@ -1500,7 +1500,7 @@ ${h.details || '-'}
                                 {selectedItem.actionType === 'purchase' ? (
                                     <>
                                         <ShoppingCart className="w-4 h-4 shrink-0 [transform:perspective(700px)_rotateY(0deg)] [transform-style:preserve-3d] transition-transform duration-700 group-hover:[transform:perspective(700px)_rotateY(360deg)]" />
-                                        สั่งซื้อสินค้า
+                                        เลือกซื้อ
                                     </>
                                 ) : (
                                     <>
