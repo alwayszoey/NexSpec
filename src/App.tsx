@@ -1486,7 +1486,7 @@ ${h.details || '-'}
                       {selectedItem.warning && (
                         <div>
                           <h5 className="text-[14px] font-bold flex items-center mb-2.5 text-red-500 gap-2">
-                            <ShieldAlert className="w-4 h-4 text-red-500" /> ข้อควรทราบ
+                            <ShieldAlert className="w-4 h-4 text-red-500" /> Warning
                           </h5>
                           <div className="text-red-500 bg-red-500/5 dark:bg-red-500/10 border border-red-500/20 p-3.5 rounded-[12px] text-[13px] leading-relaxed">
                             <span className="font-semibold">{t('friendlyNote')}</span> {getLocalized(selectedItem.warning)}
