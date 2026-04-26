@@ -12,7 +12,7 @@
   --theme-brand-hover: #568ced;   /* สีปุ่มหลักเมื่อเอาเมาส์ชี้ */
   --theme-brand-light: #edf3ff;   /* สีพื้นหลังแบบอ่อน (ใช้ในปุ่มรอง, องค์ประกอบเน้นข้อความ) */
   
-  --theme-bg-app: #f5f8ff;        /* สีพื้นหลังของทั้งเว็บ */
+  --theme-bg-app: #ffffff;        /* สีพื้นหลังของทั้งเว็บ */
   --theme-card-bg: #ffffff;       /* สีพื้นหลังของการ์ดและหน้าต่าง (Modal) */
   --theme-border: #f1f5f9;        /* สีขอบ (Border) */
   --theme-text-main: #1e293b;     /* สีตัวหนังสือเนื้อหาหลัก */
