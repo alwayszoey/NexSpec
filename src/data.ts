@@ -49,7 +49,7 @@ export const resourcesData: ResourceItem[] = [
     tags: ["SRC", "Bot", "Xandria"],
     warning: "คำเตือน: โปรดใช้งานด้วยความระมัดระวัง",
     category: "Script",
-    price: "Free",
+    price: "0฿",
     dateAdded: "2026-04-26",
     fileSize: "Unknown"
   }
