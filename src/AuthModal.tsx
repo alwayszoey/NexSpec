@@ -212,7 +212,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ type, onClose, onSuccess, 
           <button 
             type="submit"
             disabled={loading}
-            className="w-full bg-brand text-white py-3.5 rounded-[14px] font-medium mt-2 hover:opacity-90 active:scale-95 transition-all flex justify-center items-center gap-2"
+            className="inline-flex shrink-0 items-center justify-center whitespace-nowrap text-sm font-medium outline-none select-none transition-[transform,background-color,color,border-color,box-shadow,opacity] duration-150 py-3.5 px-3 w-full rounded-xl bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)] mt-2"
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (view === 'login' ? t('authBtnLogin') : t('authBtnRegister'))}
           </button>

@@ -1468,7 +1468,7 @@ ${h.details || '-'}
                             <button 
                               key={idx}
                               onClick={() => handleGetLink(undefined, selectedItem, dl.url)}
-                              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[12px] text-[14px] font-medium transition-all group cursor-pointer w-full py-2.5 px-4 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white shadow-sm hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98]"
+                              className="inline-flex shrink-0 items-center justify-center whitespace-nowrap text-sm font-medium outline-none select-none transition-[transform,background-color,color,border-color,box-shadow,opacity] duration-150 py-2.5 px-4 w-full rounded-xl bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)] group cursor-pointer"
                             >
                               {(!currentUser && (selectedItem.requiresLogin || selectedItem.actionType === 'purchase')) ? (
                                 <>
@@ -1488,7 +1488,7 @@ ${h.details || '-'}
                         <div className="mt-2 text-center">
                           <button 
                             onClick={() => handleGetLink(undefined, selectedItem)}
-                            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[12px] text-[14px] font-medium transition-all group cursor-pointer sm:w-auto w-full py-2.5 px-6 mx-auto bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white shadow-sm hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98]"
+                            className="inline-flex shrink-0 items-center justify-center whitespace-nowrap text-sm font-medium outline-none select-none transition-[transform,background-color,color,border-color,box-shadow,opacity] duration-150 py-2.5 px-6 sm:w-auto w-full mx-auto rounded-xl bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)] group cursor-pointer"
                           >
                             {(!currentUser && (selectedItem.requiresLogin || selectedItem.actionType === 'purchase')) ? (
                               <>
@@ -1550,7 +1550,7 @@ ${h.details || '-'}
                 <div className="text-center py-20">
                   <Lock className="w-12 h-12 mx-auto text-text-muted mb-4 opacity-50" />
                   <p className="text-text-muted mb-4">กรุณาเข้าสู่ระบบเพื่อดูประวัติ</p>
-                  <button onClick={() => setAuthModalType('login')} className="bg-brand text-white px-6 py-2 rounded-xl">เข้าสู่ระบบ</button>
+                  <button onClick={() => setAuthModalType('login')} className="inline-flex shrink-0 items-center justify-center whitespace-nowrap text-sm font-medium outline-none select-none transition-[transform,background-color,color,border-color,box-shadow,opacity] duration-150 py-2.5 px-6 rounded-xl bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)]">เข้าสู่ระบบ</button>
                 </div>
               ) : (
                 <div className="bg-card-bg shadow-[0_4px_24px_rgba(0,0,0,0.03)] border border-border-subtle rounded-[24px] overflow-hidden">
