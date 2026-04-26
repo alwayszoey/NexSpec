@@ -45,9 +45,8 @@ export const resourcesData: ResourceItem[] = [
     videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", // รองรับ YouTube หรือวีดีโออื่นๆ ได้เช่นกัน
     link: "https://www.mediafire.com/file/k8d1yvgzcp3w56s/Freestyle_0.1.json/file?dkey=9o6wvtoyc1c&r=77",
     tags: ["Aimbot", "Script", "ProxyPin"],
-    warning: "คำเตือน: ",
     category: "Script",
-    price: "150 ฿",
+    price: "0฿",
     dateAdded: "2026-04-19",
     fileSize: "0.0346"
   }
