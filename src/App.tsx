@@ -887,7 +887,7 @@ export default function App() {
                         // Pick an image
                         let imgPath = "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1640&auto=format&fit=crop";
                         if (tab === 'ALL') {
-                          imgPath = "https://i.postimg.cc/8zb4Q7C4/2000x600-20260425003051.png"
+                          imgPath = "https://img1.pic.in.th/images/zorixshop_20260426124700.png"
                         } else {
                           const match = resourcesData.find(i => i.category === tab);
                           if (match) imgPath = match.imageUrl;
