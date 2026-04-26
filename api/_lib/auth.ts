@@ -204,4 +204,28 @@ router.get("/discord/callback", passport.authenticate("discord", { session: fals
   `);
 });
 
+router.post("/history", verifyAuth, async (req: any, res: any) => {
+  try {
+    const userId = req.user.id || req.user._id;
+    const { id, type, title, details, price } = req.body;
+    
+    if (!id || !title || !type) {
+        return res.status(400).json({ error: "Missing required fields" });
+    }
+    
+    const user = await (User as any).findById(userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    
+    if (!user.history) user.history = [];
+    user.history.push({
+        id, type, title, details, price, date: new Date()
+    });
+    
+    await user.save();
+    res.json({ success: true, history: user.history });
+  } catch (error: any) {
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
 export default router;

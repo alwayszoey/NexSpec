@@ -3,9 +3,8 @@ export interface DownloadLink {
   url: string;
 }
 
-
-
 export type StringOrObj = string;
+export type ActionType = "link" | "purchase";
 
 export interface ResourceItem {
   id: string;
@@ -16,6 +15,8 @@ export interface ResourceItem {
   videoUrl?: string;
   link?: string;
   downloadLinks?: DownloadLink[];
+  actionType?: ActionType; // 'link' or 'purchase' (default is 'link')
+  purchaseDetails?: string; // Text shown and copyable after a purchase succeeds
   warning?: StringOrObj;
   tags: string[];
   category: string;
@@ -34,20 +35,22 @@ export interface ResourceItem {
 export const resourcesData: ResourceItem[] = [
   {
     id: "1",
-    title: "หัวหลุด! แจกสคริปต์ Aimbot V3",
-    shortDescription: "สคริปต์ล็อกหัวเป๊ะๆ & ปืนนิ่งกริ๊บ (No Recoil)",
-    fullDescription: `AimBot💥โคตรตึง
-[+] ล็อกหัว 99% (โนแบนล้านเปอร์เซ็นต์!)
-[+] ปั๊มแรงค์เนียนๆ ไม่โป๊ะแน่นอน
-[+] ระบบจับไม่ได้ชัวร์ๆ ทะลุสบาย 100%
-💥 เฉพาะ iOS เท่านั้น!!`,
-    imageUrl: "https://img1.pic.in.th/images/zorixshop_20260426124700.png",
+    title: "แจก SRC Xandria",
+    shortDescription: "SRC บอทเมนูทุกอย่าง 0.1.4.4 - Xandria Releases FIXED",
+    fullDescription: `รายละเอียด:
+[+] SRC บอทเมนูทุกอย่าง ครบจบในตัวเดียว
+[+] เป็นเวอร์ชั่น 0.1.4.4_-_Xandria_-_Releases_FIXED
+[+] พร้อมวิธีการใช้งานเบื้องต้น`,
+    imageUrl: "https://picsum.photos/seed/xandria/800/500",
     videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", // รองรับ YouTube หรือวีดีโออื่นๆ ได้เช่นกัน
     link: "https://www.mediafire.com/file/k8d1yvgzcp3w56s/Freestyle_0.1.json/file?dkey=9o6wvtoyc1c&r=77",
-    tags: ["Aimbot", "Script", "ProxyPin"],
+    actionType: "purchase",
+    purchaseDetails: "ขอบคุณที่สั่งซื้อ!\n\nลิงก์สำหรับโหลด: https://example.com/download\nพาสเวิร์ด: 1234",
+    tags: ["SRC", "Bot", "Xandria"],
+    warning: "คำเตือน: โปรดใช้งานด้วยความระมัดระวัง",
     category: "Script",
-    price: "0฿",
-    dateAdded: "2026-04-19",
-    fileSize: "0.0346"
+    price: "Free",
+    dateAdded: "2026-04-26",
+    fileSize: "Unknown"
   }
 ];

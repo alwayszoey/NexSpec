@@ -3,12 +3,13 @@ import {
   Search, ShieldAlert, Download, X, RefreshCcw, LayoutGrid, Layers, 
   Archive, Settings, FileText, Check, Zap, Menu, ArrowLeft, 
   Home, HelpCircle, Share2, Facebook, Instagram, MessageCircle,
-  Play, ChevronRight, Loader2, Youtube, Send, MessageSquare, Sun, Moon, Lock, UserPlus, LogOut, Users, Eye, Star, Flame, ShoppingCart, Sparkles, ShoppingBag
+  Play, ChevronRight, Loader2, Youtube, Send, MessageSquare, Sun, Moon, Lock, UserPlus, LogOut, Users, Eye, Star, Flame, ShoppingCart, Sparkles, ShoppingBag, History, HardDriveDownload, ExternalLink
 } from 'lucide-react';
 import { resourcesData, ResourceItem } from './data';
 import { motion, AnimatePresence } from 'motion/react';
 import ReCAPTCHA from "react-google-recaptcha";
 import { translations } from './translations';
+import { siteConfig } from './config';
 import { AuthModal } from './AuthModal';
 import { ProfileModal } from './ProfileModal';
 
@@ -81,7 +82,7 @@ function PromoPopup() {
             className="relative shadow-2xl rounded-2xl max-w-full"
           >
             <a href="https://discord.gg/hSuBbnwWZY" target="_blank" rel="noopener noreferrer" className="block outline-none ring-offset-2 ring-offset-black focus-visible:ring-2 focus-visible:ring-brand rounded-2xl">
-              <img src="https://img2.pic.in.th/never.png" alt="Join Discord" className="block w-[500px] h-[500px] max-w-[90vw] max-h-[80vh] object-cover rounded-2xl" />
+              <img src={siteConfig.promoPopupImageUrl} alt="Join Discord" className="block w-[500px] h-[500px] max-w-[90vw] max-h-[80vh] object-cover rounded-2xl" />
             </a>
             
             <button 
@@ -268,6 +269,9 @@ export default function App() {
   const categories = ['ALL', ...Array.from(allCategoriesSet)];
 
   const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [showOrderConfirmModal, setShowOrderConfirmModal] = useState(false);
+  const [showPurchaseSuccessModal, setShowPurchaseSuccessModal] = useState(false);
+  const [isProcessingOrder, setIsProcessingOrder] = useState(false);
   
   // Feedback States
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -323,6 +327,11 @@ export default function App() {
       setAuthModalType('login');
       return;
     }
+
+    if (targetItem?.actionType === 'purchase') {
+      setShowOrderConfirmModal(true);
+      return;
+    }
     
     // Default to targetItem.link if specificLink is not provided
     const targetUrl = specificLink || targetItem?.link;
@@ -337,6 +346,19 @@ export default function App() {
     setIsNetworkChecking(false);
     setDownloadKey(null);
     setShowVerifyModal(true);
+  };
+
+  const handlePurchaseConfirm = async () => {
+      if (!selectedItem) return;
+      setIsProcessingOrder(true);
+
+      // Simulate a purchase delay or call real payment API if needed
+      setTimeout(async () => {
+         await addHistoryRecord('purchase', selectedItem, selectedItem.purchaseDetails || 'ไม่พบรายละเอียด');
+         setIsProcessingOrder(false);
+         setShowOrderConfirmModal(false);
+         setShowPurchaseSuccessModal(true);
+      }, 1500);
   };
 
   const handleVerifyRecaptcha = async (token: string | null) => {
@@ -435,6 +457,35 @@ export default function App() {
     }
   };
 
+  const addHistoryRecord = async (type: 'link' | 'purchase', item: ResourceItem, detailsText: string) => {
+    if (!currentUser) return;
+    try {
+       const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+       const res = await fetch('/api/auth/history', {
+         method: 'POST',
+         headers: {
+           'Content-Type': 'application/json',
+           'Authorization': `Bearer ${token}`
+         },
+         body: JSON.stringify({
+            id: item.id,
+            type,
+            title: getLocalized(item.title),
+            details: detailsText,
+            price: item.price
+         })
+       });
+       if (res.ok) {
+           const data = await res.json();
+           if (data.history) {
+               setCurrentUser({ ...currentUser, history: data.history });
+           }
+       }
+    } catch (err) {
+       console.error("Failed to add history", err);
+    }
+  };
+
   const handleFinalRedirect = () => {
     if (selectedItem && downloadKey) {
       if (countdown > 0 || !isChecked) {
@@ -455,6 +506,10 @@ export default function App() {
           }
         })
         .catch(err => console.error("Failed to increment download:", err));
+
+      if (currentUser) {
+         addHistoryRecord('link', selectedItem, activeDownloadUrl || '');
+      }
 
       window.open(`/api/download/${downloadKey}`, '_blank');
       setShowVerifyModal(false);
@@ -571,7 +626,7 @@ export default function App() {
           transition={{ duration: 0.6, type: 'spring', bounce: 0.5 }}
           className="bg-card-bg/95 backdrop-blur-xl max-w-md w-full p-8 rounded-[32px] text-center shadow-2xl relative z-10 border border-border-subtle"
         >
-          <img src="https://img2.pic.in.th/IMG_0083.png" alt="Logo" className="h-16 mx-auto mb-6 object-contain drop-shadow-md" />
+          <img src={siteConfig.logoUrl} alt="Logo" className="h-16 mx-auto mb-6 object-contain drop-shadow-md" />
           
           <AnimatePresence mode="wait">
             {welcomeState === 'welcome' && (
@@ -633,7 +688,7 @@ export default function App() {
           onClick={() => { setCurrentView('home'); setSelectedItem(null); }} 
           className="flex items-center gap-3 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
         >
-          <img src="https://img2.pic.in.th/IMG_0083.png" alt="Logo" className="h-9 sm:h-10 object-contain drop-shadow-sm" />
+          <img src={siteConfig.logoUrl} alt="Logo" className="h-9 sm:h-10 object-contain drop-shadow-sm" />
         </div>
         
         {/* Center Search Bar */}
@@ -752,6 +807,12 @@ export default function App() {
                     <Settings className="w-5 h-5 text-text-muted group-hover:text-brand transition-colors" /> {t('profileSettings') || 'Profile Settings'}
                   </button>
                   <button 
+                    onClick={() => { setIsMobileMenuOpen(false); setShowProfileModal(true); }}
+                    className="flex items-center gap-3 p-3.5 rounded-[16px] hover:bg-brand-light text-left font-medium text-text-main transition-colors w-full group"
+                  >
+                    <History className="w-5 h-5 text-text-muted group-hover:text-brand transition-colors" />ประวัติการทำรายการ
+                  </button>
+                  <button 
                     onClick={handleLogout}
                     className="flex items-center gap-3 p-3.5 rounded-[16px] hover:bg-red-50 dark:hover:bg-red-500/10 text-left font-medium text-red-600 transition-colors w-full group mb-2"
                   >
@@ -820,7 +881,7 @@ export default function App() {
                     height="600" 
                     decoding="async" 
                     className="w-full h-auto aspect-[10/3] object-cover object-center" 
-                    src="https://img1.pic.in.th/images/zorixshop_20260426124700.png" 
+                    src={siteConfig.bannerImageUrl} 
                   />
                 </motion.div>
 
@@ -887,7 +948,7 @@ export default function App() {
                         // Pick an image
                         let imgPath = "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1640&auto=format&fit=crop";
                         if (tab === 'ALL') {
-                          imgPath = "https://img1.pic.in.th/images/zorixshop_20260426124700.png"
+                          imgPath = "https://i.postimg.cc/8zb4Q7C4/2000x600-20260425003051.png"
                         } else {
                           const match = resourcesData.find(i => i.category === tab);
                           if (match) imgPath = match.imageUrl;
@@ -1016,7 +1077,7 @@ export default function App() {
                               <div className="flex items-center mt-3 justify-between space-x-2 pt-2 border-t border-border-subtle mt-auto">
                                 <p className="text-xs sm:text-sm font-medium text-text-main inline-flex items-center">
                                   <span className="text-lg sm:text-xl font-bold leading-none">฿</span>
-                                  <span className="text-lg sm:text-xl font-bold leading-none text-brand ml-[1px]">0</span>
+                                  <span className="text-lg sm:text-xl font-bold leading-none text-brand ml-[1px]">{item.price && item.price !== 'Free' ? item.price : '0'}</span>
                                 </p>
                                 <p className="text-[10px] sm:text-[11px] rounded px-1.5 py-0.5 border inline-flex items-center gap-1 border-border-subtle text-text-muted bg-bg-app">
                                   <Archive className="w-3 h-3 shrink-0" /> คงเหลือ ∞
@@ -1028,7 +1089,11 @@ export default function App() {
                                   onClick={(e) => { e.stopPropagation(); handleOpenDetails(item); }}
                                   className="inline-flex shrink-0 items-center justify-center whitespace-nowrap text-sm font-medium outline-none select-none transition-[transform,background-color,color,border-color,box-shadow,opacity] duration-150 py-1.5 px-3 w-full rounded-xl bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)] group"
                                 >
-                                  <ShoppingCart className="w-4 h-4 mr-1.5 shrink-0 [transform:perspective(700px)_rotateY(0deg)] [transform-style:preserve-3d] transition-transform duration-700 group-hover:[transform:perspective(700px)_rotateY(360deg)]" /> ซื้อสินค้า
+                                  {item.actionType === 'purchase' ? (
+                                     <><ShoppingCart className="w-4 h-4 mr-1.5 shrink-0 [transform:perspective(700px)_rotateY(0deg)] [transform-style:preserve-3d] transition-transform duration-700 group-hover:[transform:perspective(700px)_rotateY(360deg)]" /> สั่งซื้อสินค้า</>
+                                  ) : (
+                                     <><ExternalLink className="w-4 h-4 mr-1.5 shrink-0" /> รับลิงก์ฟรี</>
+                                  )}
                                 </button>
                               </div>
 
@@ -1129,7 +1194,7 @@ export default function App() {
                               <div className="flex items-center mt-3 justify-between space-x-2 pt-2 border-t border-border-subtle mt-auto">
                                 <p className="text-xs sm:text-sm font-medium text-text-main inline-flex items-center">
                                   <span className="text-lg sm:text-xl font-bold leading-none">฿</span>
-                                  <span className="text-lg sm:text-xl font-bold leading-none text-brand ml-[1px]">0</span>
+                                  <span className="text-lg sm:text-xl font-bold leading-none text-brand ml-[1px]">{item.price && item.price !== 'Free' ? item.price : '0'}</span>
                                 </p>
                                 <p className="text-[10px] sm:text-[11px] rounded px-1.5 py-0.5 border inline-flex items-center gap-1 border-border-subtle text-text-muted bg-bg-app">
                                   <Archive className="w-3 h-3 shrink-0" /> คงเหลือ ∞
@@ -1141,7 +1206,11 @@ export default function App() {
                                   onClick={(e) => { e.stopPropagation(); handleOpenDetails(item); }}
                                   className="inline-flex shrink-0 items-center justify-center whitespace-nowrap text-sm font-medium outline-none select-none transition-[transform,background-color,color,border-color,box-shadow,opacity] duration-150 py-1.5 px-3 w-full rounded-xl bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)] group"
                                 >
-                                  <ShoppingCart className="w-4 h-4 mr-1.5 shrink-0 [transform:perspective(700px)_rotateY(0deg)] [transform-style:preserve-3d] transition-transform duration-700 group-hover:[transform:perspective(700px)_rotateY(360deg)]" /> ซื้อสินค้า
+                                  {item.actionType === 'purchase' ? (
+                                     <><ShoppingCart className="w-4 h-4 mr-1.5 shrink-0 [transform:perspective(700px)_rotateY(0deg)] [transform-style:preserve-3d] transition-transform duration-700 group-hover:[transform:perspective(700px)_rotateY(360deg)]" /> สั่งซื้อสินค้า</>
+                                  ) : (
+                                     <><ExternalLink className="w-4 h-4 mr-1.5 shrink-0" /> รับลิงก์ฟรี</>
+                                  )}
                                 </button>
                               </div>
 
@@ -1360,8 +1429,17 @@ export default function App() {
                               </>
                             ) : (
                               <>
-                                <ShoppingCart className="w-4 h-4 shrink-0 [transform:perspective(700px)_rotateY(0deg)] [transform-style:preserve-3d] transition-transform duration-700 group-hover:[transform:perspective(700px)_rotateY(360deg)]" />
-                                สั่งซื้อสินค้า
+                                {selectedItem.actionType === 'purchase' ? (
+                                    <>
+                                        <ShoppingCart className="w-4 h-4 shrink-0 [transform:perspective(700px)_rotateY(0deg)] [transform-style:preserve-3d] transition-transform duration-700 group-hover:[transform:perspective(700px)_rotateY(360deg)]" />
+                                        สั่งซื้อสินค้า
+                                    </>
+                                ) : (
+                                    <>
+                                        <ExternalLink className="w-4 h-4 shrink-0 [transform:perspective(700px)_rotateY(0deg)] [transform-style:preserve-3d] transition-transform duration-700 group-hover:[transform:perspective(700px)_rotateY(360deg)]" />
+                                        รับลิงก์ฟรี
+                                    </>
+                                )}
                               </>
                             )}
                           </button>
@@ -1472,7 +1550,7 @@ export default function App() {
         <footer className="w-full border-t border-border-subtle bg-card-bg/50 backdrop-blur-sm mt-8">
           <div className="max-w-[1600px] mx-auto px-4 sm:px-8 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="text-center md:text-left flex flex-col items-center md:items-start">
-              <img src="https://img2.pic.in.th/IMG_0083.png" alt="Logo" className="h-6 sm:h-7 object-contain drop-shadow-sm mb-1 opacity-80 mix-blend-multiply" />
+              <img src={siteConfig.logoUrl} alt="Logo" className="h-6 sm:h-7 object-contain drop-shadow-sm mb-1 opacity-80 mix-blend-multiply" />
               <p className="text-[13px] text-text-muted mt-1">{t('footerDesc')}</p>
             </div>
             <div className="flex items-center gap-6 text-[13px] font-medium text-text-muted">
@@ -1626,6 +1704,151 @@ export default function App() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* ========================================================================= */}
+      {/* ORDER CONFIRM MODAL */}
+      {/* ========================================================================= */}
+      {showOrderConfirmModal && selectedItem && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isProcessingOrder && setShowOrderConfirmModal(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-card-bg w-full max-w-[400px] p-6 sm:p-8 rounded-[24px] shadow-2xl relative border border-border-subtle z-10"
+            >
+              <button 
+                onClick={() => setShowOrderConfirmModal(false)}
+                disabled={isProcessingOrder}
+                className="absolute top-5 right-5 text-text-muted hover:text-text-main bg-bg-app hover:bg-border-subtle p-2 rounded-full transition-colors z-20 disabled:opacity-50"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              
+              <div className="text-center mb-6 mt-2">
+                <div className="w-16 h-16 bg-brand/10 border border-brand/20 rounded-[20px] flex items-center justify-center mx-auto mb-4">
+                   <ShoppingBag className="w-8 h-8 text-brand" />
+                </div>
+                <h2 className="m-0 mb-2 text-[22px] font-bold text-text-main">ยืนยันการสั่งซื้อ</h2>
+                <p className="text-[14px] text-text-muted font-medium mb-4">โปรดตรวจสอบรายละเอียดสินค้าก่อนคลิกสั่งซื้อ</p>
+                
+                <div className="bg-bg-app border border-border-subtle p-4 rounded-[16px] text-left flex gap-4 mt-6">
+                  <div className="w-16 h-16 rounded-[12px] overflow-hidden shrink-0 bg-card-bg border border-border-subtle">
+                     <img src={selectedItem.imageUrl} alt="Product" className="w-full h-full object-cover" />
+                  </div>
+                  <div>
+                    <h3 className="text-[15px] font-semibold text-text-main line-clamp-1">{getLocalized(selectedItem.title)}</h3>
+                    <p className="text-[13px] text-text-muted mt-1">{selectedItem.category}</p>
+                    <div className="text-[14px] font-bold text-brand mt-1">{selectedItem.price || 'Free'}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowOrderConfirmModal(false)}
+                  disabled={isProcessingOrder}
+                  className="flex-1 py-3.5 rounded-[16px] text-text-main font-semibold bg-bg-app border border-border-subtle hover:bg-border-subtle active:scale-95 transition-all outline-none"
+                >
+                  ยกเลิก
+                </button>
+                <button 
+                  onClick={handlePurchaseConfirm}
+                  disabled={isProcessingOrder}
+                  className="flex-1 py-3.5 flex items-center justify-center gap-2 font-semibold transition-all outline-none disabled:opacity-70 disabled:active:scale-100 rounded-xl bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)]"
+                >
+                  {isProcessingOrder ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShoppingBag className="w-5 h-5" />}
+                  {isProcessingOrder ? 'กำลังดำเนินการ...' : 'สั่งซื้อทันที'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* PURCHASE SUCCESS MODAL */}
+      {/* ========================================================================= */}
+      {showPurchaseSuccessModal && selectedItem && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowPurchaseSuccessModal(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-card-bg w-full max-w-[460px] p-6 sm:p-8 rounded-[24px] shadow-2xl relative border border-border-subtle z-10"
+            >
+              <button 
+                onClick={() => setShowPurchaseSuccessModal(false)}
+                className="absolute top-5 right-5 text-text-muted hover:text-text-main bg-bg-app hover:bg-border-subtle p-2 rounded-full transition-colors z-20"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              
+              <div className="text-center mb-6">
+                <motion.div 
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                  className="w-20 h-20 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4 relative"
+                >
+                   <motion.div
+                     initial={{ rotate: 0 }}
+                     animate={{ rotate: 360 }}
+                     transition={{ duration: 4, ease: "linear", repeat: Infinity }}
+                     className="absolute inset-[-2px] border-2 border-emerald-500/30 rounded-full border-t-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                   />
+                   <motion.div
+                     initial={{ scale: 0 }}
+                     animate={{ scale: 1 }}
+                     transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                   >
+                     <Check className="w-10 h-10 text-emerald-500 drop-shadow-md" />
+                   </motion.div>
+                </motion.div>
+                <h2 className="m-0 mb-1 text-[24px] font-bold text-text-main">สั่งซื้อสำเร็จ!</h2>
+                <p className="text-[15px] text-brand font-bold mb-4 line-clamp-1 px-4">{getLocalized(selectedItem.title)}</p>
+                
+                <div className="text-left bg-bg-app border border-border-subtle p-4 rounded-[16px] mt-6 relative group">
+                  <div className="text-[12px] font-bold text-text-muted mb-2 uppercase tracking-wider">รายละเอียดสินค้า / ข้อมูล</div>
+                  <pre className="whitespace-pre-wrap font-sans text-[14px] text-text-main">{selectedItem.purchaseDetails || 'ไม่พบรายละเอียด'}</pre>
+                  
+                  <button 
+                    onClick={() => {
+                        navigator.clipboard.writeText(selectedItem.purchaseDetails || 'ไม่พบรายละเอียด');
+                        alert('คัดลอกรายละเอียดแล้ว');
+                    }}
+                    className="absolute top-4 right-4 p-2 bg-card-bg hover:bg-brand/10 text-text-muted hover:text-brand transition-colors rounded-lg border border-border-subtle shadow-sm opacity-0 group-hover:opacity-100"
+                  >
+                     <HardDriveDownload className="w-4 h-4" />
+                  </button>
+                </div>
+                
+                <div className="mt-4 text-[12px] text-text-muted bg-brand/5 border border-brand/10 p-3 rounded-[12px]">
+                   <span className="font-semibold text-brand">หมายเหตุ:</span> ประวัติการสั่งซื้อและรายละเอียดจะถูกบันทึกไว้ในโปรไฟล์ของคุณอัตโนมัติ (แท็บประวัติ)
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setShowPurchaseSuccessModal(false)}
+                className="w-full py-3.5 flex items-center justify-center gap-2 rounded-[16px] text-text-main font-semibold bg-bg-app hover:bg-border-subtle active:scale-95 transition-all outline-none border border-border-subtle"
+              >
+                ปิดหน้าต่าง
+              </button>
+            </motion.div>
+          </div>
+      )}
 
       {/* ========================================================================= */}
       {/* reCAPTCHA VERIFICATION MODAL */}

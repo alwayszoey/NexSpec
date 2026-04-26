@@ -36,6 +36,10 @@ const UserSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    history: {
+      type: Array, // elements will look like { id: string, type: 'link' | 'purchase', title: string, details: string, date: Date, price: string }
+      default: []
+    }
   },
   { timestamps: true }
 );
