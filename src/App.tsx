@@ -820,7 +820,7 @@ export default function App() {
                     height="600" 
                     decoding="async" 
                     className="w-full h-auto aspect-[10/3] object-cover object-center" 
-                    src="https://img2.pic.in.th/zorixshop_20260426124000.png" 
+                    src="https://img1.pic.in.th/images/zorixshop_20260426124700.png" 
                   />
                 </motion.div>
 
