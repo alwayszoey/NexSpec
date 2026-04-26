@@ -1744,7 +1744,7 @@ export default function App() {
                   ) : (
                      <div className="mx-auto rounded-[8px] overflow-hidden shadow-sm inline-block relative">
                         <ReCAPTCHA
-                          sitekey="6LcHYMgsAAAAAIxpQxY5vKS5gdu3Uw-E92pgPEXh"
+                          sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6LcHYMgsAAAAAIxpQxY5vKS5gdu3Uw-E92pgPEXh"}
                           onChange={handleVerifyRecaptcha}
                           theme={theme}
                         />
