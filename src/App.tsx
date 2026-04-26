@@ -3,7 +3,7 @@ import {
   Search, ShieldAlert, Download, X, RefreshCcw, LayoutGrid, Layers, 
   Archive, Settings, FileText, Check, Zap, Menu, ArrowLeft, 
   Home, HelpCircle, Share2, Facebook, Instagram, MessageCircle,
-  Play, ChevronRight, Loader2, Youtube, Send, MessageSquare, Sun, Moon, Lock, UserPlus, LogOut, Users, Eye, Star, Flame, ShoppingCart, Sparkles, ShoppingBag, History, HardDriveDownload, ExternalLink
+  Play, ChevronRight, Loader2, Youtube, Send, MessageSquare, Sun, Moon, Lock, UserPlus, LogOut, Users, Eye, Star, Flame, ShoppingCart, Sparkles, ShoppingBag, History, HardDriveDownload, ExternalLink, Link2
 } from 'lucide-react';
 import { resourcesData, ResourceItem } from './data';
 import { motion, AnimatePresence } from 'motion/react';
@@ -15,7 +15,7 @@ import { ProfileModal } from './ProfileModal';
 
 const EMOTICONS = ['🇹🇭', '🇻🇳', '🎮', '🚀', '✨', '🎁', '🔥', '💖', '👋'];
 
-type ViewState = 'home' | 'details' | 'help' | 'category';
+type ViewState = 'home' | 'details' | 'help' | 'category' | 'history';
 type AppLang = 'vi' | 'th';
 
 const StatsCard = ({ icon: Icon, title, value, unit }: { icon: any, title: string, value: string | number, unit: string }) => (
@@ -131,7 +131,7 @@ export default function App() {
   // ==========================================
   // ====== AUTH STATES ======
   const [authModalType, setAuthModalType] = useState<'login' | 'register' | null>(null);
-  const [currentUser, setCurrentUser] = useState<{ id: string, username: string, email: string, avatarUrl?: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ id: string, username: string, email: string, avatarUrl?: string, history?: any[] } | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
 
   // ====== STATS STATES ======
@@ -273,6 +273,10 @@ export default function App() {
   const [showPurchaseSuccessModal, setShowPurchaseSuccessModal] = useState(false);
   const [isProcessingOrder, setIsProcessingOrder] = useState(false);
   
+  // History view states
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'purchase' | 'link'>('all');
+  const [selectedHistories, setSelectedHistories] = useState<Set<number>>(new Set());
+  
   // Feedback States
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
@@ -322,8 +326,8 @@ export default function App() {
     const targetItem = item || selectedItem;
     if (targetItem) setSelectedItem(targetItem);
     
-    // Check if item requires login and user is not logged in
-    if (targetItem?.requiresLogin && !currentUser) {
+    // Check if user is not logged in and either item requires login or it's a purchase
+    if (!currentUser && (targetItem?.requiresLogin || targetItem?.actionType === 'purchase')) {
       setAuthModalType('login');
       return;
     }
@@ -355,6 +359,20 @@ export default function App() {
       // Simulate a purchase delay or call real payment API if needed
       setTimeout(async () => {
          await addHistoryRecord('purchase', selectedItem, selectedItem.purchaseDetails || 'ไม่พบรายละเอียด');
+         
+         // Increment download/sales stat
+         fetch('/api/stats/download', { method: 'POST' })
+           .then(res => res.json())
+           .then(data => {
+             if (data.success) {
+                setAppStats(prev => {
+                  const newStats = { ...prev, downloads: data.downloads };
+                  localStorage.setItem('cachedStats', JSON.stringify(newStats));
+                  return newStats;
+                });
+             }
+           }).catch(err => console.error("Failed to update stat", err));
+
          setIsProcessingOrder(false);
          setShowOrderConfirmModal(false);
          setShowPurchaseSuccessModal(true);
@@ -484,6 +502,56 @@ export default function App() {
     } catch (err) {
        console.error("Failed to add history", err);
     }
+  };
+
+  const appHistories = currentUser?.history || [];
+  const filteredHistories = historyFilter === 'all' 
+    ? appHistories 
+    : appHistories.filter((h: any) => h.type === historyFilter);
+
+  const handleToggleHistorySelect = (index: number) => {
+      const newSet = new Set(selectedHistories);
+      if (newSet.has(index)) {
+          newSet.delete(index);
+      } else {
+          newSet.add(index);
+      }
+      setSelectedHistories(newSet);
+  };
+
+  const handleSelectAllHistories = (isAllSelected: boolean) => {
+      if (isAllSelected) {
+          setSelectedHistories(new Set<number>());
+      } else {
+          const newSet = new Set<number>();
+          filteredHistories.forEach((_: any, i: number) => newSet.add(i));
+          setSelectedHistories(newSet);
+      }
+  };
+
+  const downloadSelectedHistoryAsTxt = () => {
+    if (selectedHistories.size === 0) return;
+    const itemsToDownload = Array.from(selectedHistories).sort((a,b)=>a-b).map(i => {
+        const h = filteredHistories.slice().reverse()[i];
+        return h;
+    });
+
+    const content = itemsToDownload.map(h => {
+        return `[${h.type === 'purchase' ? 'สั่งซื้อ' : 'Get Link'}] ${h.title}
+วันที่: ${new Date(h.date).toLocaleString('th-TH')}
+${h.price ? 'ราคา: ' + h.price + '\n' : ''}รายละเอียด:
+${h.details || '-'}
+----------------------------------------`;
+    }).join('\n\n');
+
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ประวัติการสั่งซื้อ_${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setSelectedHistories(new Set());
   };
 
   const handleFinalRedirect = () => {
@@ -807,7 +875,7 @@ export default function App() {
                     <Settings className="w-5 h-5 text-text-muted group-hover:text-brand transition-colors" /> {t('profileSettings') || 'Profile Settings'}
                   </button>
                   <button 
-                    onClick={() => { setIsMobileMenuOpen(false); setShowProfileModal(true); }}
+                    onClick={() => { setIsMobileMenuOpen(false); setCurrentView('history'); }}
                     className="flex items-center gap-3 p-3.5 rounded-[16px] hover:bg-brand-light text-left font-medium text-text-main transition-colors w-full group"
                   >
                     <History className="w-5 h-5 text-text-muted group-hover:text-brand transition-colors" />ประวัติการทำรายการ
@@ -1402,10 +1470,10 @@ export default function App() {
                               onClick={() => handleGetLink(undefined, selectedItem, dl.url)}
                               className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[12px] text-[14px] font-medium transition-all group cursor-pointer w-full py-2.5 px-4 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white shadow-sm hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98]"
                             >
-                              {selectedItem.requiresLogin && !currentUser ? (
+                              {(!currentUser && (selectedItem.requiresLogin || selectedItem.actionType === 'purchase')) ? (
                                 <>
                                   <Lock className="w-4 h-4 group-hover:-translate-y-1 transition-transform" />
-                                  {t('loginToDownload') || 'Login to Download'}
+                                  {t('loginToDownload') || 'เข้าสู่ระบบก่อนทำรายการ'}
                                 </>
                               ) : (
                                 <>
@@ -1422,10 +1490,10 @@ export default function App() {
                             onClick={() => handleGetLink(undefined, selectedItem)}
                             className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[12px] text-[14px] font-medium transition-all group cursor-pointer sm:w-auto w-full py-2.5 px-6 mx-auto bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white shadow-sm hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98]"
                           >
-                            {selectedItem.requiresLogin && !currentUser ? (
+                            {(!currentUser && (selectedItem.requiresLogin || selectedItem.actionType === 'purchase')) ? (
                               <>
                                 <Lock className="w-4 h-4 group-hover:-translate-y-1 transition-transform" />
-                                {t('loginToDownload') || 'Login to Download'}
+                                {t('loginToDownload') || 'เข้าสู่ระบบก่อนทำรายการ'}
                               </>
                             ) : (
                               <>
@@ -1449,6 +1517,141 @@ export default function App() {
                   </div>
                 </div>
               </div>
+            </motion.div>
+          )}
+
+          {/* ---------------------------------------------------- */}
+          {/* PAGE: HISTORY PAGE */}
+          {/* ---------------------------------------------------- */}
+        {currentView === 'history' && (
+            <motion.div 
+              key="history-view"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="max-w-[1000px] mx-auto px-5 sm:px-8 py-6 sm:py-8 pb-32 sm:pb-12 w-full"
+            >
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-text-muted font-medium mb-6 px-2 text-[13px] sm:text-[14px]">
+                <button 
+                  onClick={() => setCurrentView('home')}
+                  className="flex items-center gap-1.5 sm:gap-2 hover:text-brand transition-colors whitespace-nowrap"
+                >
+                  <Home className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
+                  {t('home')}
+                </button>
+                <ChevronRight className="w-3.5 h-3.5 opacity-50" />
+                <span className="text-text-main flex items-center gap-1.5 truncate">
+                  <History className="w-4 h-4" /> ประวัติการทำรายการ
+                </span>
+              </div>
+
+              {!currentUser ? (
+                <div className="text-center py-20">
+                  <Lock className="w-12 h-12 mx-auto text-text-muted mb-4 opacity-50" />
+                  <p className="text-text-muted mb-4">กรุณาเข้าสู่ระบบเพื่อดูประวัติ</p>
+                  <button onClick={() => setAuthModalType('login')} className="bg-brand text-white px-6 py-2 rounded-xl">เข้าสู่ระบบ</button>
+                </div>
+              ) : (
+                <div className="bg-card-bg shadow-[0_4px_24px_rgba(0,0,0,0.03)] border border-border-subtle rounded-[24px] overflow-hidden">
+                  <div className="p-6 sm:p-8 border-b border-border-subtle bg-bg-app">
+                    <h2 className="text-xl font-bold flex items-center gap-2 mb-2 text-text-main">
+                       <History className="w-6 h-6 text-brand" /> 
+                       ประวัติการสั่งซื้อและทำรายการ
+                    </h2>
+                    <p className="text-text-muted text-sm">รายการประวัติทั้งหมดที่คุณดาวน์โหลดและสั่งซื้อ</p>
+                  </div>
+                  <div className="p-6 sm:p-8">
+                     <div className="flex flex-col gap-4 mb-6">
+                       <div className="flex flex-wrap items-center gap-2">
+                         <button onClick={() => setHistoryFilter('all')} className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${historyFilter === 'all' ? 'bg-brand text-white shadow-md' : 'bg-bg-app border border-border-subtle text-text-muted hover:text-text-main'}`}>ทั้งหมด</button>
+                         <button onClick={() => setHistoryFilter('purchase')} className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${historyFilter === 'purchase' ? 'bg-brand text-white shadow-md' : 'bg-bg-app border border-border-subtle text-text-muted hover:text-text-main'}`}>สั่งซื้อสินค้า</button>
+                         <button onClick={() => setHistoryFilter('link')} className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${historyFilter === 'link' ? 'bg-brand text-white shadow-md' : 'bg-bg-app border border-border-subtle text-text-muted hover:text-text-main'}`}>Get Link</button>
+                       </div>
+                       
+                       {filteredHistories.length > 0 && (
+                         <div className="flex flex-wrap items-center justify-between bg-bg-app px-4 py-3 rounded-xl border border-border-subtle gap-4">
+                           <label className="flex items-center gap-2 text-sm text-text-muted cursor-pointer hover:text-text-main font-medium">
+                             <input 
+                               type="checkbox" 
+                               checked={filteredHistories.length > 0 && selectedHistories.size === filteredHistories.length}
+                               onChange={(e) => handleSelectAllHistories(e.target.checked ? false : true)}
+                               className="w-4 h-4 rounded text-brand focus:ring-brand border-border-subtle bg-card-bg cursor-pointer"
+                             />
+                             เลือกทั้งหมด
+                           </label>
+                           
+                           <button 
+                              onClick={downloadSelectedHistoryAsTxt}
+                              disabled={selectedHistories.size === 0}
+                              className="flex items-center gap-2 text-sm font-semibold bg-brand text-white px-4 py-2 rounded-xl shadow-[0_2px_10px_rgba(106,154,251,0.2)] hover:bg-brand-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                           >
+                              <Download className="w-4 h-4" /> โหลดที่เลือก (.txt)
+                           </button>
+                         </div>
+                       )}
+                     </div>
+
+                     <div className="flex flex-col gap-4">
+                       {filteredHistories.length === 0 ? (
+                         <div className="text-center py-12 bg-bg-app rounded-2xl border border-border-subtle border-dashed">
+                           <History className="w-10 h-10 mx-auto text-text-muted mb-3 opacity-40" />
+                           <p className="text-text-muted text-sm relative z-10">ยังไม่มีประวัติในหมวดหมู่นี้</p>
+                         </div>
+                       ) : (
+                         filteredHistories.slice().reverse().map((h: any, i: number) => (
+                           <div key={i} className={`p-5 lg:p-6 rounded-2xl border transition-all flex flex-col gap-3 ${selectedHistories.has(i) ? 'border-brand bg-brand/5 shadow-sm' : 'border-border-subtle bg-bg-app hover:shadow-[0_2px_10px_rgba(0,0,0,0.02)]'}`}>
+                              <div className="flex items-start justify-between gap-4">
+                                 <div className="flex items-start gap-4 w-full">
+                                     <input 
+                                        type="checkbox" 
+                                        checked={selectedHistories.has(i)}
+                                        onChange={() => handleToggleHistorySelect(i)}
+                                        className="w-5 h-5 mt-0.5 rounded text-brand focus:ring-brand border-border-subtle bg-card-bg cursor-pointer shrink-0"
+                                     />
+                                     <div className="flex-1 min-w-0">
+                                         <h4 className="text-base sm:text-lg font-bold text-text-main line-clamp-1">{h.title}</h4>
+                                         <p className="text-xs sm:text-sm text-text-muted mt-1">{new Date(h.date).toLocaleString('th-TH')}</p>
+                                     </div>
+                                 </div>
+                                 {h.type === 'purchase' ? (
+                                     <span className="bg-emerald-500/10 text-emerald-500 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shrink-0 whitespace-nowrap"><ShoppingBag className="w-4 h-4" /> {h.price || 'Free'}</span>
+                                 ) : (
+                                     <span className="bg-brand/10 text-brand text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shrink-0 whitespace-nowrap"><Link2 className="w-4 h-4" /> Get Link</span>
+                                 )}
+                              </div>
+
+                              {h.type === 'purchase' && h.details && (
+                                <div className="mt-2 bg-card-bg border border-border-subtle p-4 rounded-xl text-sm relative group w-full overflow-hidden">
+                                  <pre className="whitespace-pre-wrap font-sans text-text-muted font-medium break-words overflow-hidden max-w-full">{h.details}</pre>
+                                  <button 
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(h.details);
+                                        setFeedbackText("คัดลอกรายละเอียดแล้ว");
+                                        setShowFeedbackModal(true);
+                                    }}
+                                    className="absolute top-2 right-2 p-2 bg-bg-app hover:bg-brand hover:text-white text-text-muted transition-colors rounded-lg border border-border-subtle shadow-sm opacity-0 group-hover:opacity-100"
+                                    title="คัดลอกรายละเอียด"
+                                   >
+                                     <HardDriveDownload className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              )}
+
+                              {h.type === 'link' && h.details && (
+                                <div className="mt-3 flex justify-end">
+                                  <a href={h.details} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm text-white font-semibold bg-brand px-4 py-2 rounded-xl shadow-sm hover:brightness-110 hover:-translate-y-0.5 transition-all">
+                                    เปิดลิงก์อีกครั้ง <ExternalLink className="w-4 h-4" />
+                                  </a>
+                                </div>
+                              )}
+                           </div>
+                         ))
+                       )}
+                     </div>
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
 
@@ -1836,7 +2039,7 @@ export default function App() {
                 </div>
                 
                 <div className="mt-4 text-[12px] text-text-muted bg-brand/5 border border-brand/10 p-3 rounded-[12px]">
-                   <span className="font-semibold text-brand">หมายเหตุ:</span> ประวัติการสั่งซื้อและรายละเอียดจะถูกบันทึกไว้ในโปรไฟล์ของคุณอัตโนมัติ (แท็บประวัติ)
+                   <span className="font-semibold text-brand">หมายเหตุ:</span> ประวัติการสั่งซื้อและรายละเอียดจะถูกบันทึกไว้ในเมนู<span className="font-bold"> ประวัติการทำรายการ </span>ของคุณอัตโนมัติ
                 </div>
               </div>
 
