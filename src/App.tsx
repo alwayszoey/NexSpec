@@ -3,9 +3,10 @@ import {
   Search, ShieldAlert, Download, X, RefreshCcw, LayoutGrid, Layers, 
   Archive, Settings, FileText, Check, Zap, Menu, ArrowLeft, 
   Home, HelpCircle, Share2, Facebook, Instagram, MessageCircle,
-  Play, ChevronRight, Loader2, Youtube, Send, MessageSquare, Sun, Moon, Lock, UserPlus, LogOut, Users, Eye, Star, Flame, ShoppingCart, Sparkles, ShoppingBag, History, HardDriveDownload, ExternalLink, Link2
+  Play, ChevronRight, Loader2, Youtube, Send, MessageSquare, Sun, Moon, Lock, UserPlus, LogOut, Users, Eye, Star, Flame, ShoppingCart, Sparkles, ShoppingBag, History, HardDriveDownload, ExternalLink, Link2,
+  CircleX
 } from 'lucide-react';
-import { resourcesData, ResourceItem } from './data';
+import { resourcesData, ResourceItem, categoriesData } from './data';
 import { motion, AnimatePresence } from 'motion/react';
 import ReCAPTCHA from "react-google-recaptcha";
 import { translations } from './translations';
@@ -298,8 +299,11 @@ useEffect(() => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showSocialsModal, setShowSocialsModal] = useState(false);
   
-  // Extract unique categories from resourcesData, prepending 'ALL'
-  const allCategoriesSet = new Set(resourcesData.map(item => item.category));
+  // Combine categories from categoriesData and resourcesData
+  const allCategoriesSet = new Set([
+    ...categoriesData.map(c => c.name),
+    ...resourcesData.map(item => item.category)
+  ]);
   const categories = ['ALL', ...Array.from(allCategoriesSet)];
 
   const [showVerifyModal, setShowVerifyModal] = useState(false);
@@ -1040,18 +1044,13 @@ ${h.details || '-'}
                     </div>
 
                     <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-5 mb-2">
-                      {categories.map((tab) => {
+                      {categories.filter(tab => tab !== 'ALL').map((tab) => {
                         const isActive = activeCategory === tab;
-                        // Calculate counts
-                        const count = tab === 'ALL' 
-                          ? resourcesData.length 
-                          : resourcesData.filter(i => i.category === tab).length;
+                        const count = resourcesData.filter(i => i.category === tab).length;
                         
-                        // Pick an image
-                        let imgPath = "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1640&auto=format&fit=crop";
-                        if (tab === 'ALL') {
-                          imgPath = "https://i.postimg.cc/8zb4Q7C4/2000x600-20260425003051.png"
-                        } else {
+                        const catData = categoriesData.find(c => c.name === tab);
+                        let imgPath = catData?.imageUrl || "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1640&auto=format&fit=crop";
+                        if (!catData) {
                           const match = resourcesData.find(i => i.category === tab);
                           if (match) imgPath = match.imageUrl;
                         }
@@ -1061,18 +1060,16 @@ ${h.details || '-'}
                             key={tab} 
                             tabIndex={0} 
                             onClick={() => { setActiveCategory(tab); setCurrentView('category'); }}
-                            className="cursor-pointer focus:outline-none"
+                            className="cursor-pointer focus:outline-none relative group/cat block transition-transform active:scale-[0.98] rounded-xl overflow-hidden p-[2px]"
                           >
-                            <div className={`group block transition-transform active:scale-[0.98]`}>
-                              <div className={`rounded-lg border p-2 transition-colors ${
-                                isActive 
-                                  ? 'border-brand bg-brand/10 shadow-[0_0_15px_rgba(36,168,235,0.12)]' 
-                                  : 'border-border-subtle bg-bg-app hover:border-brand/80'
-                              }`}>
-                                <div className="relative overflow-hidden rounded-md bg-bg-app aspect-[10/3]">
+                            <div className={`absolute inset-0 z-0 transition-colors ${isActive ? 'bg-brand' : 'bg-border-subtle group-hover/cat:bg-bg-app'}`} />
+                            <div className="absolute inset-[-100%] z-0 animate-[spin_3s_linear_infinite] opacity-0 group-hover/cat:opacity-100 group-active/cat:opacity-100 bg-[conic-gradient(from_0deg,transparent_0_240deg,#3b82f6_280deg_360deg)] transition-opacity duration-300 pointer-events-none" />
+                            <div className="relative z-10 w-full h-full rounded-[calc(12px-2px)] p-2 bg-card-bg">
+                              <div className={`absolute inset-0 -z-10 rounded-[calc(12px-2px)] pointer-events-none transition-colors ${isActive ? 'bg-brand/10 shadow-[0_0_15px_rgba(36,168,235,0.12)]' : ''}`} />
+                              <div className="relative overflow-hidden rounded-md bg-zinc-950 aspect-[1640/500]">
                                   <img 
-                                    className="w-full h-full object-cover rounded-md transition-[opacity,transform] duration-500 ease-out opacity-100 group-hover:scale-[1.02]" 
-                                    alt={tab === 'ALL' ? t('allResources') : tab} 
+                                    className="w-full h-full object-cover rounded-md transition-[opacity,transform] duration-500 ease-out opacity-0 !opacity-100 group-hover:scale-[1.02]" 
+                                    alt={tab} 
                                     draggable="false" 
                                     loading="eager" 
                                     fetchPriority="high"
@@ -1082,22 +1079,22 @@ ${h.details || '-'}
                                 </div>
                                 <div className="mt-3 flex items-start justify-between gap-3 px-1">
                                   <div className="min-w-0">
-                                    <h4 className="text-lg sm:text-lg lg:text-xl font-medium leading-tight line-clamp-1 text-text-main group-hover:text-brand transition-colors">
-                                      {tab === 'ALL' ? t('allResources') : tab}
+                                    <h4 className="text-lg sm:text-xl font-medium leading-tight line-clamp-1 text-text-main group-hover:text-brand transition-colors">
+                                      {tab}
                                     </h4>
                                     <p className="mt-1 text-xs sm:text-sm font-medium text-text-muted line-clamp-1">
-                                      {tab === 'ALL' ? 'รวมสินค้าทั้งหมดในร้าน' : 'การันตีสะอาด 100%'}
+                                      {catData?.description || 'สินค้าหมวดหมู่ ' + tab}
                                     </p>
                                   </div>
                                   <div className="shrink-0 pt-0.5 text-right">
                                     <p className="text-sm font-medium text-text-muted">{count} สินค้า</p>
                                     <div className="mt-1 flex flex-wrap items-center justify-end gap-1">
-                                      {tab === 'ALL' && (
+                                      {(catData?.isRecommended) && (
                                         <span className="inline-flex items-center gap-1 rounded-full border border-brand/40 bg-brand/15 px-2 py-0.5 text-[11px] font-semibold text-brand">
                                           <Star className="w-3 h-3 fill-brand text-brand" /> แนะนำ
                                         </span>
                                       )}
-                                      {appStats.downloads >= 100 && (
+                                      {(catData?.isPopular) && (
                                         <span className="inline-flex items-center gap-1 rounded-full border border-brand/40 bg-brand/15 px-2 py-0.5 text-[11px] font-semibold text-brand">
                                           <Flame className="w-3 h-3 fill-brand text-brand" /> ยอดฮิต
                                         </span>
@@ -1107,7 +1104,6 @@ ${h.details || '-'}
                                 </div>
                               </div>
                             </div>
-                          </div>
                         );
                       })}
                     </div>
@@ -1145,14 +1141,19 @@ ${h.details || '-'}
                           exit={{ opacity: 0, scale: 0.95 }}
                           transition={{ duration: 0.2, delay: index * 0.03 }}
                           key={"rec-" + item.id}
-                          onClick={() => handleOpenDetails(item)}
-                          className="relative rounded-md sm:rounded-lg group overflow-hidden cursor-pointer p-0 bg-transparent flex flex-col shadow-sm"
+                          onClick={() => { if (!item.isOutOfStock) handleOpenDetails(item) }}
+                          className={`relative rounded-md sm:rounded-lg group/prod flex flex-col shadow-sm ${item.isOutOfStock ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                         >
-                          <div className="relative flex-1 z-10 bg-card-bg border border-border-subtle group-hover:border-brand transition-colors duration-200 rounded-md sm:rounded-lg p-1.5 sm:p-2 flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.02)] group-hover:shadow-[0_8px_30px_rgba(106,154,251,0.12)]">
+                          {!item.isOutOfStock && (
+                            <div className="absolute inset-[0px] rounded-md sm:rounded-lg overflow-hidden opacity-0 group-hover/prod:opacity-100 group-active/prod:opacity-100 transition-opacity duration-300 pointer-events-none z-0">
+                               <div className="absolute inset-[-100%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_0_240deg,#3b82f6_280deg_360deg)]" />
+                            </div>
+                          )}
+                          <div className={`relative flex-1 z-10 bg-card-bg border transition-colors duration-200 rounded-md sm:rounded-lg p-1.5 sm:p-2 flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.02)] ${item.isOutOfStock ? 'grayscale opacity-70 border-transparent' : 'border-border-subtle group-hover/prod:border-transparent group-hover/prod:shadow-[0_8px_30px_rgba(106,154,251,0.12)] bg-clip-padding m-[1px] group-hover/prod:m-[1px]'}`}>
                             
                             {appStats.downloads >= 100 && (
                               <div className="absolute top-1 right-1 z-30 pointer-events-none">
-                                <div className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-red-500 to-orange-500 px-2 py-1 border border-orange-300/40">
+                                <div className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-red-500 to-orange-500 px-2 py-1 border border-orange-300/40 opacity-90">
                                   <Flame className="w-3 h-3 text-white fill-white" />
                                   <span className="text-[10px] sm:text-[11px] font-semibold text-white">ยอดฮิต</span>
                                 </div>
@@ -1161,38 +1162,55 @@ ${h.details || '-'}
 
                             <div className="relative z-20 rounded-md overflow-hidden bg-bg-app aspect-square">
                               <motion.img 
-                                whileHover={{ scale: 1.05 }}
+                                whileHover={!item.isOutOfStock ? { scale: 1.05 } : {}}
                                 transition={{ duration: 0.4 }}
                                 src={item.imageUrl} 
                                 alt={getLocalized(item.title)} 
-                                className="w-full h-full object-cover sm:object-contain object-center transition-opacity duration-500 ease-out" 
+                                className={`w-full h-full object-cover sm:object-contain object-center transition-opacity duration-500 ease-out`} 
                                 referrerPolicy="no-referrer" 
                               />
+                              {item.isOutOfStock && (
+                                <div className="absolute top-0 left-0 w-full h-full bg-black/75 backdrop-blur-[1px] rounded-md flex items-center justify-center z-10">
+                                  <p className="text-white text-sm flex items-center gap-2 font-medium">
+                                    <CircleX className="w-4 h-4" /> สินค้าหมด
+                                  </p>
+                                </div>
+                              )}
                             </div>
                             
-                            <div className="relative z-20 mt-2 flex-1 flex flex-col">
-                              <h3 className="text-sm sm:text-base font-bold text-text-main line-clamp-1 group-hover:text-brand transition-colors">{getLocalized(item.title)}</h3>
-                              <p className="text-[11px] sm:text-xs text-brand line-clamp-1 mt-1 font-medium bg-brand/10 w-fit px-1.5 py-0.5 rounded-md border border-brand/20">
+                            <div className={`relative z-20 mt-2 flex-1 flex flex-col`}>
+                              <h3 className={`text-sm sm:text-base font-bold text-text-main line-clamp-1 transition-colors ${!item.isOutOfStock && 'group-hover/prod:text-brand'}`}>{getLocalized(item.title)}</h3>
+                              <p className={`text-[11px] sm:text-xs line-clamp-1 mt-1 font-medium w-fit px-1.5 py-0.5 rounded-md border ${item.isOutOfStock ? 'bg-zinc-500/10 text-text-muted border-zinc-500/20' : 'bg-brand/10 text-brand border-brand/20'}`}>
                                 ✦ {getLocalized(item.shortDescription) || 'คุณสมบัติพิเศษ'}
                               </p>
                               
                               <div className="flex items-center mt-3 justify-between space-x-2 pt-2 border-t border-border-subtle mt-auto">
-                                <p className="text-xs sm:text-sm font-medium text-text-main inline-flex items-center">
+                                <p className={`text-xs sm:text-sm font-medium inline-flex items-center text-text-main`}>
                                   <span className="text-lg sm:text-xl font-bold leading-none">฿</span>
-                                  <span className="text-lg sm:text-xl font-bold leading-none text-brand ml-[1px]">{item.price && item.price !== 'Free' ? item.price : '0'}</span>
+                                  <span className={`text-lg sm:text-xl font-bold leading-none ml-[1px] ${!item.isOutOfStock && 'text-brand'}`}>{item.price && item.price !== 'Free' ? item.price : '0'}</span>
                                 </p>
                                 <p className="text-[10px] sm:text-[11px] rounded px-1.5 py-0.5 border inline-flex items-center gap-1 border-border-subtle text-text-muted bg-bg-app">
-                                  <Archive className="w-3 h-3 shrink-0" /> คงเหลือ ∞
+                                  <Archive className="w-3 h-3 shrink-0" /> {item.isOutOfStock ? 'คงเหลือ 0' : 'คงเหลือ ∞'}
                                 </p>
                               </div>
                               
                               <div className="flex items-center space-x-2 mt-2">
                                 <button 
-                                  onClick={(e) => { e.stopPropagation(); handleOpenDetails(item); }}
-                                  className="inline-flex shrink-0 items-center justify-center whitespace-nowrap text-sm font-medium outline-none select-none transition-[transform,background-color,color,border-color,box-shadow,opacity] duration-150 py-1.5 px-3 w-full rounded-xl bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)] group"
+                                  onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    if(!item.isOutOfStock) handleOpenDetails(item); 
+                                  }}
+                                  disabled={item.isOutOfStock}
+                                  className={`inline-flex shrink-0 items-center justify-center whitespace-nowrap text-sm font-medium outline-none select-none transition-[transform,background-color,color,border-color,box-shadow,opacity] duration-150 py-1.5 px-3 w-full rounded-xl text-white group/btn ${
+                                    item.isOutOfStock 
+                                      ? "bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 opacity-50 cursor-not-allowed"
+                                      : "bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)]"
+                                  }`}
                                 >
-                                  {item.actionType === 'purchase' ? (
-                                     <><ShoppingCart className="w-4 h-4 mr-1.5 shrink-0 [transform:perspective(700px)_rotateY(0deg)] [transform-style:preserve-3d] transition-transform duration-700 group-hover:[transform:perspective(700px)_rotateY(360deg)]" /> เลือกซื้อ</>
+                                  {item.isOutOfStock ? (
+                                     <><ShoppingCart className="w-4 h-4 mr-1.5 shrink-0" /> เลือกซื้อ</>
+                                  ) : item.actionType === 'purchase' ? (
+                                     <><ShoppingCart className="w-4 h-4 mr-1.5 shrink-0 [transform:perspective(700px)_rotateY(0deg)] [transform-style:preserve-3d] transition-transform duration-700 group-hover/btn:[transform:perspective(700px)_rotateY(360deg)]" /> เลือกซื้อ</>
                                   ) : (
                                      <><ExternalLink className="w-4 h-4 mr-1.5 shrink-0" /> รับลิงก์ฟรี</>
                                   )}
@@ -1262,14 +1280,19 @@ ${h.details || '-'}
                           exit={{ opacity: 0, scale: 0.95 }}
                           transition={{ duration: 0.2, delay: index * 0.03 }}
                           key={item.id}
-                          onClick={() => handleOpenDetails(item)}
-                          className="relative rounded-md sm:rounded-lg group overflow-hidden cursor-pointer p-0 bg-transparent flex flex-col shadow-sm"
+                          onClick={() => { if (!item.isOutOfStock) handleOpenDetails(item) }}
+                          className={`relative rounded-md sm:rounded-lg group/prod flex flex-col shadow-sm ${item.isOutOfStock ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                         >
-                          <div className="relative flex-1 z-10 bg-card-bg border border-border-subtle group-hover:border-brand transition-colors duration-200 rounded-md sm:rounded-lg p-1.5 sm:p-2 flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.02)] group-hover:shadow-[0_8px_30px_rgba(106,154,251,0.12)]">
+                          {!item.isOutOfStock && (
+                            <div className="absolute inset-[0px] rounded-md sm:rounded-lg overflow-hidden opacity-0 group-hover/prod:opacity-100 group-active/prod:opacity-100 transition-opacity duration-300 pointer-events-none z-0">
+                               <div className="absolute inset-[-100%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_0_240deg,#3b82f6_280deg_360deg)]" />
+                            </div>
+                          )}
+                          <div className={`relative flex-1 z-10 bg-card-bg border transition-colors duration-200 rounded-md sm:rounded-lg p-1.5 sm:p-2 flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.02)] ${item.isOutOfStock ? 'grayscale opacity-70 border-transparent' : 'border-border-subtle group-hover/prod:border-transparent group-hover/prod:shadow-[0_8px_30px_rgba(106,154,251,0.12)] bg-clip-padding m-[1px] group-hover/prod:m-[1px]'}`}>
                             
                             {appStats.downloads >= 100 && (
                               <div className="absolute top-1 right-1 z-30 pointer-events-none">
-                                <div className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-red-500 to-orange-500 px-2 py-1 border border-orange-300/40">
+                                <div className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-red-500 to-orange-500 px-2 py-1 border border-orange-300/40 opacity-90">
                                   <Flame className="w-3 h-3 text-white fill-white" />
                                   <span className="text-[10px] sm:text-[11px] font-semibold text-white">ยอดฮิต</span>
                                 </div>
@@ -1278,38 +1301,55 @@ ${h.details || '-'}
 
                             <div className="relative z-20 rounded-md overflow-hidden bg-bg-app aspect-square">
                               <motion.img 
-                                whileHover={{ scale: 1.05 }}
+                                whileHover={!item.isOutOfStock ? { scale: 1.05 } : {}}
                                 transition={{ duration: 0.4 }}
                                 src={item.imageUrl} 
                                 alt={getLocalized(item.title)} 
-                                className="w-full h-full object-cover sm:object-contain object-center transition-opacity duration-500 ease-out" 
+                                className={`w-full h-full object-cover sm:object-contain object-center transition-opacity duration-500 ease-out`} 
                                 referrerPolicy="no-referrer" 
                               />
+                              {item.isOutOfStock && (
+                                <div className="absolute top-0 left-0 w-full h-full bg-black/75 backdrop-blur-[1px] rounded-md flex items-center justify-center z-10">
+                                  <p className="text-white text-sm flex items-center gap-2 font-medium">
+                                    <CircleX className="w-4 h-4" /> สินค้าหมด
+                                  </p>
+                                </div>
+                              )}
                             </div>
                             
-                            <div className="relative z-20 mt-2 flex-1 flex flex-col">
-                              <h3 className="text-sm sm:text-base font-bold text-text-main line-clamp-1 group-hover:text-brand transition-colors">{getLocalized(item.title)}</h3>
-                              <p className="text-[11px] sm:text-xs text-brand line-clamp-1 mt-1 font-medium bg-brand/10 w-fit px-1.5 py-0.5 rounded-md border border-brand/20">
+                            <div className={`relative z-20 mt-2 flex-1 flex flex-col`}>
+                              <h3 className={`text-sm sm:text-base font-bold text-text-main line-clamp-1 transition-colors ${!item.isOutOfStock && 'group-hover/prod:text-brand'}`}>{getLocalized(item.title)}</h3>
+                              <p className={`text-[11px] sm:text-xs line-clamp-1 mt-1 font-medium w-fit px-1.5 py-0.5 rounded-md border ${item.isOutOfStock ? 'bg-zinc-500/10 text-text-muted border-zinc-500/20' : 'bg-brand/10 text-brand border-brand/20'}`}>
                                 ✦ {getLocalized(item.shortDescription) || 'คุณสมบัติพิเศษ'}
                               </p>
                               
                               <div className="flex items-center mt-3 justify-between space-x-2 pt-2 border-t border-border-subtle mt-auto">
-                                <p className="text-xs sm:text-sm font-medium text-text-main inline-flex items-center">
+                                <p className={`text-xs sm:text-sm font-medium inline-flex items-center text-text-main`}>
                                   <span className="text-lg sm:text-xl font-bold leading-none">฿</span>
-                                  <span className="text-lg sm:text-xl font-bold leading-none text-brand ml-[1px]">{item.price && item.price !== 'Free' ? item.price : '0'}</span>
+                                  <span className={`text-lg sm:text-xl font-bold leading-none ml-[1px] ${!item.isOutOfStock && 'text-brand'}`}>{item.price && item.price !== 'Free' ? item.price : '0'}</span>
                                 </p>
                                 <p className="text-[10px] sm:text-[11px] rounded px-1.5 py-0.5 border inline-flex items-center gap-1 border-border-subtle text-text-muted bg-bg-app">
-                                  <Archive className="w-3 h-3 shrink-0" /> คงเหลือ ∞
+                                  <Archive className="w-3 h-3 shrink-0" /> {item.isOutOfStock ? 'คงเหลือ 0' : 'คงเหลือ ∞'}
                                 </p>
                               </div>
                               
                               <div className="flex items-center space-x-2 mt-2">
                                 <button 
-                                  onClick={(e) => { e.stopPropagation(); handleOpenDetails(item); }}
-                                  className="inline-flex shrink-0 items-center justify-center whitespace-nowrap text-sm font-medium outline-none select-none transition-[transform,background-color,color,border-color,box-shadow,opacity] duration-150 py-1.5 px-3 w-full rounded-xl bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)] group"
+                                  onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    if(!item.isOutOfStock) handleOpenDetails(item); 
+                                  }}
+                                  disabled={item.isOutOfStock}
+                                  className={`inline-flex shrink-0 items-center justify-center whitespace-nowrap text-sm font-medium outline-none select-none transition-[transform,background-color,color,border-color,box-shadow,opacity] duration-150 py-1.5 px-3 w-full rounded-xl text-white group/btn ${
+                                    item.isOutOfStock 
+                                      ? "bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 opacity-50 cursor-not-allowed"
+                                      : "bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)]"
+                                  }`}
                                 >
-                                  {item.actionType === 'purchase' ? (
-                                     <><ShoppingCart className="w-4 h-4 mr-1.5 shrink-0 [transform:perspective(700px)_rotateY(0deg)] [transform-style:preserve-3d] transition-transform duration-700 group-hover:[transform:perspective(700px)_rotateY(360deg)]" /> สั่งซื้อสินค้า</>
+                                  {item.isOutOfStock ? (
+                                     <><ShoppingCart className="w-4 h-4 mr-1.5 shrink-0" /> สั่งซื้อสินค้า</>
+                                  ) : item.actionType === 'purchase' ? (
+                                     <><ShoppingCart className="w-4 h-4 mr-1.5 shrink-0 [transform:perspective(700px)_rotateY(0deg)] [transform-style:preserve-3d] transition-transform duration-700 group-hover/btn:[transform:perspective(700px)_rotateY(360deg)]" /> สั่งซื้อสินค้า</>
                                   ) : (
                                      <><ExternalLink className="w-4 h-4 mr-1.5 shrink-0" /> รับลิงก์ฟรี</>
                                   )}
@@ -2000,8 +2040,8 @@ ${h.details || '-'}
                   disabled={isProcessingOrder}
                   className="flex-1 py-3.5 flex items-center justify-center gap-2 font-semibold transition-all outline-none disabled:opacity-70 disabled:active:scale-100 rounded-xl bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)]"
                 >
-                  {isProcessingOrder ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShoppingBag className="w-5 h-5" />}
-                  {isProcessingOrder ? 'กำลังดำเนินการ...' : 'สั่งซื้อทันที'}
+                  {isProcessingOrder ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShoppingBag className="w-5 h-5 shrink-0" />}
+                  <span className="truncate">{isProcessingOrder ? 'รอสักครู่...' : 'สั่งซื้อทันที'}</span>
                 </button>
               </div>
             </motion.div>
@@ -2059,7 +2099,7 @@ ${h.details || '-'}
                 
                 <div className="text-left bg-bg-app border border-border-subtle p-4 rounded-[16px] mt-6 relative group">
                   <div className="text-[12px] font-bold text-text-muted mb-2 uppercase tracking-wider">รายละเอียดสินค้า / ข้อมูล</div>
-                  <pre className="whitespace-pre-wrap font-sans text-[14px] text-text-main">{selectedItem.purchaseDetails || 'ไม่พบรายละเอียด'}</pre>
+                  <pre className="whitespace-pre-wrap break-all overflow-x-auto font-sans text-[14px] text-text-main">{selectedItem.purchaseDetails || 'ไม่พบรายละเอียด'}</pre>
                   
                   <button 
                     onClick={() => {

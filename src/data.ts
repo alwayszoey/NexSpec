@@ -6,6 +6,34 @@ export interface DownloadLink {
 export type StringOrObj = string;
 export type ActionType = "link" | "purchase";
 
+export interface CategoryItem {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  isPopular?: boolean;
+  isRecommended?: boolean;
+}
+
+export const categoriesData: CategoryItem[] = [
+  {
+    id: "cat-1",
+    name: "หมวดหมู่เปลี่ยนข้อมูลได้",
+    description: "การันตีสะอาด 100%",
+    imageUrl: "https://i.postimg.cc/mD8D906Z/2000x600-20260425003051.png", // ใส่ภาพปกของคุณได้ที่นี่
+    isRecommended: true,
+    isPopular: true
+  },
+  {
+    id: "cat-2",
+    name: "หมวดหมู่เปลี่ยนข้อมูลไม่ได้",
+    description: "การันตีเข้าได้ทุกไอดี 100%",
+    imageUrl: "https://i.postimg.cc/vT4M9Rhm/2000x600-20260425003051.png", // ใส่ภาพปกของคุณได้ที่นี่
+    isRecommended: true,
+    isPopular: false
+  }
+];
+
 export interface ResourceItem {
   id: string;
   title: StringOrObj;
@@ -24,6 +52,7 @@ export interface ResourceItem {
   fileSize?: string;
   price?: string;
   requiresLogin?: boolean;
+  isOutOfStock?: boolean;
 }
 
 // ============================================================================
