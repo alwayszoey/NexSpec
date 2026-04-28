@@ -17,20 +17,12 @@ export interface CategoryItem {
 
 export const categoriesData: CategoryItem[] = [
   {
-    id: "cat-1",
-    name: "หมวดหมู่เปลี่ยนข้อมูลได้",
-    description: "การันตีสะอาด 100%",
-    imageUrl: "https://i.postimg.cc/mD8D906Z/2000x600-20260425003051.png", // ใส่ภาพปกของคุณได้ที่นี่
+    id: "cat-script",
+    name: "Script",
+    description: "สคริปต์ต่างๆ",
+    imageUrl: "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1640&auto=format&fit=crop", // placeholder image
     isRecommended: true,
     isPopular: true
-  },
-  {
-    id: "cat-2",
-    name: "หมวดหมู่เปลี่ยนข้อมูลไม่ได้",
-    description: "การันตีเข้าได้ทุกไอดี 100%",
-    imageUrl: "https://i.postimg.cc/vT4M9Rhm/2000x600-20260425003051.png", // ใส่ภาพปกของคุณได้ที่นี่
-    isRecommended: true,
-    isPopular: false
   }
 ];
 

@@ -141,7 +141,7 @@ function generateSignedToken(url: string, ip: string) {
   const expires = Date.now() + 5 * 60 * 1000;
   const payload = JSON.stringify({ url, exp: expires });
   const payloadB64 = Buffer.from(payload).toString('base64url');
-  const signature = crypto.createHmac('sha256', process.env.RECAPTCHA_SECRET_KEY || 'default_secret_key_12345')
+  const signature = crypto.createHmac('sha256', process.env.TURNSTILE_SECRET_KEY || 'default_secret_key_12345')
     .update(payloadB64)
     .digest('base64url');
   return `${payloadB64}.${signature}`;
@@ -152,7 +152,7 @@ function verifySignedToken(token: string) {
     const parts = token.split('.');
     if (parts.length !== 2) return null;
     const [payloadB64, signature] = parts;
-    const expectedSig = crypto.createHmac('sha256', process.env.RECAPTCHA_SECRET_KEY || 'default_secret_key_12345')
+    const expectedSig = crypto.createHmac('sha256', process.env.TURNSTILE_SECRET_KEY || 'default_secret_key_12345')
       .update(payloadB64)
       .digest('base64url');
     if (signature !== expectedSig) return null;
@@ -197,16 +197,16 @@ app.post("/api/verify-captcha", abuseLimiter, async (req, res) => {
   }
   usedTokens.add(token);
   try {
-    const recaptchaSecret = process.env.RECAPTCHA_SECRET_KEY;
-    if (recaptchaSecret) {
-      const response = await fetch(`https://www.google.com/recaptcha/api/siteverify`, {
+    const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
+    if (turnstileSecret) {
+      const response = await fetch(`https://challenges.cloudflare.com/turnstile/v0/siteverify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `secret=${recaptchaSecret}&response=${token}&remoteip=${ip}`
+        body: `secret=${turnstileSecret}&response=${token}&remoteip=${ip}`
       });
       const data = await response.json();
       if (!data.success) {
-        res.status(400).json({ success: false, error: 'Captcha verification failed' });
+        res.status(400).json({ success: false, error: 'Turnstile verification failed' });
         return;
       }
     }

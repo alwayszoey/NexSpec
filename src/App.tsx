@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { resourcesData, ResourceItem, categoriesData } from './data';
 import { motion, AnimatePresence } from 'motion/react';
-import ReCAPTCHA from "react-google-recaptcha";
+import { Turnstile } from '@marsidev/react-turnstile';
 import { translations } from './translations';
 import { siteConfig } from './config';
 import { AuthModal } from './AuthModal';
@@ -124,6 +124,7 @@ export default function App() {
   const [isAppLoading, setIsAppLoading] = useState(true);
 
   const [welcomeState, setWelcomeState] = useState<'welcome' | 'checking' | 'done'>('done');
+  const [isTurnstileVerified, setIsTurnstileVerified] = useState(false);
   
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
@@ -192,8 +193,8 @@ useEffect(() => {
       localStorage.setItem('appTheme', 'light');
     }
 
-    const hasVisited = localStorage.getItem('hasVisitedStore');
-    if (hasVisited) {
+    const hasVerifiedEntry = sessionStorage.getItem('hasVerifiedEntry');
+    if (hasVerifiedEntry) {
       setWelcomeState('done');
     } else {
       setWelcomeState('welcome');
@@ -681,7 +682,7 @@ ${h.details || '-'}
   }, []);
 
   const handleEnterStore = () => {
-    localStorage.setItem('hasVisitedStore', 'true');
+    sessionStorage.setItem('hasVerifiedEntry', 'true');
     setWelcomeState('checking');
     setTimeout(() => {
       setWelcomeState('done');
@@ -742,9 +743,18 @@ ${h.details || '-'}
                   ศูนย์รวมซอร์สโค้ดและสคริปต์คุณภาพสูง พร้อมใช้สำหรับโปรเจกต์ของคุณ
                 </h2>
                 
+                <div className="flex justify-center mb-6">
+                  <Turnstile
+                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAADFFAhm_1PRQij4M"}
+                    onSuccess={(token) => setIsTurnstileVerified(true)}
+                    options={{ theme: theme as any }}
+                  />
+                </div>
+
                 <button 
                   onClick={handleEnterStore}
-                  className="w-full flex items-center justify-center gap-3 py-4 rounded-[16px] bg-brand hover:brightness-110 border-2 border-transparent text-white transition-all text-[16px] font-bold cursor-pointer shadow-lg shadow-brand/20 active:scale-[0.98]"
+                  disabled={!isTurnstileVerified}
+                  className="w-full flex items-center justify-center gap-3 py-4 rounded-[16px] bg-brand hover:brightness-110 border-2 border-transparent text-white transition-all text-[16px] font-bold cursor-pointer shadow-lg shadow-brand/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   เข้าสู่ Zorix Shop <ChevronRight className="w-5 h-5 opacity-80" />
                 </button>
@@ -1195,26 +1205,25 @@ ${h.details || '-'}
                               </div>
                               
                               <div className="flex items-center space-x-2 mt-2">
-                                <button 
-                                  onClick={(e) => { 
-                                    e.stopPropagation(); 
-                                    if(!item.isOutOfStock) handleOpenDetails(item); 
-                                  }}
-                                  disabled={item.isOutOfStock}
-                                  className={`inline-flex shrink-0 items-center justify-center whitespace-nowrap text-sm font-medium outline-none select-none transition-[transform,background-color,color,border-color,box-shadow,opacity] duration-150 py-1.5 px-3 w-full rounded-xl text-white group/btn ${
-                                    item.isOutOfStock 
-                                      ? "bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 opacity-50 cursor-not-allowed"
-                                      : "bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)]"
-                                  }`}
-                                >
-                                  {item.isOutOfStock ? (
-                                     <><ShoppingCart className="w-4 h-4 mr-1.5 shrink-0" /> เลือกซื้อ</>
-                                  ) : item.actionType === 'purchase' ? (
-                                     <><ShoppingCart className="w-4 h-4 mr-1.5 shrink-0 [transform:perspective(700px)_rotateY(0deg)] [transform-style:preserve-3d] transition-transform duration-700 group-hover/btn:[transform:perspective(700px)_rotateY(360deg)]" /> เลือกซื้อ</>
-                                  ) : (
-                                     <><ExternalLink className="w-4 h-4 mr-1.5 shrink-0" /> รับลิงก์ฟรี</>
-                                  )}
-                                </button>
+                                {item.isOutOfStock ? (
+                                  <div className="inline-flex shrink-0 items-center justify-center whitespace-nowrap text-sm font-bold outline-none select-none py-1.5 px-3 w-full rounded-xl bg-zinc-500/10 text-zinc-500 border border-zinc-500/20">
+                                    <CircleX className="w-4 h-4 mr-1.5" /> สินค้าหมด
+                                  </div>
+                                ) : (
+                                  <button 
+                                    onClick={(e) => { 
+                                      e.stopPropagation(); 
+                                      handleOpenDetails(item); 
+                                    }}
+                                    className="inline-flex shrink-0 items-center justify-center whitespace-nowrap text-sm font-medium outline-none select-none transition-[transform,background-color,color,border-color,box-shadow,opacity] duration-150 py-1.5 px-3 w-full rounded-xl text-white group/btn bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)]"
+                                  >
+                                    {item.actionType === 'purchase' ? (
+                                       <><ShoppingCart className="w-4 h-4 mr-1.5 shrink-0 [transform:perspective(700px)_rotateY(0deg)] [transform-style:preserve-3d] transition-transform duration-700 group-hover/btn:[transform:perspective(700px)_rotateY(360deg)]" /> เลือกซื้อ</>
+                                    ) : (
+                                       <><ExternalLink className="w-4 h-4 mr-1.5 shrink-0" /> รับลิงก์ฟรี</>
+                                    )}
+                                  </button>
+                                )}
                               </div>
 
                               <div className="mt-2.5 flex items-center justify-center">
@@ -1334,26 +1343,25 @@ ${h.details || '-'}
                               </div>
                               
                               <div className="flex items-center space-x-2 mt-2">
-                                <button 
-                                  onClick={(e) => { 
-                                    e.stopPropagation(); 
-                                    if(!item.isOutOfStock) handleOpenDetails(item); 
-                                  }}
-                                  disabled={item.isOutOfStock}
-                                  className={`inline-flex shrink-0 items-center justify-center whitespace-nowrap text-sm font-medium outline-none select-none transition-[transform,background-color,color,border-color,box-shadow,opacity] duration-150 py-1.5 px-3 w-full rounded-xl text-white group/btn ${
-                                    item.isOutOfStock 
-                                      ? "bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 opacity-50 cursor-not-allowed"
-                                      : "bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)]"
-                                  }`}
-                                >
-                                  {item.isOutOfStock ? (
-                                     <><ShoppingCart className="w-4 h-4 mr-1.5 shrink-0" /> สั่งซื้อสินค้า</>
-                                  ) : item.actionType === 'purchase' ? (
-                                     <><ShoppingCart className="w-4 h-4 mr-1.5 shrink-0 [transform:perspective(700px)_rotateY(0deg)] [transform-style:preserve-3d] transition-transform duration-700 group-hover/btn:[transform:perspective(700px)_rotateY(360deg)]" /> สั่งซื้อสินค้า</>
-                                  ) : (
-                                     <><ExternalLink className="w-4 h-4 mr-1.5 shrink-0" /> รับลิงก์ฟรี</>
-                                  )}
-                                </button>
+                                {item.isOutOfStock ? (
+                                  <div className="inline-flex shrink-0 items-center justify-center whitespace-nowrap text-sm font-bold outline-none select-none py-1.5 px-3 w-full rounded-xl bg-zinc-500/10 text-zinc-500 border border-zinc-500/20">
+                                    <CircleX className="w-4 h-4 mr-1.5" /> สินค้าหมด
+                                  </div>
+                                ) : (
+                                  <button 
+                                    onClick={(e) => { 
+                                      e.stopPropagation(); 
+                                      handleOpenDetails(item); 
+                                    }}
+                                    className="inline-flex shrink-0 items-center justify-center whitespace-nowrap text-sm font-medium outline-none select-none transition-[transform,background-color,color,border-color,box-shadow,opacity] duration-150 py-1.5 px-3 w-full rounded-xl text-white group/btn bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)]"
+                                  >
+                                    {item.actionType === 'purchase' ? (
+                                       <><ShoppingCart className="w-4 h-4 mr-1.5 shrink-0 [transform:perspective(700px)_rotateY(0deg)] [transform-style:preserve-3d] transition-transform duration-700 group-hover/btn:[transform:perspective(700px)_rotateY(360deg)]" /> สั่งซื้อสินค้า</>
+                                    ) : (
+                                       <><ExternalLink className="w-4 h-4 mr-1.5 shrink-0" /> รับลิงก์ฟรี</>
+                                    )}
+                                  </button>
+                                )}
                               </div>
 
                               <div className="mt-2.5 flex items-center justify-center">
@@ -2243,10 +2251,12 @@ ${h.details || '-'}
                      </div>
                   ) : (
                      <div className="mx-auto rounded-[8px] overflow-hidden shadow-sm inline-block relative">
-                        <ReCAPTCHA
-                          sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6Lflgr4sAAAAAF8MveDgfE1Va2ImRfynRsLFP1nl"}
-                          onChange={handleVerifyRecaptcha}
-                          theme={theme}
+                        <Turnstile
+                          siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAADFFAhm_1PRQij4M"}
+                          onSuccess={handleVerifyRecaptcha}
+                          options={{
+                            theme: theme as any
+                          }}
                         />
                         {(step1Status !== 'completed' || step2Status !== 'completed') && (
                           <div className="absolute inset-0 z-10" onClick={() => alert(t('alertSteps'))}></div>

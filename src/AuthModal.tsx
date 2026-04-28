@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Mail, Lock, User as UserIcon, Loader2 } from 'lucide-react';
-import ReCAPTCHA from "react-google-recaptcha";
 
 interface AuthModalProps {
   type: 'login' | 'register' | null;
@@ -17,7 +16,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ type, onClose, onSuccess, 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
-  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -28,18 +26,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ type, onClose, onSuccess, 
     e.preventDefault();
     setError('');
 
-    if (view === 'register' && !recaptchaToken) {
-      setError('Please verify you are human / Vui lòng xác nhận bạn không phải là người máy');
-      return;
-    }
-
     setLoading(true);
 
     try {
       const endpoint = view === 'login' ? '/api/auth/login' : '/api/auth/register';
       const payload = view === 'login' 
         ? { email, password, rememberMe } 
-        : { username, email, password, recaptchaToken };
+        : { username, email, password };
 
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -197,15 +190,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ type, onClose, onSuccess, 
               <label htmlFor="rememberMe" className="text-sm text-text-muted cursor-pointer select-none">
                 {t('rememberMe') || 'Remember me'}
               </label>
-            </div>
-          )}
-
-          {view === 'register' && (
-            <div className="flex justify-center mt-2 overflow-hidden rounded-[8px] border border-border-subtle">
-              <ReCAPTCHA
-                sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6Lflgr4sAAAAAF8MveDgfE1Va2ImRfynRsLFP1nl"}
-                onChange={(token) => setRecaptchaToken(token)}
-              />
             </div>
           )}
 

@@ -24,25 +24,11 @@ export const verifyAuth = (req: any, res: any, next: any) => {
 // 1. REGISTER =========================================
 router.post("/register", async (req, res) => {
   try {
-    const { username, email, password, recaptchaToken } = req.body;
+    const { username, email, password } = req.body;
     const ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'unknown';
 
-    if (!username || !email || !password || !recaptchaToken) {
-      return res.status(400).json({ error: "Missing required fields or reCAPTCHA" });
-    }
-
-    // Verify reCAPTCHA
-    const recaptchaSecret = process.env.RECAPTCHA_SECRET_KEY;
-    if (recaptchaSecret) {
-      const gRes = await fetch(`https://www.google.com/recaptcha/api/siteverify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `secret=${recaptchaSecret}&response=${recaptchaToken}&remoteip=${ip}`
-      });
-      const gData = await gRes.json();
-      if (!gData.success) {
-        return res.status(400).json({ error: "Bot verification failed" });
-      }
+    if (!username || !email || !password) {
+      return res.status(400).json({ error: "Missing required fields" });
     }
 
     // Check if user exists
