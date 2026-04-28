@@ -37,6 +37,7 @@ export interface ResourceItem {
   downloadLinks?: DownloadLink[];
   actionType?: ActionType; // 'link' or 'purchase' (default is 'link')
   purchaseDetails?: string; // Text shown and copyable after a purchase succeeds
+  uniqueKeys?: string[]; // Array of unique items (e.g., game keys, accounts), one given per purchase
   warning?: StringOrObj;
   tags: string[];
   category: string;
@@ -45,6 +46,8 @@ export interface ResourceItem {
   price?: string;
   requiresLogin?: boolean;
   isOutOfStock?: boolean;
+  stock?: number;
+  maxStock?: number;
 }
 
 // ============================================================================
@@ -72,6 +75,26 @@ export const resourcesData: ResourceItem[] = [
     category: "Script",
     price: "0",
     dateAdded: "2026-04-26",
-    fileSize: "Unknown"
+    fileSize: "Unknown",
+    stock: 5,
+    maxStock: 5
+  },
+  {
+    id: "3",
+    title: "Premium Game Keys",
+    shortDescription: "รหัสเกมระดับพรีเมียม (ไม่ซ้ำกัน)",
+    fullDescription: "ซื้อ 1 ครั้ง จะได้รับ 1 โค้ดสำหรับเติมเกม คุณจะไม่ได้รับโค้ดซ้ำกับคนอื่นแน่นอน เมื่อโควตาหมดจะสั่งซื้อไม่ได้อีก",
+    imageUrl: "https://images.unsplash.com/photo-1555949963-aa79dcee981c?q=80&w=1640&auto=format&fit=crop",
+    link: "https://example.com/download-2",
+    actionType: "purchase",
+    purchaseDetails: "ไม่พบโค้ด (อาจจะหมดแล้ว)",
+    uniqueKeys: ["KEY-ABCD-1234", "KEY-WXYZ-9876", "KEY-QWER-5678"],
+    tags: ["Premium", "Game Key"],
+    category: "Game Keys",
+    price: "100",
+    dateAdded: "2026-04-28",
+    fileSize: "Digital Key",
+    stock: 3,
+    maxStock: 3
   }
 ];

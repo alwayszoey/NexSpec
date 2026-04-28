@@ -126,6 +126,32 @@ export default function App() {
   const [welcomeState, setWelcomeState] = useState<'welcome' | 'checking' | 'done'>('done');
   const [isTurnstileVerified, setIsTurnstileVerified] = useState(false);
   
+  const [products, setProducts] = useState<ResourceItem[]>(() => {
+    const saved = localStorage.getItem('storeProducts');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return resourcesData.map(item => {
+           const found = parsed.find((p: any) => p.id === item.id);
+           if (found) {
+             const newStock = found.stock;
+             return { 
+               ...item, 
+               stock: newStock, 
+               isOutOfStock: newStock === 0 || found.isOutOfStock,
+               uniqueKeys: found.uniqueKeys !== undefined ? found.uniqueKeys : item.uniqueKeys,
+               purchaseDetails: found.purchaseDetails !== undefined ? found.purchaseDetails : item.purchaseDetails
+             };
+           }
+           return item;
+        });
+      } catch (e) {
+        return resourcesData;
+      }
+    }
+    return resourcesData;
+  });
+
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
   // ==========================================
@@ -303,7 +329,7 @@ useEffect(() => {
   // Combine categories from categoriesData and resourcesData
   const allCategoriesSet = new Set([
     ...categoriesData.map(c => c.name),
-    ...resourcesData.map(item => item.category)
+    ...products.map(item => item.category)
   ]);
   const categories = ['ALL', ...Array.from(allCategoriesSet)];
 
@@ -342,7 +368,7 @@ useEffect(() => {
     if (selectedItem) setSelectedItem(null);
   };
 
-  const filteredResources = resourcesData.filter(item => {
+  const filteredResources = products.filter(item => {
     const isAll = activeCategory === 'ALL';
     const matchesCategory = isAll || item.category === activeCategory;
     
@@ -364,6 +390,11 @@ useEffect(() => {
     // Determine which item we are acting on
     const targetItem = item || selectedItem;
     if (targetItem) setSelectedItem(targetItem);
+    
+    if (targetItem?.isOutOfStock) {
+      alert("สินค้าหมด");
+      return;
+    }
     
     // Check if user is not logged in and either item requires login or it's a purchase
     if (!currentUser && (targetItem?.requiresLogin || targetItem?.actionType === 'purchase')) {
@@ -397,7 +428,40 @@ useEffect(() => {
 
       // Simulate a purchase delay or call real payment API if needed
       setTimeout(async () => {
-         await addHistoryRecord('purchase', selectedItem, selectedItem.purchaseDetails || 'ไม่พบรายละเอียด');
+         let assignedDetails = selectedItem.purchaseDetails || 'ไม่พบรายละเอียด';
+         
+         // Update Stock & get assigned key
+         setProducts(prev => {
+           let updatedItemMatch: ResourceItem | null = null;
+           const newProducts = prev.map(p => {
+             if (p.id === selectedItem.id && p.stock !== undefined && p.stock > 0) {
+               const newStock = p.stock - 1;
+               
+               let newUniqueKeys = p.uniqueKeys ? [...p.uniqueKeys] : undefined;
+               if (newUniqueKeys && newUniqueKeys.length > 0) {
+                 assignedDetails = newUniqueKeys.shift() as string;
+               }
+
+               const updated = { 
+                 ...p, 
+                 stock: newStock, 
+                 isOutOfStock: newStock === 0 || p.isOutOfStock,
+                 uniqueKeys: newUniqueKeys,
+                 purchaseDetails: newUniqueKeys ? assignedDetails : p.purchaseDetails
+               };
+               updatedItemMatch = updated;
+               return updated;
+             }
+             return p;
+           });
+           localStorage.setItem('storeProducts', JSON.stringify(newProducts));
+           if (updatedItemMatch) {
+             setSelectedItem(updatedItemMatch);
+           }
+           return newProducts;
+         });
+
+         await addHistoryRecord('purchase', selectedItem, assignedDetails);
          
          // Increment download/sales stat
          fetch('/api/stats/download', { method: 'POST' })
@@ -1017,7 +1081,7 @@ ${h.details || '-'}
                   <StatsCard 
                     icon={Layers} 
                     title={t('statsItems') || 'Tài nguyên'}
-                    value={resourcesData.length.toLocaleString()}
+                    value={products.length.toLocaleString()}
                     unit={t('unitItems') || 'mục'}
                   />
                   <StatsCard 
@@ -1056,12 +1120,12 @@ ${h.details || '-'}
                     <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-5 mb-2">
                       {categories.filter(tab => tab !== 'ALL').map((tab) => {
                         const isActive = activeCategory === tab;
-                        const count = resourcesData.filter(i => i.category === tab).length;
+                        const count = products.filter(i => i.category === tab).length;
                         
                         const catData = categoriesData.find(c => c.name === tab);
                         let imgPath = catData?.imageUrl || "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1640&auto=format&fit=crop";
                         if (!catData) {
-                          const match = resourcesData.find(i => i.category === tab);
+                          const match = products.find(i => i.category === tab);
                           if (match) imgPath = match.imageUrl;
                         }
 
@@ -1142,7 +1206,7 @@ ${h.details || '-'}
                   </div>
 
                   <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5 pb-12">
-                    {resourcesData.slice(0, 5).map((item, index) => {
+                    {products.slice(0, 5).map((item, index) => {
                        return (
                         <motion.div 
                           layout
@@ -1200,7 +1264,7 @@ ${h.details || '-'}
                                   <span className={`text-lg sm:text-xl font-bold leading-none ml-[1px] ${!item.isOutOfStock && 'text-brand'}`}>{item.price && item.price !== 'Free' ? item.price : '0'}</span>
                                 </p>
                                 <p className="text-[10px] sm:text-[11px] rounded px-1.5 py-0.5 border inline-flex items-center gap-1 border-border-subtle text-text-muted bg-bg-app">
-                                  <Archive className="w-3 h-3 shrink-0" /> {item.isOutOfStock ? 'คงเหลือ 0' : 'คงเหลือ ∞'}
+                                  <Archive className="w-3 h-3 shrink-0" /> {item.isOutOfStock ? 'คงเหลือ 0' : item.stock !== undefined ? `คงเหลือ \${item.stock}` : 'คงเหลือ ∞'}
                                 </p>
                               </div>
                               
@@ -1338,7 +1402,7 @@ ${h.details || '-'}
                                   <span className={`text-lg sm:text-xl font-bold leading-none ml-[1px] ${!item.isOutOfStock && 'text-brand'}`}>{item.price && item.price !== 'Free' ? item.price : '0'}</span>
                                 </p>
                                 <p className="text-[10px] sm:text-[11px] rounded px-1.5 py-0.5 border inline-flex items-center gap-1 border-border-subtle text-text-muted bg-bg-app">
-                                  <Archive className="w-3 h-3 shrink-0" /> {item.isOutOfStock ? 'คงเหลือ 0' : 'คงเหลือ ∞'}
+                                  <Archive className="w-3 h-3 shrink-0" /> {item.isOutOfStock ? 'คงเหลือ 0' : item.stock !== undefined ? `คงเหลือ \${item.stock}` : 'คงเหลือ ∞'}
                                 </p>
                               </div>
                               
@@ -1475,7 +1539,7 @@ ${h.details || '-'}
                           )}
                         </div>
                         <div className="text-[11px] text-text-muted">
-                           จำนวนคงเหลือ : ∞ ไม่จำกัด
+                           {selectedItem.isOutOfStock ? "จำนวนคงเหลือ : 0" : selectedItem.stock !== undefined ? `จำนวนคงเหลือ : ${selectedItem.stock}` : "จำนวนคงเหลือ : ∞ ไม่จำกัด"}
                         </div>
                       </div>
                     </div>
