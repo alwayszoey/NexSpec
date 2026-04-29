@@ -6,7 +6,7 @@ import {
   Play, ChevronRight, Loader2, Youtube, Send, MessageSquare, Sun, Moon, Lock, UserPlus, LogOut, Users, Eye, Star, Flame, ShoppingCart, Sparkles, ShoppingBag, History, HardDriveDownload, ExternalLink, Link2,
   CircleX
 } from 'lucide-react';
-import { resourcesData, ResourceItem, categoriesData } from './data';
+import { resourcesData, ResourceItem, categoriesData, announcementsData } from './data';
 import { motion, AnimatePresence } from 'motion/react';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { translations } from './translations';
@@ -126,14 +126,22 @@ export default function App() {
   const [welcomeState, setWelcomeState] = useState<'welcome' | 'checking' | 'done'>('done');
   const [isTurnstileVerified, setIsTurnstileVerified] = useState(false);
   
+  const CACHE_VERSION = 'v2';
+
   const [products, setProducts] = useState<ResourceItem[]>(() => {
+    // Clear old cache version to prevent stuck maxStock issues
+    if (localStorage.getItem('storeCacheVersion') !== CACHE_VERSION) {
+       localStorage.removeItem('storeProducts');
+       localStorage.setItem('storeCacheVersion', CACHE_VERSION);
+    }
     const saved = localStorage.getItem('storeProducts');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         return resourcesData.map(item => {
            const found = parsed.find((p: any) => p.id === item.id);
-           if (found) {
+           const isRestocked = found.maxStock !== item.maxStock || (found.initialStock !== undefined && found.initialStock !== item.stock);
+           if (found && !isRestocked) {
              const newStock = found.stock;
              return { 
                ...item, 
@@ -161,7 +169,7 @@ export default function App() {
   const [authModalType, setAuthModalType] = useState<'login' | 'register' | null>(null);
   const [currentUser, setCurrentUser] = useState<{ id: string, username: string, email: string, avatarUrl?: string, history?: any[] } | null>(null);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>(announcementsData.slice().reverse());
   const [showProfileModal, setShowProfileModal] = useState(false);
 
   // ====== STATS STATES ======
@@ -468,7 +476,8 @@ useEffect(() => {
                    stock: newStock,
                    isOutOfStock: newStock === 0 || updated.isOutOfStock,
                    uniqueKeys: newUniqueKeys,
-                   purchaseDetails: newUniqueKeys ? assignedDetails : updated.purchaseDetails
+                   purchaseDetails: newUniqueKeys ? assignedDetails : updated.purchaseDetails,
+                   initialStock: p.initialStock ?? p.stock
                  };
                }
                
