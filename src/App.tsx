@@ -4,7 +4,7 @@ import {
   Archive, Settings, FileText, Check, Zap, Menu, ArrowLeft, 
   Home, HelpCircle, Share2, Facebook, Instagram, MessageCircle,
   Play, ChevronRight, Loader2, Youtube, Send, MessageSquare, Sun, Moon, Lock, UserPlus, LogOut, Users, Eye, Star, Flame, ShoppingCart, Sparkles, ShoppingBag, History, HardDriveDownload, ExternalLink, Link2,
-  CircleX
+  CircleX, Bell
 } from 'lucide-react';
 import { resourcesData, ResourceItem, categoriesData, announcementsData } from './data';
 import { motion, AnimatePresence } from 'motion/react';
@@ -2526,10 +2526,10 @@ ${h.details || '-'}
               )}
             </div>
           </div>
-          <button onClick={() => setIsNotificationOpen(!isNotificationOpen)} className="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all duration-300 disabled:pointer-events-none disabled:opacity-50 text-black size-9 pointer-events-auto relative h-16 w-16 rounded-full p-0 overflow-visible border border-zinc-800/70 bg-black/80 shadow-lg cursor-pointer hover:scale-105 active:scale-95 hover:bg-zinc-800/90 focus:outline-none" type="button">
-            <img alt="notification button" className="h-full w-full object-contain p-1" loading="eager" src="/media/view?d=cPNNzeeOzMtzioI7A1-J8Pc0&amp;e=1777453037&amp;s=046998a9bf3e63e26004b485878fca3136a9ebc65e27078afab5ed9b53193b03" />
+          <button onClick={() => setIsNotificationOpen(!isNotificationOpen)} className="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all duration-300 disabled:pointer-events-none disabled:opacity-50 pointer-events-auto relative h-14 w-14 rounded-full p-0 overflow-visible border border-zinc-200/20 bg-zinc-900/60 shadow-[0_8px_32px_rgba(0,0,0,0.25)] backdrop-blur-xl cursor-pointer hover:scale-105 active:scale-95 hover:bg-zinc-800/80 focus:outline-none" type="button">
+            <Bell className="w-[26px] h-[26px] text-white" />
             {notifications.length > 0 && !isNotificationOpen && (
-               <div className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full border-2 border-black" />
+               <div className="absolute top-[12px] right-[13px] w-2.5 h-2.5 bg-[#FF3B30] rounded-full ring-[2px] ring-zinc-900" />
             )}
           </button>
         </div>
