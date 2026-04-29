@@ -17,9 +17,9 @@ export interface CategoryItem {
 
 export const categoriesData: CategoryItem[] = [
   {
-    id: "cat-script",
-    name: "Script",
-    description: "สคริปต์ต่างๆ",
+    id: "cat-srctools",
+    name: "SRC & TOOLS",
+    description: "ซอร์สโค้ดแฃะเครื่องมือต่างๆ",
     imageUrl: "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1640&auto=format&fit=crop", // placeholder image
     isRecommended: true,
     isPopular: true
