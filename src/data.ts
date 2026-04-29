@@ -77,8 +77,8 @@ export const resourcesData: ResourceItem[] = [
     price: "0",
     dateAdded: "2026-04-26",
     fileSize: "Unknown",
-    stock: 5,
-    maxStock: 5
+    stock: 100,
+    maxStock: 100
   },
   {
     id: "3",
