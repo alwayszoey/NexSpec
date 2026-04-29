@@ -95,7 +95,7 @@ export const resourcesData: ResourceItem[] = [
     price: "100",
     dateAdded: "2026-04-28",
     fileSize: "Digital Key",
-    stock: 3,
+    stock: 0,
     maxStock: 3
   }
 ];
