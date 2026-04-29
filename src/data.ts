@@ -69,7 +69,7 @@ export const resourcesData: ResourceItem[] = [
     purchaseDetails: "ขอบคุณที่สั่งซื้อ!\n\nลิงก์สำหรับโหลด: https://www.mediafire.com/file/k8d1yvgzcp3w56s/Freestyle_0.1.json/file?dkey=9o6wvtoyc1c&r=77",
     tags: ["SRC", "Bot", "Xandria"],
     warning: "",
-    category: "Script",
+    category: "srctools",
     price: "0",
     dateAdded: "2026-04-26",
     fileSize: "Unknown"
