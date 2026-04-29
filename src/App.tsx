@@ -4,9 +4,9 @@ import {
   Archive, Settings, FileText, Check, Zap, Menu, ArrowLeft, 
   Home, HelpCircle, Share2, Facebook, Instagram, MessageCircle,
   Play, ChevronRight, Loader2, Youtube, Send, MessageSquare, Sun, Moon, Lock, UserPlus, LogOut, Users, Eye, Star, Flame, ShoppingCart, Sparkles, ShoppingBag, History, HardDriveDownload, ExternalLink, Link2,
-  CircleX, Bell
+  CircleX
 } from 'lucide-react';
-import { resourcesData, ResourceItem, categoriesData, announcementsData } from './data';
+import { resourcesData, ResourceItem, categoriesData } from './data';
 import { motion, AnimatePresence } from 'motion/react';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { translations } from './translations';
@@ -657,7 +657,7 @@ useEffect(() => {
 
   const downloadSelectedHistoryAsTxt = () => {
     if (selectedHistories.size === 0) return;
-    const itemsToDownload = Array.from(selectedHistories).sort((a,b)=>a-b).map(i => {
+    const itemsToDownload = Array.from(selectedHistories).sort((a: number, b: number) => a - b).map((i: number) => {
         const h = filteredHistories.slice().reverse()[i];
         return h;
     });
@@ -850,7 +850,7 @@ ${h.details || '-'}
                 
                 <div className="flex justify-center mb-6">
                   <Turnstile
-                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAADFFAhm_1PRQij4M"}
+                    siteKey={(import.meta as any).env?.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAADFFAhm_1PRQij4M"}
                     onSuccess={(token) => setIsTurnstileVerified(true)}
                     options={{ theme: theme as any }}
                   />
@@ -913,8 +913,11 @@ ${h.details || '-'}
         </div>
         
         {/* Center Search Bar */}
-        <div className="flex-1 max-w-2xl relative mx-auto">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+        <form 
+          className="flex-1 max-w-2xl relative mx-auto hidden sm:block px-4"
+          onSubmit={(e) => e.preventDefault()}
+        >
+          <div className="absolute inset-y-0 left-0 pl-8 flex items-center pointer-events-none">
             <Search className="h-4 w-4 text-text-muted" />
           </div>
           <input 
@@ -922,13 +925,34 @@ ${h.details || '-'}
             placeholder={t('searchPlaceholder')}
             value={searchQuery}
             onChange={handleSearchChange}
-            className="w-full py-2.5 pl-11 pr-4 bg-bg-app border border-border-subtle focus:bg-card-bg rounded-[16px] text-[14px] sm:text-[15px] shadow-inner focus:outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 transition-all placeholder:text-text-muted font-normal text-text-main"
+            className="w-full py-2.5 pl-11 pr-10 bg-bg-app border border-border-subtle focus:bg-card-bg rounded-[16px] text-[14px] sm:text-[15px] shadow-inner focus:outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 transition-all placeholder:text-text-muted font-normal text-text-main"
           />
-        </div>
+          {searchQuery && (
+            <button 
+              type="button" 
+              onClick={() => setSearchQuery('')}
+              className="absolute inset-y-0 right-0 pr-8 flex items-center text-text-muted hover:text-text-main"
+            >
+              <CircleX className="h-4 w-4" />
+            </button>
+          )}
+        </form>
 
         {/* Right Actions & Burger Menu */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0 relative">
           
+          {/* Mobile Search Button */}
+          <button 
+            type="button"
+            onClick={() => {
+              const searchInput = document.getElementById('mobileSearchInput');
+              if (searchInput) searchInput.focus();
+            }}
+            className="sm:hidden p-2 text-text-muted bg-card-bg border border-border-subtle hover:bg-bg-app rounded-[12px] transition-colors shadow-sm"
+          >
+            <Search className="w-5 h-5" />
+          </button>
+
           <button 
             onClick={toggleTheme}
             className="p-2 sm:p-2.5 text-text-muted bg-card-bg border border-border-subtle hover:bg-bg-app rounded-[12px] transition-colors shadow-sm"
@@ -944,6 +968,32 @@ ${h.details || '-'}
           </button>
         </div>
       </nav>
+
+      {/* Mobile Search Bar (Visible only on small screens) */}
+      <div className="sm:hidden px-4 py-3 bg-card-bg/95 backdrop-blur-xl border-b border-border-subtle shadow-sm w-full">
+        <form onSubmit={(e) => e.preventDefault()} className="relative w-full">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <Search className="h-4 w-4 text-text-muted" />
+          </div>
+          <input 
+            id="mobileSearchInput"
+            type="text" 
+            placeholder={t('searchPlaceholder')}
+            value={searchQuery}
+            onChange={handleSearchChange}
+            className="w-full py-2.5 pl-11 pr-10 bg-bg-app border border-border-subtle focus:bg-card-bg rounded-[16px] text-[14px] shadow-inner focus:outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 transition-all placeholder:text-text-muted font-normal text-text-main"
+          />
+          {searchQuery && (
+            <button 
+              type="button" 
+              onClick={() => setSearchQuery('')}
+              className="absolute inset-y-0 right-0 pr-4 flex items-center text-text-muted hover:text-text-main"
+            >
+              <CircleX className="h-4 w-4" />
+            </button>
+          )}
+        </form>
+      </div>
 
       {/* ANNOUNCEMENT BANNER */}
       <div className="bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 overflow-hidden h-8 relative flex items-center shrink-0 w-full">
@@ -2357,7 +2407,7 @@ ${h.details || '-'}
                   ) : (
                      <div className="mx-auto rounded-[8px] overflow-hidden shadow-sm inline-block relative">
                         <Turnstile
-                          siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAADFFAhm_1PRQij4M"}
+                          siteKey={(import.meta as any).env?.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAADFFAhm_1PRQij4M"}
                           onSuccess={handleVerifyRecaptcha}
                           options={{
                             theme: theme as any
