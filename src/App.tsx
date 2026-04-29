@@ -913,11 +913,8 @@ ${h.details || '-'}
         </div>
         
         {/* Center Search Bar */}
-        <form 
-          className="flex-1 max-w-2xl relative mx-auto hidden sm:block px-4"
-          onSubmit={(e) => e.preventDefault()}
-        >
-          <div className="absolute inset-y-0 left-0 pl-8 flex items-center pointer-events-none">
+        <div className="flex-1 max-w-2xl relative mx-auto">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <Search className="h-4 w-4 text-text-muted" />
           </div>
           <input 
@@ -925,34 +922,13 @@ ${h.details || '-'}
             placeholder={t('searchPlaceholder')}
             value={searchQuery}
             onChange={handleSearchChange}
-            className="w-full py-2.5 pl-11 pr-10 bg-bg-app border border-border-subtle focus:bg-card-bg rounded-[16px] text-[14px] sm:text-[15px] shadow-inner focus:outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 transition-all placeholder:text-text-muted font-normal text-text-main"
+            className="w-full py-2.5 pl-11 pr-4 bg-bg-app border border-border-subtle focus:bg-card-bg rounded-[16px] text-[14px] sm:text-[15px] shadow-inner focus:outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 transition-all placeholder:text-text-muted font-normal text-text-main"
           />
-          {searchQuery && (
-            <button 
-              type="button" 
-              onClick={() => setSearchQuery('')}
-              className="absolute inset-y-0 right-0 pr-8 flex items-center text-text-muted hover:text-text-main"
-            >
-              <CircleX className="h-4 w-4" />
-            </button>
-          )}
-        </form>
+        </div>
 
         {/* Right Actions & Burger Menu */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0 relative">
           
-          {/* Mobile Search Button */}
-          <button 
-            type="button"
-            onClick={() => {
-              const searchInput = document.getElementById('mobileSearchInput');
-              if (searchInput) searchInput.focus();
-            }}
-            className="sm:hidden p-2 text-text-muted bg-card-bg border border-border-subtle hover:bg-bg-app rounded-[12px] transition-colors shadow-sm"
-          >
-            <Search className="w-5 h-5" />
-          </button>
-
           <button 
             onClick={toggleTheme}
             className="p-2 sm:p-2.5 text-text-muted bg-card-bg border border-border-subtle hover:bg-bg-app rounded-[12px] transition-colors shadow-sm"
@@ -968,32 +944,6 @@ ${h.details || '-'}
           </button>
         </div>
       </nav>
-
-      {/* Mobile Search Bar (Visible only on small screens) */}
-      <div className="sm:hidden px-4 py-3 bg-card-bg/95 backdrop-blur-xl border-b border-border-subtle shadow-sm w-full">
-        <form onSubmit={(e) => e.preventDefault()} className="relative w-full">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Search className="h-4 w-4 text-text-muted" />
-          </div>
-          <input 
-            id="mobileSearchInput"
-            type="text" 
-            placeholder={t('searchPlaceholder')}
-            value={searchQuery}
-            onChange={handleSearchChange}
-            className="w-full py-2.5 pl-11 pr-10 bg-bg-app border border-border-subtle focus:bg-card-bg rounded-[16px] text-[14px] shadow-inner focus:outline-none focus:border-brand focus:ring-4 focus:ring-brand/10 transition-all placeholder:text-text-muted font-normal text-text-main"
-          />
-          {searchQuery && (
-            <button 
-              type="button" 
-              onClick={() => setSearchQuery('')}
-              className="absolute inset-y-0 right-0 pr-4 flex items-center text-text-muted hover:text-text-main"
-            >
-              <CircleX className="h-4 w-4" />
-            </button>
-          )}
-        </form>
-      </div>
 
       {/* ANNOUNCEMENT BANNER */}
       <div className="bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 overflow-hidden h-8 relative flex items-center shrink-0 w-full">
