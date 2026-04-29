@@ -430,25 +430,28 @@ useEffect(() => {
       setTimeout(async () => {
          let assignedDetails = selectedItem.purchaseDetails || 'ไม่พบรายละเอียด';
          
-         // Update Stock & get assigned key
+         // Update Stock, assigned key, and sales count
          setProducts(prev => {
            let updatedItemMatch: ResourceItem | null = null;
            const newProducts = prev.map(p => {
-             if (p.id === selectedItem.id && p.stock !== undefined && p.stock > 0) {
-               const newStock = p.stock - 1;
+             if (p.id === selectedItem.id) {
+               let updated = { ...p, sales: (p.sales || 0) + 1 };
                
-               let newUniqueKeys = p.uniqueKeys ? [...p.uniqueKeys] : undefined;
-               if (newUniqueKeys && newUniqueKeys.length > 0) {
-                 assignedDetails = newUniqueKeys.shift() as string;
+               if (updated.stock !== undefined && updated.stock > 0) {
+                 const newStock = updated.stock - 1;
+                 let newUniqueKeys = updated.uniqueKeys ? [...updated.uniqueKeys] : undefined;
+                 if (newUniqueKeys && newUniqueKeys.length > 0) {
+                   assignedDetails = newUniqueKeys.shift() as string;
+                 }
+                 updated = {
+                   ...updated,
+                   stock: newStock,
+                   isOutOfStock: newStock === 0 || updated.isOutOfStock,
+                   uniqueKeys: newUniqueKeys,
+                   purchaseDetails: newUniqueKeys ? assignedDetails : updated.purchaseDetails
+                 };
                }
-
-               const updated = { 
-                 ...p, 
-                 stock: newStock, 
-                 isOutOfStock: newStock === 0 || p.isOutOfStock,
-                 uniqueKeys: newUniqueKeys,
-                 purchaseDetails: newUniqueKeys ? assignedDetails : p.purchaseDetails
-               };
+               
                updatedItemMatch = updated;
                return updated;
              }
@@ -681,6 +684,24 @@ ${h.details || '-'}
       if (currentUser) {
          addHistoryRecord('link', selectedItem, activeDownloadUrl || '');
       }
+
+      // Update local item sales counter
+      setProducts(prev => {
+         let updatedItemMatch: ResourceItem | null = null;
+         const newProducts = prev.map(p => {
+           if (p.id === selectedItem.id) {
+             const updated = { ...p, sales: (p.sales || 0) + 1 };
+             updatedItemMatch = updated;
+             return updated;
+           }
+           return p;
+         });
+         localStorage.setItem('storeProducts', JSON.stringify(newProducts));
+         if (updatedItemMatch) {
+             setSelectedItem(updatedItemMatch);
+         }
+         return newProducts;
+      });
 
       window.open(`/api/download/${downloadKey}`, '_blank');
       setShowVerifyModal(false);
@@ -1225,7 +1246,7 @@ ${h.details || '-'}
                           )}
                           <div className={`relative flex-1 z-10 bg-card-bg border transition-colors duration-200 rounded-md sm:rounded-lg p-1.5 sm:p-2 flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.02)] ${item.isOutOfStock ? 'grayscale opacity-70 border-transparent' : 'border-border-subtle group-hover/prod:border-transparent group-hover/prod:shadow-[0_8px_30px_rgba(106,154,251,0.12)] bg-clip-padding m-[1px] group-hover/prod:m-[1px]'}`}>
                             
-                            {appStats.downloads >= 100 && (
+                            {(item.sales || 0) >= 100 && (
                               <div className="absolute top-1 right-1 z-30 pointer-events-none">
                                 <div className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-red-500 to-orange-500 px-2 py-1 border border-orange-300/40 opacity-90">
                                   <Flame className="w-3 h-3 text-white fill-white" />
@@ -1264,7 +1285,7 @@ ${h.details || '-'}
                                   <span className={`text-lg sm:text-xl font-bold leading-none ml-[1px] ${!item.isOutOfStock && 'text-brand'}`}>{item.price && item.price !== 'Free' ? item.price : '0'}</span>
                                 </p>
                                 <p className="text-[10px] sm:text-[11px] rounded px-1.5 py-0.5 border inline-flex items-center gap-1 border-border-subtle text-text-muted bg-bg-app">
-                                  <Archive className="w-3 h-3 shrink-0" /> {item.isOutOfStock ? 'คงเหลือ 0' : item.stock !== undefined ? `คงเหลือ \${item.stock}` : 'คงเหลือ ∞'}
+                                  <Archive className="w-3 h-3 shrink-0" /> {item.isOutOfStock ? 'คงเหลือ 0' : item.stock !== undefined ? `คงเหลือ ${item.stock}` : 'คงเหลือ ∞'}
                                 </p>
                               </div>
                               
@@ -1292,7 +1313,7 @@ ${h.details || '-'}
 
                               <div className="mt-2.5 flex items-center justify-center">
                                 <p className="text-[10px] sm:text-[11px] inline-flex items-center gap-1 text-text-muted">
-                                  <Flame className="w-3 h-3 shrink-0 text-orange-500 fill-orange-500" /> ขายแล้ว {(appStats.downloads).toLocaleString()} ชิ้น
+                                  <Flame className="w-3 h-3 shrink-0 text-orange-500 fill-orange-500" /> ขายแล้ว {(item.sales || 0).toLocaleString()} ชิ้น
                                 </p>
                               </div>
                             </div>
@@ -1363,7 +1384,7 @@ ${h.details || '-'}
                           )}
                           <div className={`relative flex-1 z-10 bg-card-bg border transition-colors duration-200 rounded-md sm:rounded-lg p-1.5 sm:p-2 flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.02)] ${item.isOutOfStock ? 'grayscale opacity-70 border-transparent' : 'border-border-subtle group-hover/prod:border-transparent group-hover/prod:shadow-[0_8px_30px_rgba(106,154,251,0.12)] bg-clip-padding m-[1px] group-hover/prod:m-[1px]'}`}>
                             
-                            {appStats.downloads >= 100 && (
+                            {(item.sales || 0) >= 100 && (
                               <div className="absolute top-1 right-1 z-30 pointer-events-none">
                                 <div className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-red-500 to-orange-500 px-2 py-1 border border-orange-300/40 opacity-90">
                                   <Flame className="w-3 h-3 text-white fill-white" />
@@ -1402,7 +1423,7 @@ ${h.details || '-'}
                                   <span className={`text-lg sm:text-xl font-bold leading-none ml-[1px] ${!item.isOutOfStock && 'text-brand'}`}>{item.price && item.price !== 'Free' ? item.price : '0'}</span>
                                 </p>
                                 <p className="text-[10px] sm:text-[11px] rounded px-1.5 py-0.5 border inline-flex items-center gap-1 border-border-subtle text-text-muted bg-bg-app">
-                                  <Archive className="w-3 h-3 shrink-0" /> {item.isOutOfStock ? 'คงเหลือ 0' : item.stock !== undefined ? `คงเหลือ \${item.stock}` : 'คงเหลือ ∞'}
+                                  <Archive className="w-3 h-3 shrink-0" /> {item.isOutOfStock ? 'คงเหลือ 0' : item.stock !== undefined ? `คงเหลือ ${item.stock}` : 'คงเหลือ ∞'}
                                 </p>
                               </div>
                               
@@ -1430,7 +1451,7 @@ ${h.details || '-'}
 
                               <div className="mt-2.5 flex items-center justify-center">
                                 <p className="text-[10px] sm:text-[11px] inline-flex items-center gap-1 text-text-muted">
-                                  <Flame className="w-3 h-3 shrink-0 text-orange-500 fill-orange-500" /> ขายแล้ว {(appStats.downloads).toLocaleString()} ชิ้น
+                                  <Flame className="w-3 h-3 shrink-0 text-orange-500 fill-orange-500" /> ขายแล้ว {(item.sales || 0).toLocaleString()} ชิ้น
                                 </p>
                               </div>
                             </div>
@@ -1583,7 +1604,7 @@ ${h.details || '-'}
                             </div>
                             <div className="flex justify-between items-center text-[13px] border-b border-border-subtle pb-2">
                               <span className="text-text-muted">ยอดขาย :</span>
-                              <span className="text-text-main font-medium">{(appStats.downloads).toLocaleString()} ชิ้น</span>
+                              <span className="text-text-main font-medium">{(selectedItem.sales || 0).toLocaleString()} ชิ้น</span>
                             </div>
                             <div className="flex justify-between items-center text-[13px] pt-1">
                               <span className="text-text-muted">สถานะ :</span>

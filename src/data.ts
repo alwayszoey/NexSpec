@@ -48,6 +48,7 @@ export interface ResourceItem {
   isOutOfStock?: boolean;
   stock?: number;
   maxStock?: number;
+  sales?: number;
 }
 
 // ============================================================================
