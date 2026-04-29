@@ -126,40 +126,6 @@ export default function App() {
   const [welcomeState, setWelcomeState] = useState<'welcome' | 'checking' | 'done'>('done');
   const [isTurnstileVerified, setIsTurnstileVerified] = useState(false);
   
-  const CACHE_VERSION = 'v2';
-
-  const [products, setProducts] = useState<ResourceItem[]>(() => {
-    // Clear old cache version to prevent stuck maxStock issues
-    if (localStorage.getItem('storeCacheVersion') !== CACHE_VERSION) {
-       localStorage.removeItem('storeProducts');
-       localStorage.setItem('storeCacheVersion', CACHE_VERSION);
-    }
-    const saved = localStorage.getItem('storeProducts');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return resourcesData.map(item => {
-           const found = parsed.find((p: any) => p.id === item.id);
-           const isRestocked = found.maxStock !== item.maxStock || (found.initialStock !== undefined && found.initialStock !== item.stock);
-           if (found && !isRestocked) {
-             const newStock = found.stock;
-             return { 
-               ...item, 
-               stock: newStock, 
-               isOutOfStock: newStock === 0 || found.isOutOfStock,
-               uniqueKeys: found.uniqueKeys !== undefined ? found.uniqueKeys : item.uniqueKeys,
-               purchaseDetails: found.purchaseDetails !== undefined ? found.purchaseDetails : item.purchaseDetails
-             };
-           }
-           return item;
-        });
-      } catch (e) {
-        return resourcesData;
-      }
-    }
-    return resourcesData;
-  });
-
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
   // ==========================================
@@ -337,7 +303,7 @@ useEffect(() => {
   // Combine categories from categoriesData and resourcesData
   const allCategoriesSet = new Set([
     ...categoriesData.map(c => c.name),
-    ...products.map(item => item.category)
+    ...resourcesData.map(item => item.category)
   ]);
   const categories = ['ALL', ...Array.from(allCategoriesSet)];
 
@@ -370,20 +336,25 @@ useEffect(() => {
   // Auto-redirect to home grid if user types in search
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
-    if (currentView !== 'home') {
+    if (e.target.value.trim() !== '') {
+      if (currentView !== 'category') {
+        setCurrentView('category');
+      }
+      setActiveCategory('ALL');
+    } else if (currentView === 'category' && activeCategory === 'ALL' && e.target.value === '') {
       setCurrentView('home');
     }
     if (selectedItem) setSelectedItem(null);
   };
 
-  const filteredResources = products.filter(item => {
+  const filteredResources = resourcesData.filter(item => {
     const isAll = activeCategory === 'ALL';
     const matchesCategory = isAll || item.category === activeCategory;
     
     // Getting localized strings for accurate searching
     const titleText = getLocalized(item.title);
     const ms = titleText.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          (item.tags || []).some((tag: string) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+                          item.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCategory && ms;
   });
 
@@ -398,11 +369,6 @@ useEffect(() => {
     // Determine which item we are acting on
     const targetItem = item || selectedItem;
     if (targetItem) setSelectedItem(targetItem);
-    
-    if (targetItem?.isOutOfStock) {
-      alert("สินค้าหมด");
-      return;
-    }
     
     // Check if user is not logged in and either item requires login or it's a purchase
     if (!currentUser && (targetItem?.requiresLogin || targetItem?.actionType === 'purchase')) {
@@ -434,57 +400,9 @@ useEffect(() => {
       if (!selectedItem) return;
       setIsProcessingOrder(true);
 
-      const alreadyPurchased = currentUser?.history?.find((h: any) => h.id === selectedItem.id && h.type === 'purchase');
-
       // Simulate a purchase delay or call real payment API if needed
       setTimeout(async () => {
-         if (alreadyPurchased) {
-            setSelectedItem({ ...selectedItem, purchaseDetails: alreadyPurchased.details });
-            setIsProcessingOrder(false);
-            setShowOrderConfirmModal(false);
-            
-            setShowPurchaseSuccessModal(true);
-            return;
-         }
-         
-         let assignedDetails = selectedItem.purchaseDetails || 'ไม่พบรายละเอียด';
-         
-         // Update Stock, assigned key, and sales count
-         setProducts(prev => {
-           let updatedItemMatch: ResourceItem | null = null;
-           const newProducts = prev.map(p => {
-             if (p.id === selectedItem.id) {
-               let updated = { ...p, sales: (p.sales || 0) + 1 };
-               
-               if (updated.stock !== undefined && updated.stock > 0) {
-                 const newStock = updated.stock - 1;
-                 let newUniqueKeys = updated.uniqueKeys ? [...updated.uniqueKeys] : undefined;
-                 if (newUniqueKeys && newUniqueKeys.length > 0) {
-                   assignedDetails = newUniqueKeys.shift() as string;
-                 }
-                 updated = {
-                   ...updated,
-                   stock: newStock,
-                   isOutOfStock: newStock === 0 || updated.isOutOfStock,
-                   uniqueKeys: newUniqueKeys,
-                   purchaseDetails: newUniqueKeys ? assignedDetails : updated.purchaseDetails,
-                   initialStock: p.initialStock ?? p.stock
-                 };
-               }
-               
-               updatedItemMatch = updated;
-               return updated;
-             }
-             return p;
-           });
-           localStorage.setItem('storeProducts', JSON.stringify(newProducts));
-           if (updatedItemMatch) {
-             setSelectedItem(updatedItemMatch);
-           }
-           return newProducts;
-         });
-
-         await addHistoryRecord('purchase', selectedItem, assignedDetails);
+         await addHistoryRecord('purchase', selectedItem, selectedItem.purchaseDetails || 'ไม่พบรายละเอียด');
          
          // Increment download/sales stat
          fetch('/api/stats/download', { method: 'POST' })
@@ -657,7 +575,7 @@ useEffect(() => {
 
   const downloadSelectedHistoryAsTxt = () => {
     if (selectedHistories.size === 0) return;
-    const itemsToDownload = Array.from(selectedHistories).sort((a: number, b: number) => a - b).map((i: number) => {
+    const itemsToDownload = Array.from<number>(selectedHistories).sort((a: number, b: number) => a - b).map(i => {
         const h = filteredHistories.slice().reverse()[i];
         return h;
     });
@@ -704,24 +622,6 @@ ${h.details || '-'}
       if (currentUser) {
          addHistoryRecord('link', selectedItem, activeDownloadUrl || '');
       }
-
-      // Update local item sales counter
-      setProducts(prev => {
-         let updatedItemMatch: ResourceItem | null = null;
-         const newProducts = prev.map(p => {
-           if (p.id === selectedItem.id) {
-             const updated = { ...p, sales: (p.sales || 0) + 1 };
-             updatedItemMatch = updated;
-             return updated;
-           }
-           return p;
-         });
-         localStorage.setItem('storeProducts', JSON.stringify(newProducts));
-         if (updatedItemMatch) {
-             setSelectedItem(updatedItemMatch);
-         }
-         return newProducts;
-      });
 
       window.open(`/api/download/${downloadKey}`, '_blank');
       setShowVerifyModal(false);
@@ -850,7 +750,7 @@ ${h.details || '-'}
                 
                 <div className="flex justify-center mb-6">
                   <Turnstile
-                    siteKey={(import.meta as any).env?.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAADFFAhm_1PRQij4M"}
+                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAADFFAhm_1PRQij4M"}
                     onSuccess={(token) => setIsTurnstileVerified(true)}
                     options={{ theme: theme as any }}
                   />
@@ -1122,7 +1022,7 @@ ${h.details || '-'}
                   <StatsCard 
                     icon={Layers} 
                     title={t('statsItems') || 'Tài nguyên'}
-                    value={products.length.toLocaleString()}
+                    value={resourcesData.length.toLocaleString()}
                     unit={t('unitItems') || 'mục'}
                   />
                   <StatsCard 
@@ -1161,12 +1061,12 @@ ${h.details || '-'}
                     <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-5 mb-2">
                       {categories.filter(tab => tab !== 'ALL').map((tab) => {
                         const isActive = activeCategory === tab;
-                        const count = products.filter(i => i.category === tab).length;
+                        const count = resourcesData.filter(i => i.category === tab).length;
                         
                         const catData = categoriesData.find(c => c.name === tab);
                         let imgPath = catData?.imageUrl || "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1640&auto=format&fit=crop";
                         if (!catData) {
-                          const match = products.find(i => i.category === tab);
+                          const match = resourcesData.find(i => i.category === tab);
                           if (match) imgPath = match.imageUrl;
                         }
 
@@ -1247,7 +1147,7 @@ ${h.details || '-'}
                   </div>
 
                   <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5 pb-12">
-                    {products.slice(0, 5).map((item, index) => {
+                    {resourcesData.slice(0, 5).map((item, index) => {
                        return (
                         <motion.div 
                           layout
@@ -1266,7 +1166,7 @@ ${h.details || '-'}
                           )}
                           <div className={`relative flex-1 z-10 bg-card-bg border transition-colors duration-200 rounded-md sm:rounded-lg p-1.5 sm:p-2 flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.02)] ${item.isOutOfStock ? 'grayscale opacity-70 border-transparent' : 'border-border-subtle group-hover/prod:border-transparent group-hover/prod:shadow-[0_8px_30px_rgba(106,154,251,0.12)] bg-clip-padding m-[1px] group-hover/prod:m-[1px]'}`}>
                             
-                            {(item.sales || 0) >= 100 && (
+                            {appStats.downloads >= 100 && (
                               <div className="absolute top-1 right-1 z-30 pointer-events-none">
                                 <div className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-red-500 to-orange-500 px-2 py-1 border border-orange-300/40 opacity-90">
                                   <Flame className="w-3 h-3 text-white fill-white" />
@@ -1305,7 +1205,7 @@ ${h.details || '-'}
                                   <span className={`text-lg sm:text-xl font-bold leading-none ml-[1px] ${!item.isOutOfStock && 'text-brand'}`}>{item.price && item.price !== 'Free' ? item.price : '0'}</span>
                                 </p>
                                 <p className="text-[10px] sm:text-[11px] rounded px-1.5 py-0.5 border inline-flex items-center gap-1 border-border-subtle text-text-muted bg-bg-app">
-                                  <Archive className="w-3 h-3 shrink-0" /> {item.isOutOfStock ? 'คงเหลือ 0' : item.stock !== undefined ? `คงเหลือ ${item.stock}` : 'คงเหลือ ∞'}
+                                  <Archive className="w-3 h-3 shrink-0" /> {item.isOutOfStock ? 'คงเหลือ 0' : 'คงเหลือ ∞'}
                                 </p>
                               </div>
                               
@@ -1333,7 +1233,7 @@ ${h.details || '-'}
 
                               <div className="mt-2.5 flex items-center justify-center">
                                 <p className="text-[10px] sm:text-[11px] inline-flex items-center gap-1 text-text-muted">
-                                  <Flame className="w-3 h-3 shrink-0 text-orange-500 fill-orange-500" /> ขายแล้ว {(item.sales || 0).toLocaleString()} ชิ้น
+                                  <Flame className="w-3 h-3 shrink-0 text-orange-500 fill-orange-500" /> ขายแล้ว {(appStats.downloads).toLocaleString()} ชิ้น
                                 </p>
                               </div>
                             </div>
@@ -1404,7 +1304,7 @@ ${h.details || '-'}
                           )}
                           <div className={`relative flex-1 z-10 bg-card-bg border transition-colors duration-200 rounded-md sm:rounded-lg p-1.5 sm:p-2 flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.02)] ${item.isOutOfStock ? 'grayscale opacity-70 border-transparent' : 'border-border-subtle group-hover/prod:border-transparent group-hover/prod:shadow-[0_8px_30px_rgba(106,154,251,0.12)] bg-clip-padding m-[1px] group-hover/prod:m-[1px]'}`}>
                             
-                            {(item.sales || 0) >= 100 && (
+                            {appStats.downloads >= 100 && (
                               <div className="absolute top-1 right-1 z-30 pointer-events-none">
                                 <div className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-red-500 to-orange-500 px-2 py-1 border border-orange-300/40 opacity-90">
                                   <Flame className="w-3 h-3 text-white fill-white" />
@@ -1443,7 +1343,7 @@ ${h.details || '-'}
                                   <span className={`text-lg sm:text-xl font-bold leading-none ml-[1px] ${!item.isOutOfStock && 'text-brand'}`}>{item.price && item.price !== 'Free' ? item.price : '0'}</span>
                                 </p>
                                 <p className="text-[10px] sm:text-[11px] rounded px-1.5 py-0.5 border inline-flex items-center gap-1 border-border-subtle text-text-muted bg-bg-app">
-                                  <Archive className="w-3 h-3 shrink-0" /> {item.isOutOfStock ? 'คงเหลือ 0' : item.stock !== undefined ? `คงเหลือ ${item.stock}` : 'คงเหลือ ∞'}
+                                  <Archive className="w-3 h-3 shrink-0" /> {item.isOutOfStock ? 'คงเหลือ 0' : 'คงเหลือ ∞'}
                                 </p>
                               </div>
                               
@@ -1471,7 +1371,7 @@ ${h.details || '-'}
 
                               <div className="mt-2.5 flex items-center justify-center">
                                 <p className="text-[10px] sm:text-[11px] inline-flex items-center gap-1 text-text-muted">
-                                  <Flame className="w-3 h-3 shrink-0 text-orange-500 fill-orange-500" /> ขายแล้ว {(item.sales || 0).toLocaleString()} ชิ้น
+                                  <Flame className="w-3 h-3 shrink-0 text-orange-500 fill-orange-500" /> ขายแล้ว {(appStats.downloads).toLocaleString()} ชิ้น
                                 </p>
                               </div>
                             </div>
@@ -1580,7 +1480,7 @@ ${h.details || '-'}
                           )}
                         </div>
                         <div className="text-[11px] text-text-muted">
-                           {selectedItem.isOutOfStock ? "จำนวนคงเหลือ : 0" : selectedItem.stock !== undefined ? `จำนวนคงเหลือ : ${selectedItem.stock}` : "จำนวนคงเหลือ : ∞ ไม่จำกัด"}
+                           จำนวนคงเหลือ : ∞ ไม่จำกัด
                         </div>
                       </div>
                     </div>
@@ -1624,7 +1524,7 @@ ${h.details || '-'}
                             </div>
                             <div className="flex justify-between items-center text-[13px] border-b border-border-subtle pb-2">
                               <span className="text-text-muted">ยอดขาย :</span>
-                              <span className="text-text-main font-medium">{(selectedItem.sales || 0).toLocaleString()} ชิ้น</span>
+                              <span className="text-text-main font-medium">{(appStats.downloads).toLocaleString()} ชิ้น</span>
                             </div>
                             <div className="flex justify-between items-center text-[13px] pt-1">
                               <span className="text-text-muted">สถานะ :</span>
@@ -2357,7 +2257,7 @@ ${h.details || '-'}
                   ) : (
                      <div className="mx-auto rounded-[8px] overflow-hidden shadow-sm inline-block relative">
                         <Turnstile
-                          siteKey={(import.meta as any).env?.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAADFFAhm_1PRQij4M"}
+                          siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAADFFAhm_1PRQij4M"}
                           onSuccess={handleVerifyRecaptcha}
                           options={{
                             theme: theme as any
@@ -2492,7 +2392,6 @@ ${h.details || '-'}
             t={t}
           />
         )}
-      
       </AnimatePresence>
     </div>
   );
