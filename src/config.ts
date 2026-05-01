@@ -17,35 +17,6 @@ export const siteConfig = {
   // ขนาดภาพการ์ดสินค้าที่แนะนำ: อัตราส่วน 1:1 (สี่เหลี่ยมจัตุรัส) เช่น 500x500 px หรือ 800x800 px
   
   // ============================================
-  // 🏷️ หมวดหมู่ (Categories)
-  // แก้ไขหรือเพิ่ม/ลดหมวดหมู่ได้ที่นี่
-  // ============================================
-  categories: [
-    {
-      id: "all",
-      name: { th: "🔥 แนะนำหมวดหมู่ยอดฮิต", vi: "🔥 Danh mục phổ biến" },
-    },
-    {
-      id: "scripts",
-      icon: "https://cdn-icons-png.flaticon.com/512/1005/1005141.png",
-      name: { th: "Script", vi: "Script" },
-      desc: { th: "สคริปต์ต่างๆ", vi: "Các tập lệnh" }
-    },
-    {
-      id: "configs",
-      icon: "https://cdn-icons-png.flaticon.com/512/5832/5832416.png",
-      name: { th: "Config", vi: "Cấu hình" },
-      desc: { th: "การตั้งค่า", vi: "Cài đặt" }
-    },
-    {
-      id: "tools",
-      icon: "https://cdn-icons-png.flaticon.com/512/2885/2885412.png",
-      name: { th: "Tools", vi: "Công cụ" },
-      desc: { th: "เครื่องมือ", vi: "Công cụ" }
-    }
-  ],
-
-  // ============================================
   // 💳 ตั้งค่าเพิ่มเติม
   // ============================================
   socials: {

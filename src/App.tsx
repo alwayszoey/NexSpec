@@ -300,12 +300,8 @@ useEffect(() => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showSocialsModal, setShowSocialsModal] = useState(false);
   
-  // Combine categories from categoriesData and resourcesData
-  const allCategoriesSet = new Set([
-    ...categoriesData.map(c => c.name),
-    ...resourcesData.map(item => item.category)
-  ]);
-  const categories = ['ALL', ...Array.from(allCategoriesSet)];
+  // Use categories strictly from categoriesData
+  const categories = ['ALL', ...categoriesData.map(c => c.name)];
 
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [showOrderConfirmModal, setShowOrderConfirmModal] = useState(false);
@@ -351,11 +347,18 @@ useEffect(() => {
     const isAll = activeCategory === 'ALL';
     const matchesCategory = isAll || item.category === activeCategory;
     
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return matchesCategory;
+
     // Getting localized strings for accurate searching
-    const titleText = getLocalized(item.title);
-    const ms = titleText.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          item.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesCategory && ms;
+    const titleText = getLocalized(item.title).toLowerCase();
+    const descText = getLocalized(item.shortDescription).toLowerCase();
+    
+    const hasTagMatch = (item.tags || []).some(tag => tag.toLowerCase().includes(query));
+    
+    const isMatch = titleText.includes(query) || descText.includes(query) || hasTagMatch;
+    
+    return matchesCategory && isMatch;
   });
 
   const handleOpenDetails = (item: ResourceItem) => {
@@ -778,9 +781,6 @@ ${h.details || '-'}
       </div>
     );
   }
-
-  // Define translated categories array
-  const activeCategories = [t('allResources'), 'Aimbet', 'Bypass', 'ProxyPin', 'Scripts', 'Macros', 'MOD'];
 
   if (isAppLoading && lang) {
     return (

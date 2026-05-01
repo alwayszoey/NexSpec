@@ -17,9 +17,9 @@ export interface CategoryItem {
 
 export const categoriesData: CategoryItem[] = [
   {
-    id: "cat-srctools",
-    name: "SRC & TOOLS",
-    description: "ซอร์สโค้ดแฃะเครื่องมือต่างๆ",
+    id: "cat-script",
+    name: "Script",
+    description: "สคริปต์ต่างๆ",
     imageUrl: "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1640&auto=format&fit=crop", // placeholder image
     isRecommended: true,
     isPopular: true
@@ -69,7 +69,7 @@ export const resourcesData: ResourceItem[] = [
     purchaseDetails: "ขอบคุณที่สั่งซื้อ!\n\nลิงก์สำหรับโหลด: https://www.mediafire.com/file/k8d1yvgzcp3w56s/Freestyle_0.1.json/file?dkey=9o6wvtoyc1c&r=77",
     tags: ["SRC", "Bot", "Xandria"],
     warning: "",
-    category: "srctools",
+    category: "Script",
     price: "0",
     dateAdded: "2026-04-26",
     fileSize: "Unknown"
