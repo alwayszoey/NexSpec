@@ -89,7 +89,7 @@ router.post("/login", async (req, res) => {
     res.json({
       success: true,
       token,
-      user: { id: user._id, username: user.username, email: user.email, avatarUrl: user.avatarUrl }
+      user: { id: user._id, username: user.username, email: user.email, avatarUrl: user.avatarUrl, history: user.history || [] }
     });
   } catch (error) {
     console.error("Login Error:", error);
@@ -148,7 +148,7 @@ router.get("/google/callback", passport.authenticate("google", { session: false,
       <body>
         <script>
           if (window.opener) {
-            window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS', token: '${token}', user: ${JSON.stringify({ id: user._id, username: user.username, email: user.email })} }, '*');
+            window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS', token: '${token}', user: ${JSON.stringify({ id: user._id, username: user.username, email: user.email, avatarUrl: user.avatarUrl, history: user.history || [] })} }, '*');
             window.close();
           } else {
             // Fallback if not opened in popup
@@ -178,7 +178,7 @@ router.get("/discord/callback", passport.authenticate("discord", { session: fals
       <body>
         <script>
           if (window.opener) {
-            window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS', token: '${token}', user: ${JSON.stringify({ id: user._id, username: user.username, email: user.email })} }, '*');
+            window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS', token: '${token}', user: ${JSON.stringify({ id: user._id, username: user.username, email: user.email, avatarUrl: user.avatarUrl, history: user.history || [] })} }, '*');
             window.close();
           } else {
             window.location.href = '/?token=${token}';

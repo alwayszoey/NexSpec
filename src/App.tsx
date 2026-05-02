@@ -160,7 +160,7 @@ useEffect(() => {
       const { token, user } = event.data;
       if (!token || !user) return;
       localStorage.setItem('authToken', token);
-      setCurrentUser({ id: user.id, username: user.username, email: user.email, avatarUrl: user.avatarUrl });
+      setCurrentUser({ id: user.id || user._id, username: user.username, email: user.email, avatarUrl: user.avatarUrl, history: user.history });
     }
   };
   window.addEventListener('message', handleOAuthMessage);
@@ -180,7 +180,7 @@ useEffect(() => {
     .then(res => res.json())
     .then(data => {
       if (data.user) {
-        setCurrentUser({ id: data.user._id, username: data.user.username, email: data.user.email, avatarUrl: data.user.avatarUrl });
+        setCurrentUser({ id: data.user._id, username: data.user.username, email: data.user.email, avatarUrl: data.user.avatarUrl, history: data.user.history });
       }
     })
     .catch(() => localStorage.removeItem('authToken'));
@@ -217,7 +217,7 @@ useEffect(() => {
       .then(res => res.json())
       .then(data => {
         if (data.user) {
-          setCurrentUser({ id: data.user._id, username: data.user.username, email: data.user.email, avatarUrl: data.user.avatarUrl });
+          setCurrentUser({ id: data.user._id, username: data.user.username, email: data.user.email, avatarUrl: data.user.avatarUrl, history: data.user.history });
         }
       })
       .catch(err => {
@@ -2432,7 +2432,7 @@ ${h.details || '-'}
               } else {
                 sessionStorage.setItem('authToken', token);
               }
-              setCurrentUser({ id: user.id, username: user.username, email: user.email, avatarUrl: user.avatarUrl });
+              setCurrentUser({ id: user.id || user._id, username: user.username, email: user.email, avatarUrl: user.avatarUrl, history: user.history });
               setAuthModalType(null);
             }}
           />
