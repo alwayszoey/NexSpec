@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Routes, Route, useNavigate, useLocation, Link, Navigate } from 'react-router-dom';
+import { About } from './pages/About';
+import { Contact } from './pages/Contact';
 import { 
   Search, ShieldAlert, Download, X, RefreshCcw, LayoutGrid, Layers, 
   Archive, Settings, FileText, Check, Zap, Menu, ArrowLeft, 
@@ -120,6 +123,9 @@ function PromoPopup() {
 // 📌 COMPONENT: App (ส่วนหลักของเว็บไซต์ รวบรวมหน้าต่างๆ ไว้ที่นี่)
 // ============================================================================
 export default function App() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [lang, setLang] = useState<AppLang | null>(null);
   const [isAppLoading, setIsAppLoading] = useState(true);
 
@@ -292,8 +298,41 @@ useEffect(() => {
   };
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentView, setCurrentView] = useState<ViewState>('home');
+  const [_currentView, _setCurrentView] = useState<ViewState | 'about' | 'contact'>('home');
   const [selectedItem, setSelectedItem] = useState<ResourceItem | null>(null);
+
+  // Sync route with view
+  useEffect(() => {
+    const path = location.pathname;
+    if (path === '/') _setCurrentView('home');
+    else if (path === '/category') _setCurrentView('category');
+    else if (path.startsWith('/shop/product/')) {
+        const id = path.split('/').pop();
+        const item = resourcesData.find(r => String(r.id) === id);
+        if (item) {
+            setSelectedItem(item);
+            _setCurrentView('details');
+        } else {
+            _setCurrentView('home'); // or 404
+        }
+    }
+    else if (path === '/history') _setCurrentView('history');
+    else if (path === '/help') _setCurrentView('help');
+    else if (path === '/about') _setCurrentView('about');
+    else if (path === '/contact') _setCurrentView('contact');
+  }, [location.pathname]);
+
+  const currentView = _currentView;
+  const setCurrentView = (view: ViewState | 'about' | 'contact', params?: { id?: string | number }) => {
+    if (view === 'home') navigate('/');
+    else if (view === 'category') navigate('/category');
+    else if (view === 'details') navigate('/shop/product/' + (params?.id || selectedItem?.id || ''));
+    else if (view === 'history') navigate('/history');
+    else if (view === 'help') navigate('/help');
+    else if (view === 'about') navigate('/about');
+    else if (view === 'contact') navigate('/contact');
+  };
+
   const [activeDownloadUrl, setActiveDownloadUrl] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState('ALL');
   
@@ -363,7 +402,7 @@ useEffect(() => {
 
   const handleOpenDetails = (item: ResourceItem) => {
     setSelectedItem(item);
-    setCurrentView('details');
+    setCurrentView('details', { id: String(item.id) });
   };
 
   const handleGetLink = (e?: React.MouseEvent, item?: ResourceItem, specificLink?: string) => {
@@ -884,6 +923,18 @@ ${h.details || '-'}
                 <Home className="w-5 h-5 text-text-muted group-hover:text-brand transition-colors" /> {t('home')}
               </button>
               <button 
+                onClick={() => { setIsMobileMenuOpen(false); setCurrentView('about'); setSelectedItem(null); }} 
+                className="flex items-center gap-3 p-3.5 rounded-[16px] hover:bg-bg-app text-left font-medium text-text-main hover:text-brand transition-colors w-full group"
+              >
+                <Users className="w-5 h-5 text-text-muted group-hover:text-brand transition-colors" /> เกี่ยวกับเรา
+              </button>
+              <button 
+                onClick={() => { setIsMobileMenuOpen(false); setCurrentView('contact'); setSelectedItem(null); }} 
+                className="flex items-center gap-3 p-3.5 rounded-[16px] hover:bg-bg-app text-left font-medium text-text-main hover:text-brand transition-colors w-full group"
+              >
+                <MessageSquare className="w-5 h-5 text-text-muted group-hover:text-brand transition-colors" /> ติดต่อเรา
+              </button>
+              <button 
                 onClick={() => { setIsMobileMenuOpen(false); setCurrentView('help'); setSelectedItem(null); }} 
                 className="flex items-center gap-3 p-3.5 rounded-[16px] hover:bg-bg-app text-left font-medium text-text-main hover:text-brand transition-colors w-full group"
               >
@@ -968,6 +1019,12 @@ ${h.details || '-'}
       <main className="flex-1 overflow-y-auto w-full relative">
         <AnimatePresence mode="wait">
           
+          {/* ---------------------------------------------------- */}
+          {/* PAGE: ABOUT/CONTACT PAGES */}
+          {/* ---------------------------------------------------- */}
+          {currentView === 'about' && <About />}
+          {currentView === 'contact' && <Contact />}
+
           {/* ---------------------------------------------------- */}
           {/* PAGE 1: RESOURCES GRID */}
           {/* ---------------------------------------------------- */}
@@ -1843,7 +1900,9 @@ ${h.details || '-'}
               <img src={siteConfig.logoUrl} alt="Logo" className="h-6 sm:h-7 object-contain drop-shadow-sm mb-1 opacity-80 mix-blend-multiply" />
               <p className="text-[13px] text-text-muted mt-1">{t('footerDesc')}</p>
             </div>
-            <div className="flex items-center gap-6 text-[13px] font-medium text-text-muted">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 sm:gap-6 text-[13px] font-medium text-text-muted">
+              <button onClick={() => setCurrentView('about')} className="hover:text-brand transition-colors">เกี่ยวกับเรา</button>
+              <button onClick={() => setCurrentView('contact')} className="hover:text-brand transition-colors">ติดต่อเรา</button>
               <button onClick={() => setCurrentView('help')} className="hover:text-brand transition-colors">{t('help')}</button>
               <button onClick={() => setShowSocialsModal(true)} className="hover:text-brand transition-colors">{t('socialsFollow')}</button>
             </div>
