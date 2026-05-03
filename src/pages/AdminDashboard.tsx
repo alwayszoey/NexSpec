@@ -74,8 +74,14 @@ export const AdminDashboard = () => {
     }
   };
 
-  const filteredResources = resources.filter(r => (r.title || '').toLowerCase().includes(search.toLowerCase()));
-  const filteredCategories = categories.filter(c => (c.name || '').toLowerCase().includes(search.toLowerCase()));
+  const getLoc = (val: any) => {
+    if (!val) return '';
+    if (typeof val === 'string') return val;
+    return val['th'] || val['en'] || val['vi'] || '';
+  };
+
+  const filteredResources = resources.filter(r => getLoc(r.title).toLowerCase().includes(search.toLowerCase()));
+  const filteredCategories = categories.filter(c => getLoc(c.name).toLowerCase().includes(search.toLowerCase()));
 
   return (
     <motion.div 
@@ -181,8 +187,8 @@ export const AdminDashboard = () => {
                   <span className="text-xs font-semibold px-2 py-0.5 rounded flex items-center bg-brand/10 text-brand line-clamp-1">{item.category}</span>
                   {item.isOutOfStock && <span className="text-xs font-semibold px-2 py-0.5 rounded flex items-center bg-red-100 text-red-600">หมด</span>}
                 </div>
-                <h3 className="font-bold text-lg truncate text-text-main">{item.title}</h3>
-                <p className="text-sm text-text-muted truncate">{item.shortDescription}</p>
+                <h3 className="font-bold text-lg truncate text-text-main">{getLoc(item.title)}</h3>
+                <p className="text-sm text-text-muted truncate">{getLoc(item.shortDescription)}</p>
                 <div className="mt-2 text-sm font-semibold text-text-main">
                   {Number(item.price) > 0 ? (
                       `฿${Number(item.price).toLocaleString()}`
@@ -213,8 +219,8 @@ export const AdminDashboard = () => {
             <div key={cat.id} className="bg-card-bg border border-border-subtle rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4 hover:shadow-md transition-shadow">
               <img src={cat.imageUrl || "https://images.unsplash.com/photo-1542751371-adc38448a05e"} alt="" className="w-20 h-20 rounded-xl object-cover border border-border-subtle shrink-0" />
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-lg truncate text-text-main">{cat.name}</h3>
-                <p className="text-sm text-text-muted truncate">{cat.description}</p>
+                <h3 className="font-bold text-lg truncate text-text-main">{getLoc(cat.name)}</h3>
+                <p className="text-sm text-text-muted truncate">{getLoc(cat.description)}</p>
               </div>
               <div className="flex items-center gap-2 mt-4 sm:mt-0">
                 <button 
@@ -251,7 +257,7 @@ export const AdminDashboard = () => {
             >
                <div className="p-5 border-b border-border-subtle flex items-center justify-between bg-bg-app">
                  <h2 className="text-lg font-bold text-text-main">
-                   {isAdding ? 'เพิ่มสินค้าใหม่' : `แก้ไข: ${editingItem.title}`}
+                   {isAdding ? 'เพิ่มสินค้าใหม่' : `แก้ไข: ${getLoc(editingItem.title)}`}
                  </h2>
                  <button onClick={() => setEditingItem(null)} className="w-8 h-8 rounded-full bg-border-subtle/50 flex items-center justify-center hover:bg-border-subtle"><X className="w-4 h-4" /></button>
                </div>
@@ -260,7 +266,7 @@ export const AdminDashboard = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
                        <label className="block text-xs font-semibold text-text-muted mb-1 text-left">ชื่อสินค้า <span className="text-red-500">*</span></label>
-                       <input type="text" value={editingItem.title} onChange={e => setEditingItem({...editingItem, title: e.target.value})} className="w-full bg-bg-app border border-border-subtle rounded-xl px-4 py-2.5 text-sm" placeholder="Ex: Script A" />
+                       <input type="text" value={getLoc(editingItem.title)} onChange={e => setEditingItem({...editingItem, title: e.target.value})} className="w-full bg-bg-app border border-border-subtle rounded-xl px-4 py-2.5 text-sm" placeholder="Ex: Script A" />
                      </div>
                      <div>
                        <label className="block text-xs font-semibold text-text-muted mb-1 text-left">หมวดหมู่ <span className="text-red-500">*</span></label>
@@ -270,7 +276,7 @@ export const AdminDashboard = () => {
                      </div>
                      <div>
                        <label className="block text-xs font-semibold text-text-muted mb-1 text-left">รายละเอียดแบบย่อ</label>
-                       <input type="text" value={editingItem.shortDescription} onChange={e => setEditingItem({...editingItem, shortDescription: e.target.value})} className="w-full bg-bg-app border border-border-subtle rounded-xl px-4 py-2.5 text-sm" />
+                       <input type="text" value={getLoc(editingItem.shortDescription)} onChange={e => setEditingItem({...editingItem, shortDescription: e.target.value})} className="w-full bg-bg-app border border-border-subtle rounded-xl px-4 py-2.5 text-sm" />
                      </div>
                      <div>
                        <label className="block text-xs font-semibold text-text-muted mb-1 text-left">รูปภาพประกอบ (URL) <span className="text-red-500">*</span></label>
@@ -302,7 +308,7 @@ export const AdminDashboard = () => {
 
                   <div>
                      <label className="block text-xs font-semibold text-text-muted mb-1 text-left">รายละเอียดแบบยาว (รองรับ Markdown)</label>
-                     <textarea value={editingItem.description} onChange={e => setEditingItem({...editingItem, description: e.target.value})} className="w-full h-32 bg-bg-app border border-border-subtle rounded-xl px-4 py-2.5 text-sm resize-y font-mono text-[13px]" placeholder="ข้อมูลเพิ่มเติมเกี่ยวกับสินค้า..." />
+                     <textarea value={getLoc(editingItem.description || editingItem.fullDescription)} onChange={e => setEditingItem({...editingItem, description: e.target.value, fullDescription: e.target.value})} className="w-full h-32 bg-bg-app border border-border-subtle rounded-xl px-4 py-2.5 text-sm resize-y font-mono text-[13px]" placeholder="ข้อมูลเพิ่มเติมเกี่ยวกับสินค้า..." />
                   </div>
                   
                   <div>
@@ -399,11 +405,11 @@ export const AdminDashboard = () => {
                <div className="p-6 overflow-y-auto w-full space-y-4">
                   <div>
                     <label className="block text-xs font-semibold text-text-muted mb-1">ชื่อหมวดหมู่ (ภาษาอังกฤษ/สั้นๆ)</label>
-                    <input type="text" value={editingCategory.name} onChange={e => setEditingCategory({...editingCategory, name: e.target.value})} className="w-full bg-bg-app border border-border-subtle rounded-xl px-4 py-2.5 text-sm" placeholder="Script" />
+                    <input type="text" value={getLoc(editingCategory.name)} onChange={e => setEditingCategory({...editingCategory, name: e.target.value})} className="w-full bg-bg-app border border-border-subtle rounded-xl px-4 py-2.5 text-sm" placeholder="Script" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-text-muted mb-1">รายละเอียด</label>
-                    <input type="text" value={editingCategory.description} onChange={e => setEditingCategory({...editingCategory, description: e.target.value})} className="w-full bg-bg-app border border-border-subtle rounded-xl px-4 py-2.5 text-sm" placeholder="สคริปต์ต่างๆ" />
+                    <input type="text" value={getLoc(editingCategory.description)} onChange={e => setEditingCategory({...editingCategory, description: e.target.value})} className="w-full bg-bg-app border border-border-subtle rounded-xl px-4 py-2.5 text-sm" placeholder="สคริปต์ต่างๆ" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-text-muted mb-1">รูปภาพหมวดหมู่ (URL)</label>
