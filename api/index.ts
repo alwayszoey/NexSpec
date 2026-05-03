@@ -7,6 +7,7 @@ import rateLimit from "express-rate-limit";
 import { connectDB } from "./_lib/db.js";
 import authRoutes from "./_lib/auth.js";
 import statsRoutes from "./_lib/stats.js";
+import mongoose from "mongoose";
 
 const app = express();
 
@@ -93,10 +94,80 @@ const isAdmin = (req: any, res: any, next: any) => {
 // ดึงรายชื่อ User
 app.get('/api/admin/users', isAdmin, async (req: any, res: any) => {
   try {
-    const dbInstance: any = await connectDB();
-    const db = dbInstance?.db || dbInstance;
-    const users = await db.collection("users").find({}).sort({ createdAt: -1 }).toArray();
+    await connectDB();
+    const db = mongoose.connection.db;
+    const users = await db!.collection("users").find({}).sort({ createdAt: -1 }).toArray();
     res.json({ success: true, users });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ดึง Categories ทั้งหมด
+app.get('/api/admin/categories', isAdmin, async (req: any, res: any) => {
+  try {
+    await connectDB();
+    const db = mongoose.connection.db;
+    const categories = await db!.collection("categories").find({}).sort({ createdAt: -1 }).toArray();
+    res.json({ success: true, categories });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// สร้าง Category ใหม่
+app.post('/api/admin/categories', isAdmin, async (req: any, res: any) => {
+  try {
+    const data = req.body;
+    await connectDB();
+    const db = mongoose.connection.db;
+    await db!.collection("categories").insertOne({ ...data, createdAt: new Date() });
+    res.json({ success: true, message: "Created successfully" });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// อัปเดต Category เดิม (ตาม ID)
+app.patch('/api/admin/categories/:id', isAdmin, async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+    await connectDB();
+    const db = mongoose.connection.db;
+    
+    let queryId: any = id;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      queryId = new mongoose.Types.ObjectId(id);
+    }
+    
+    const updateData = { ...req.body };
+    delete updateData._id;
+    delete updateData.id;
+
+    await db!.collection("categories").updateOne(
+      { $or: [{ _id: queryId }, { id: id }] }, 
+      { $set: updateData }
+    );
+    res.json({ success: true, message: "Updated successfully" });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ลบ Category
+app.delete('/api/admin/categories/:id', isAdmin, async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+    await connectDB();
+    const db = mongoose.connection.db;
+    
+    let queryId: any = id;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      queryId = new mongoose.Types.ObjectId(id);
+    }
+    
+    await db!.collection("categories").deleteOne({ $or: [{ _id: queryId }, { id: id }] });
+    res.json({ success: true, message: "Deleted successfully" });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -105,9 +176,9 @@ app.get('/api/admin/users', isAdmin, async (req: any, res: any) => {
 // ดึง Resources ทั้งหมด
 app.get('/api/admin/resources', isAdmin, async (req: any, res: any) => {
   try {
-    const dbInstance: any = await connectDB();
-    const db = dbInstance?.db || dbInstance;
-    const resources = await db.collection("resources").find({}).sort({ createdAt: -1 }).toArray();
+    await connectDB();
+    const db = mongoose.connection.db;
+    const resources = await db!.collection("resources").find({}).sort({ createdAt: -1 }).toArray();
     res.json({ success: true, resources });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -118,9 +189,9 @@ app.get('/api/admin/resources', isAdmin, async (req: any, res: any) => {
 app.post('/api/admin/resources', isAdmin, async (req: any, res: any) => {
   try {
     const data = req.body;
-    const dbInstance: any = await connectDB();
-    const db = dbInstance?.db || dbInstance;
-    await db.collection("resources").insertOne({ ...data, createdAt: new Date() });
+    await connectDB();
+    const db = mongoose.connection.db;
+    await db!.collection("resources").insertOne({ ...data, createdAt: new Date() });
     res.json({ success: true, message: "Created successfully" });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -131,10 +202,23 @@ app.post('/api/admin/resources', isAdmin, async (req: any, res: any) => {
 app.patch('/api/admin/resources/:id', isAdmin, async (req: any, res: any) => {
   try {
     const { id } = req.params;
-    const dbInstance: any = await connectDB();
-    const db = dbInstance?.db || dbInstance;
-    // หมายเหตุ: ถ้า id เป็น ObjectId ต้องใช้ new ObjectId(id)
-    await db.collection("resources").updateOne({ _id: id }, { $set: req.body });
+    await connectDB();
+    const db = mongoose.connection.db;
+    
+    let queryId: any = id;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      queryId = new mongoose.Types.ObjectId(id);
+    }
+    
+    // remove _id and id from body to avoid immutability error
+    const updateData = { ...req.body };
+    delete updateData._id;
+    delete updateData.id;
+
+    await db!.collection("resources").updateOne(
+      { $or: [{ _id: queryId }, { id: id }] }, 
+      { $set: updateData }
+    );
     res.json({ success: true, message: "Updated successfully" });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -145,9 +229,15 @@ app.patch('/api/admin/resources/:id', isAdmin, async (req: any, res: any) => {
 app.delete('/api/admin/resources/:id', isAdmin, async (req: any, res: any) => {
   try {
     const { id } = req.params;
-    const dbInstance: any = await connectDB();
-    const db = dbInstance?.db || dbInstance;
-    await db.collection("resources").deleteOne({ _id: id });
+    await connectDB();
+    const db = mongoose.connection.db;
+    
+    let queryId: any = id;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      queryId = new mongoose.Types.ObjectId(id);
+    }
+
+    await db!.collection("resources").deleteOne({ $or: [{ _id: queryId }, { id: id }] });
     res.json({ success: true, message: "Deleted successfully" });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -156,11 +246,22 @@ app.delete('/api/admin/resources/:id', isAdmin, async (req: any, res: any) => {
 // --- [ จบส่วน ADMIN API ] ---
 
 // Mount original routes
+app.get('/api/categories', async (req: any, res: any) => {
+  try {
+    await connectDB();
+    const db = mongoose.connection.db;
+    const categories = await db!.collection("categories").find({}).sort({ createdAt: 1 }).toArray();
+    res.json({ success: true, categories });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.get('/api/resources', async (req: any, res: any) => {
   try {
-    const dbInstance: any = await connectDB();
-    const db = dbInstance?.db || dbInstance;
-    const resources = await db.collection("resources").find({}).sort({ createdAt: -1 }).toArray();
+    await connectDB();
+    const db = mongoose.connection.db;
+    const resources = await db!.collection("resources").find({}).sort({ createdAt: -1 }).toArray();
     res.json({ success: true, resources });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });

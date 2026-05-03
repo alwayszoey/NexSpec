@@ -4,20 +4,32 @@ import { ShieldAlert, Trash2, Edit, Plus, X, Search, Image as ImageIcon, Save, L
 import { ResourceItem, categoriesData } from '../data';
 
 export const AdminDashboard = () => {
+  const [activeTab, setActiveTab] = useState<'products' | 'categories'>('products');
+
   const [resources, setResources] = useState<ResourceItem[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   
   const [editingItem, setEditingItem] = useState<ResourceItem | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+
+  const [editingCategory, setEditingCategory] = useState<any | null>(null);
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
   
-  const loadResources = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
       const res = await fetch('/api/resources');
       const data = await res.json();
       if (data.success) {
         setResources(data.resources.map((r: any) => ({ ...r, id: r._id || r.id })));
+      }
+
+      const resCat = await fetch('/api/categories');
+      const dataCat = await resCat.json();
+      if (dataCat.success) {
+        setCategories(dataCat.categories.map((c: any) => ({ ...c, id: c._id || c.id })));
       }
     } catch(err) {
       console.error(err);
@@ -27,7 +39,7 @@ export const AdminDashboard = () => {
   };
 
   useEffect(() => {
-    loadResources();
+    loadData();
   }, []);
 
   const handleDelete = async (id: string | number) => {
@@ -46,7 +58,24 @@ export const AdminDashboard = () => {
     }
   };
 
+  const handleDeleteCategory = async (id: string | number) => {
+    if (!confirm('ยืนยันการลบหมวดหมู่นี้?')) return;
+    try {
+      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      const res = await fetch(`/api/admin/categories/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setCategories(categories.filter(c => c.id !== id));
+      }
+    } catch(err) {
+      console.error('Delete error', err);
+    }
+  };
+
   const filteredResources = resources.filter(r => r.title.toLowerCase().includes(search.toLowerCase()));
+  const filteredCategories = categories.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <motion.div 
@@ -62,11 +91,11 @@ export const AdminDashboard = () => {
           </div>
           <div>
             <h1 className="text-2xl font-bold">แอดมินแดชบอร์ด</h1>
-            <p className="text-text-muted text-sm mt-1">จัดการทรัพยากรและสินค้าทั้งหมด</p>
+            <p className="text-text-muted text-sm mt-1">จัดการทรัพยากรและหมวดหมู่</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {resources.length === 0 && (
+          {resources.length === 0 && categories.length === 0 && (
             <button 
               onClick={async () => {
                 try {
@@ -78,8 +107,15 @@ export const AdminDashboard = () => {
                       body: JSON.stringify({...item, id: undefined})
                     });
                   }
+                  for (let cat of ((window as any).__INITIAL_CATEGORIES__ || [])) {
+                    await fetch('/api/admin/categories', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                      body: JSON.stringify({...cat, id: undefined})
+                    });
+                  }
                   alert('จำลองข้อมูลให้เรียบร้อยแล้ว แนะนำให้ Refresh ระบบ');
-                  loadResources();
+                  loadData();
                 } catch(e) { console.error(e); }
               }}
               className="flex items-center gap-2 bg-text-muted/10 text-text-main px-4 py-2 rounded-xl font-medium hover:bg-text-muted/20 shadow-sm"
@@ -87,13 +123,37 @@ export const AdminDashboard = () => {
               Seed Data (นำเข้าข้อมูลตั้งต้น)
             </button>
           )}
-          <button 
-            onClick={() => { setIsAdding(true); setEditingItem({ id: '', title: '', category: categoriesData[0]?.name || 'ALL', price: 0, originalPrice: 0, imageUrl: '', isNew: false, isOutOfStock: false, tags: [], shortDescription: '', downloadUrl: '' } as any); }}
-            className="flex items-center gap-2 bg-brand text-white px-4 py-2 rounded-xl font-medium hover:opacity-90 shadow-sm"
-          >
-            <Plus className="w-4 h-4" /> เพิ่มสินค้าใหม่
-          </button>
+          {activeTab === 'products' ? (
+            <button 
+              onClick={() => { setIsAdding(true); setEditingItem({ id: '', title: '', category: categories.length > 0 ? categories[0].name : 'ALL', price: 0, originalPrice: 0, imageUrl: '', isNew: false, isOutOfStock: false, tags: [], shortDescription: '', downloadUrl: '' } as any); }}
+              className="flex items-center gap-2 bg-brand text-white px-4 py-2 rounded-xl font-medium hover:opacity-90 shadow-sm"
+            >
+              <Plus className="w-4 h-4" /> เพิ่มสินค้าใหม่
+            </button>
+          ) : (
+            <button 
+              onClick={() => { setIsAddingCategory(true); setEditingCategory({ id: '', name: '', description: '', imageUrl: '' }); }}
+              className="flex items-center gap-2 bg-brand text-white px-4 py-2 rounded-xl font-medium hover:opacity-90 shadow-sm"
+            >
+              <Plus className="w-4 h-4" /> เพิ่มหมวดหมู่
+            </button>
+          )}
         </div>
+      </div>
+
+      <div className="flex gap-4 mb-6 border-b border-border-subtle">
+        <button
+          onClick={() => setActiveTab('products')}
+          className={`pb-3 px-1 font-semibold transition-colors border-b-2 ${activeTab === 'products' ? 'text-brand border-brand' : 'text-text-muted border-transparent hover:text-text-main'}`}
+        >
+          จัดการสินค้า
+        </button>
+        <button
+          onClick={() => setActiveTab('categories')}
+          className={`pb-3 px-1 font-semibold transition-colors border-b-2 ${activeTab === 'categories' ? 'text-brand border-brand' : 'text-text-muted border-transparent hover:text-text-main'}`}
+        >
+          จัดการหมวดหมู่
+        </button>
       </div>
 
       <div className="bg-card-bg border border-border-subtle rounded-2xl p-4 shadow-sm mb-6">
@@ -101,7 +161,7 @@ export const AdminDashboard = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
           <input 
             type="text" 
-            placeholder="ค้นหาสินค้าที่ต้องการจัดการ..."
+            placeholder={activeTab === 'products' ? "ค้นหาสินค้า..." : "ค้นหาหมวดหมู่..."}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-bg-app border border-border-subtle rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-brand"
@@ -111,7 +171,7 @@ export const AdminDashboard = () => {
 
       {loading ? (
         <div className="flex justify-center py-20 text-text-muted">กำลังโหลดข้อมูล...</div>
-      ) : (
+      ) : activeTab === 'products' ? (
         <div className="grid gap-4">
           {filteredResources.map(item => (
             <div key={item.id} className="bg-card-bg border border-border-subtle rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4 hover:shadow-md transition-shadow">
@@ -147,6 +207,33 @@ export const AdminDashboard = () => {
           ))}
           {filteredResources.length === 0 && <div className="text-center py-10 text-text-muted">ไม่พบสินค้า</div>}
         </div>
+      ) : (
+        <div className="grid gap-4">
+          {filteredCategories.map(cat => (
+            <div key={cat.id} className="bg-card-bg border border-border-subtle rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4 hover:shadow-md transition-shadow">
+              <img src={cat.imageUrl || "https://images.unsplash.com/photo-1542751371-adc38448a05e"} alt="" className="w-20 h-20 rounded-xl object-cover border border-border-subtle shrink-0" />
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-lg truncate text-text-main">{cat.name}</h3>
+                <p className="text-sm text-text-muted truncate">{cat.description}</p>
+              </div>
+              <div className="flex items-center gap-2 mt-4 sm:mt-0">
+                <button 
+                  onClick={() => { setIsAddingCategory(false); setEditingCategory(cat); }}
+                  className="bg-bg-app border border-border-subtle hover:text-brand px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+                >
+                  <Edit className="w-4 h-4" />
+                </button>
+                <button 
+                  onClick={() => handleDeleteCategory(cat.id)}
+                  className="bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+          {filteredCategories.length === 0 && <div className="text-center py-10 text-text-muted">ไม่พบหมวดหมู่</div>}
+        </div>
       )}
 
       {/* MODAL: ADD / EDIT */}
@@ -178,7 +265,7 @@ export const AdminDashboard = () => {
                      <div>
                        <label className="block text-xs font-semibold text-text-muted mb-1 text-left">หมวดหมู่ <span className="text-red-500">*</span></label>
                        <select value={editingItem.category} onChange={e => setEditingItem({...editingItem, category: e.target.value})} className="w-full bg-bg-app border border-border-subtle rounded-xl px-4 py-2.5 text-sm outline-none">
-                         {categoriesData.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                         {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                        </select>
                      </div>
                      <div>
@@ -273,7 +360,7 @@ export const AdminDashboard = () => {
                       if (res.ok) {
                         alert(isAdding ? 'เพิ่มสินค้าสำเร็จ' : 'อัปเดตสินค้าสำเร็จ');
                         setEditingItem(null);
-                        loadResources(); // reload DB manually
+                        loadData(); // reload DB manually
                       } else {
                         const err = await res.json();
                         alert('Error: ' + JSON.stringify(err));
@@ -285,6 +372,83 @@ export const AdminDashboard = () => {
                   className="px-5 py-2.5 rounded-xl font-medium bg-brand text-white hover:opacity-90 transition-colors flex items-center gap-2"
                  >
                    <Save className="w-4 h-4" /> บันทึกข้อมูล
+                 </button>
+               </div>
+            </motion.div>
+          </div>
+        )}
+
+        {editingCategory && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setEditingCategory(null)} />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-lg max-h-[90vh] bg-card-bg border border-border-subtle shadow-2xl rounded-2xl flex flex-col overflow-hidden"
+            >
+               <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-bg-app">
+                 <h2 className="text-xl font-bold flex items-center gap-2">
+                   {isAddingCategory ? 'เพิ่มหมวดหมู่ใหม่' : 'แก้ไขหมวดหมู่'}
+                 </h2>
+                 <button onClick={() => setEditingCategory(null)} className="p-2 hover:bg-card-bg rounded-xl text-text-muted transition-colors">
+                   <X className="w-5 h-5" />
+                 </button>
+               </div>
+
+               <div className="p-6 overflow-y-auto w-full space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-text-muted mb-1">ชื่อหมวดหมู่ (ภาษาอังกฤษ/สั้นๆ)</label>
+                    <input type="text" value={editingCategory.name} onChange={e => setEditingCategory({...editingCategory, name: e.target.value})} className="w-full bg-bg-app border border-border-subtle rounded-xl px-4 py-2.5 text-sm" placeholder="Script" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-text-muted mb-1">รายละเอียด</label>
+                    <input type="text" value={editingCategory.description} onChange={e => setEditingCategory({...editingCategory, description: e.target.value})} className="w-full bg-bg-app border border-border-subtle rounded-xl px-4 py-2.5 text-sm" placeholder="สคริปต์ต่างๆ" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-text-muted mb-1">รูปภาพหมวดหมู่ (URL)</label>
+                    <input type="text" value={editingCategory.imageUrl} onChange={e => setEditingCategory({...editingCategory, imageUrl: e.target.value})} className="w-full bg-bg-app border border-border-subtle rounded-xl px-4 py-2.5 text-sm" placeholder="https://..." />
+                  </div>
+               </div>
+
+               <div className="p-5 border-t border-border-subtle bg-bg-app flex justify-end gap-3 mt-auto">
+                 <button onClick={() => setEditingCategory(null)} className="px-5 py-2.5 rounded-xl font-medium border border-border-subtle hover:bg-card-bg transition-colors">ยกเลิก</button>
+                 <button 
+                  onClick={async () => {
+                    try {
+                      if (!editingCategory.name) return alert('กรุณาใส่ชื่อหมวดหมู่');
+                      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+                      const mth = isAddingCategory ? 'POST' : 'PATCH'; // But wait, we didn't add PATCH in API yet? We did POST and DELETE.
+                      // Wait, we didn't do PATCH for category! I'll add it if it doesn't exist. Actually, let me check the API for PATCH /api/admin/categories/:id. Wait I only added GET, POST, DELETE.
+                      // No problem, I can do POST/DELETE for categories for now if PATCH isn't available, but let's assume PATCH is missing and we'll add it.
+                      const url = isAddingCategory ? '/api/admin/categories' : `/api/admin/categories/${editingCategory.id}`;
+                      
+                      const submitData = { ...editingCategory };
+                      if (isAddingCategory) delete submitData.id;
+
+                      const res = await fetch(url, {
+                        method: mth,
+                        headers: { 
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${token}` 
+                        },
+                        body: JSON.stringify(submitData)
+                      });
+                      if (res.ok) {
+                        alert(isAddingCategory ? 'เพิ่มหมวดหมู่สำเร็จ' : 'อัปเดตหมวดหมู่สำเร็จ');
+                        setEditingCategory(null);
+                        loadData();
+                      } else {
+                        const err = await res.json();
+                        alert('Error: ' + JSON.stringify(err));
+                      }
+                    } catch(e) {
+                      console.error(e);
+                    }
+                  }}
+                  className="px-5 py-2.5 rounded-xl font-medium bg-brand text-white hover:opacity-90 transition-colors flex items-center gap-2"
+                 >
+                   <Save className="w-4 h-4" /> บันทึกหมวดหมู่
                  </button>
                </div>
             </motion.div>

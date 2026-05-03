@@ -144,8 +144,24 @@ export default function App() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   
   const [resources, setResources] = useState<ResourceItem[]>(resourcesData);
+  const [categoriesDataState, setCategoriesDataState] = useState<any[]>(categoriesData);
+  
   useEffect(() => {
     (window as any).__INITIAL_DATA__ = resourcesData;
+    (window as any).__INITIAL_CATEGORIES__ = categoriesData;
+    
+    // Fetch categories
+    fetch('/api/categories')
+       .then(res => res.json())
+       .then(data => {
+          if (data.success && data.categories && data.categories.length > 0) {
+             const mapped = data.categories.map((c: any) => ({ ...c, id: c._id || c.id }));
+             setCategoriesDataState(mapped);
+          }
+       })
+       .catch(err => console.error("Failed to fetch categories:", err));
+
+    // Fetch resources
     fetch('/api/resources')
       .then(res => res.json())
       .then(data => {
@@ -359,8 +375,8 @@ useEffect(() => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showSocialsModal, setShowSocialsModal] = useState(false);
   
-  // Use categories strictly from categoriesData
-  const categories = ['ALL', ...categoriesData.map(c => c.name)];
+  // Use categories strictly from categoriesDataState
+  const categories = ['ALL', ...categoriesDataState.map(c => c.name)];
 
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [showOrderConfirmModal, setShowOrderConfirmModal] = useState(false);
@@ -1165,7 +1181,7 @@ ${h.details || '-'}
                         const isActive = activeCategory === tab;
                         const count = resources.filter(i => i.category === tab).length;
                         
-                        const catData = categoriesData.find(c => c.name === tab);
+                        const catData = categoriesDataState.find(c => c.name === tab);
                         let imgPath = catData?.imageUrl || "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1640&auto=format&fit=crop";
                         if (!catData) {
                           const match = resources.find(i => i.category === tab);
