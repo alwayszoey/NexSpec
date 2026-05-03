@@ -22,13 +22,13 @@ export const AdminDashboard = () => {
       setLoading(true);
       const res = await fetch('/api/resources');
       const data = await res.json();
-      if (data.success) {
+      if (data.success && Array.isArray(data.resources)) {
         setResources(data.resources.map((r: any) => ({ ...r, id: r._id || r.id })));
       }
 
       const resCat = await fetch('/api/categories');
       const dataCat = await resCat.json();
-      if (dataCat.success) {
+      if (dataCat.success && Array.isArray(dataCat.categories)) {
         setCategories(dataCat.categories.map((c: any) => ({ ...c, id: c._id || c.id })));
       }
     } catch(err) {
@@ -74,8 +74,8 @@ export const AdminDashboard = () => {
     }
   };
 
-  const filteredResources = resources.filter(r => r.title.toLowerCase().includes(search.toLowerCase()));
-  const filteredCategories = categories.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
+  const filteredResources = resources.filter(r => (r.title || '').toLowerCase().includes(search.toLowerCase()));
+  const filteredCategories = categories.filter(c => (c.name || '').toLowerCase().includes(search.toLowerCase()));
 
   return (
     <motion.div 
@@ -184,8 +184,8 @@ export const AdminDashboard = () => {
                 <h3 className="font-bold text-lg truncate text-text-main">{item.title}</h3>
                 <p className="text-sm text-text-muted truncate">{item.shortDescription}</p>
                 <div className="mt-2 text-sm font-semibold text-text-main">
-                  {item.price > 0 ? (
-                      `฿${item.price.toLocaleString()}`
+                  {Number(item.price) > 0 ? (
+                      `฿${Number(item.price).toLocaleString()}`
                   ) : <span className="text-green-600">ฟรี</span>}
                 </div>
               </div>

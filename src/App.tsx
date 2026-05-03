@@ -43,6 +43,24 @@ const StatsCard = ({ icon: Icon, title, value, unit }: { icon: any, title: strin
   </div>
 );
 
+class ErrorBoundary extends React.Component<any, any> {
+  constructor(props: any) { super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(error: Error) { return { hasError: true, error }; }
+  componentDidCatch(error: Error, info: any) { console.error("ErrorBoundary caught an error:", error, info); }
+  render() { 
+    if (this.state.hasError) {
+      return (
+        <div className="p-10 flex flex-col items-center justify-center text-red-500">
+           <h2 className="text-xl font-bold mb-4">🚨 มีข้อผิดพลาดในระบบ (Crash) 🚨</h2>
+           <pre className="p-4 bg-red-100 rounded-xl text-left w-full overflow-auto text-xs">{this.state.error?.stack || this.state.error?.message}</pre>
+           <button onClick={() => this.setState({hasError: false, error: null})} className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg">ลองใหม่</button>
+        </div>
+      );
+    }
+    return this.props.children; 
+  }
+}
+
 // ============================================================================
 // 📌 COMPONENT: PromoPopup (แก้ไข Popup แจ้งเตือน/โฆษณา ตอนเข้าเว็บได้ที่นี่)
 // ============================================================================
@@ -154,7 +172,7 @@ export default function App() {
     fetch('/api/categories')
        .then(res => res.json())
        .then(data => {
-          if (data.success && data.categories && data.categories.length > 0) {
+          if (data.success && Array.isArray(data.categories)) {
              const mapped = data.categories.map((c: any) => ({ ...c, id: c._id || c.id }));
              setCategoriesDataState(mapped);
           }
@@ -165,7 +183,7 @@ export default function App() {
     fetch('/api/resources')
       .then(res => res.json())
       .then(data => {
-        if (data.success && data.resources && data.resources.length > 0) {
+        if (data.success && Array.isArray(data.resources)) {
            // map MongoDB _id to string for compatibility if needed
            const mapped = data.resources.map((r: any) => ({ ...r, id: r._id || r.id }));
            setResources(mapped);
@@ -376,7 +394,7 @@ useEffect(() => {
   const [showSocialsModal, setShowSocialsModal] = useState(false);
   
   // Use categories strictly from categoriesDataState
-  const categories = ['ALL', ...categoriesDataState.map(c => c.name)];
+  const categories = ['ALL', ...categoriesDataState.filter(c => c && c.name).map(c => c.name)];
 
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [showOrderConfirmModal, setShowOrderConfirmModal] = useState(false);
@@ -1071,7 +1089,11 @@ ${h.details || '-'}
           {currentView === 'about' && <About />}
           {currentView === 'contact' && <Contact />}
           {currentView === 'admin' && (
-            isAdminAcct ? <AdminDashboard /> : (
+            isAdminAcct ? (
+               <ErrorBoundary>
+                 <AdminDashboard />
+               </ErrorBoundary>
+            ) : (
               <div className="flex flex-col items-center justify-center py-20 text-text-muted">
                 <ShieldAlert className="w-16 h-16 text-red-500 mb-4 opacity-50" />
                 <h2 className="text-xl font-bold mb-2">เข้าถึงไม่ได้</h2>
