@@ -80,8 +80,8 @@ export const AdminDashboard = () => {
     return val['th'] || val['en'] || val['vi'] || '';
   };
 
-  const filteredResources = resources.filter(r => getLoc(r.title).toLowerCase().includes(search.toLowerCase()));
-  const filteredCategories = categories.filter(c => getLoc(c.name).toLowerCase().includes(search.toLowerCase()));
+  const filteredResources = (Array.isArray(resources) ? resources : []).filter(r => r && getLoc(r.title).toLowerCase().includes(search.toLowerCase()));
+  const filteredCategories = (Array.isArray(categories) ? categories : []).filter(c => c && getLoc(c.name).toLowerCase().includes(search.toLowerCase()));
 
   return (
     <motion.div 

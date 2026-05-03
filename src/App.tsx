@@ -398,7 +398,7 @@ useEffect(() => {
   const [showSocialsModal, setShowSocialsModal] = useState(false);
   
   // Use categories strictly from categoriesDataState
-  const categories = ['ALL', ...categoriesDataState.filter(c => c && c.name).map(c => c.name)];
+  const categories = ['ALL', ...(Array.isArray(categoriesDataState) ? categoriesDataState : []).filter(c => c && c.name).map(c => c.name)];
 
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [showOrderConfirmModal, setShowOrderConfirmModal] = useState(false);
@@ -440,7 +440,8 @@ useEffect(() => {
     if (selectedItem) setSelectedItem(null);
   };
 
-  const filteredResources = resources.filter(item => {
+  const filteredResources = (Array.isArray(resources) ? resources : []).filter(item => {
+    if (!item) return false;
     const isAll = activeCategory === 'ALL';
     const matchesCategory = isAll || item.category === activeCategory;
     
@@ -650,8 +651,8 @@ useEffect(() => {
 
   const appHistories = currentUser?.history || [];
   const filteredHistories = historyFilter === 'all' 
-    ? appHistories 
-    : appHistories.filter((h: any) => h.type === historyFilter);
+    ? (Array.isArray(appHistories) ? appHistories : [])
+    : (Array.isArray(appHistories) ? appHistories : []).filter((h: any) => h.type === historyFilter);
 
   const handleToggleHistorySelect = (index: number) => {
       const newSet = new Set(selectedHistories);
@@ -1205,7 +1206,7 @@ ${h.details || '-'}
                     <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-5 mb-2">
                       {categories.filter(tab => tab !== 'ALL').map((tab) => {
                         const isActive = activeCategory === tab;
-                        const count = resources.filter(i => i.category === tab).length;
+                        const count = (Array.isArray(resources) ? resources : []).filter(i => i && i.category === tab).length;
                         
                         const catData = categoriesDataState.find(c => c.name === tab);
                         let imgPath = catData?.imageUrl || "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1640&auto=format&fit=crop";
@@ -1594,7 +1595,7 @@ ${h.details || '-'}
 
                 <div className="w-full lg:w-1/2 flex flex-col">
                   <div className="flex flex-wrap gap-2 mb-3">
-                    {selectedItem.tags.map((tag, idx) => (
+                    {(Array.isArray(selectedItem.tags) ? selectedItem.tags : []).map((tag, idx) => (
                       <span key={idx} className="bg-brand/10 text-brand border border-brand/20 px-3 py-1 rounded-full text-[11px] sm:text-[12px] font-medium">
                         #{tag}
                       </span>
