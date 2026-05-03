@@ -70,13 +70,23 @@ app.use(async (req, res, next) => {
 
 // --- [ ส่วนที่เพิ่มใหม่: ADMIN API ] ---
 
-// ด่านตรวจรหัสลับ
+import jwt from "jsonwebtoken";
+const JWT_SECRET = process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET || "default_jwt_secret_dev";
+
 const isAdmin = (req: any, res: any, next: any) => {
-  const adminToken = req.headers['x-admin-token'];
-  if (adminToken && adminToken === process.env.ADMIN_TOKEN) {
-    next();
-  } else {
-    res.status(403).json({ success: false, message: "Forbidden: Invalid Admin Token" });
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+
+  try {
+    const decoded: any = jwt.verify(token, JWT_SECRET);
+    if (decoded.email === 'Cpjustink@gmail.com' || decoded.email?.toLowerCase() === 'cpjustink@gmail.com') {
+      req.user = decoded;
+      next();
+    } else {
+      res.status(403).json({ success: false, message: "Forbidden: Not an admin" });
+    }
+  } catch (err) {
+    res.status(401).json({ error: "Invalid token" });
   }
 };
 
@@ -130,9 +140,33 @@ app.patch('/api/admin/resources/:id', isAdmin, async (req: any, res: any) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
+// ลบ Resource (ตาม ID)
+app.delete('/api/admin/resources/:id', isAdmin, async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+    const dbInstance: any = await connectDB();
+    const db = dbInstance?.db || dbInstance;
+    await db.collection("resources").deleteOne({ _id: id });
+    res.json({ success: true, message: "Deleted successfully" });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 // --- [ จบส่วน ADMIN API ] ---
 
 // Mount original routes
+app.get('/api/resources', async (req: any, res: any) => {
+  try {
+    const dbInstance: any = await connectDB();
+    const db = dbInstance?.db || dbInstance;
+    const resources = await db.collection("resources").find({}).sort({ createdAt: -1 }).toArray();
+    res.json({ success: true, resources });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.use("/api/auth", abuseLimiter, authRoutes);
 app.use("/api/stats", statsRoutes);
 

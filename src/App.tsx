@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, useNavigate, useLocation, Link, Navigate } from 'react-router-dom';
 import { About } from './pages/About';
 import { Contact } from './pages/Contact';
+import { AdminDashboard } from './pages/AdminDashboard';
 import { 
   Search, ShieldAlert, Download, X, RefreshCcw, LayoutGrid, Layers, 
   Archive, Settings, FileText, Check, Zap, Menu, ArrowLeft, 
@@ -19,7 +20,7 @@ import { ProfileModal } from './ProfileModal';
 
 const EMOTICONS = ['🇹🇭', '🇻🇳', '🎮', '🚀', '✨', '🎁', '🔥', '💖', '👋'];
 
-type ViewState = 'home' | 'details' | 'help' | 'category' | 'history';
+  type ViewState = 'home' | 'details' | 'help' | 'category' | 'history' | 'admin';
 type AppLang = 'vi' | 'th';
 
 const StatsCard = ({ icon: Icon, title, value, unit }: { icon: any, title: string, value: string | number, unit: string }) => (
@@ -141,6 +142,23 @@ export default function App() {
   const [authModalType, setAuthModalType] = useState<'login' | 'register' | null>(null);
   const [currentUser, setCurrentUser] = useState<{ id: string, username: string, email: string, avatarUrl?: string, history?: any[] } | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  
+  const [resources, setResources] = useState<ResourceItem[]>(resourcesData);
+  useEffect(() => {
+    (window as any).__INITIAL_DATA__ = resourcesData;
+    fetch('/api/resources')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.resources && data.resources.length > 0) {
+           // map MongoDB _id to string for compatibility if needed
+           const mapped = data.resources.map((r: any) => ({ ...r, id: r._id || r.id }));
+           setResources(mapped);
+        }
+      })
+      .catch(err => console.error("Failed to fetch resources:", err));
+  }, []);
+
+  const isAdminAcct = currentUser?.email?.toLowerCase() === 'cpjustink@gmail.com';
 
   // ====== STATS STATES ======
   const [appStats, setAppStats] = useState(() => {
@@ -308,7 +326,7 @@ useEffect(() => {
     else if (path === '/category') _setCurrentView('category');
     else if (path.startsWith('/shop/product/')) {
         const id = path.split('/').pop();
-        const item = resourcesData.find(r => String(r.id) === id);
+        const item = resources.find(r => String(r.id) === id);
         if (item) {
             setSelectedItem(item);
             _setCurrentView('details');
@@ -320,7 +338,8 @@ useEffect(() => {
     else if (path === '/help') _setCurrentView('help');
     else if (path === '/about') _setCurrentView('about');
     else if (path === '/contact') _setCurrentView('contact');
-  }, [location.pathname]);
+    else if (path === '/admin') _setCurrentView('admin');
+  }, [location.pathname, resources]);
 
   const currentView = _currentView;
   const setCurrentView = (view: ViewState | 'about' | 'contact', params?: { id?: string | number }) => {
@@ -331,6 +350,7 @@ useEffect(() => {
     else if (view === 'help') navigate('/help');
     else if (view === 'about') navigate('/about');
     else if (view === 'contact') navigate('/contact');
+    else if (view === 'admin') navigate('/admin');
   };
 
   const [activeDownloadUrl, setActiveDownloadUrl] = useState<string | null>(null);
@@ -382,7 +402,7 @@ useEffect(() => {
     if (selectedItem) setSelectedItem(null);
   };
 
-  const filteredResources = resourcesData.filter(item => {
+  const filteredResources = resources.filter(item => {
     const isAll = activeCategory === 'ALL';
     const matchesCategory = isAll || item.category === activeCategory;
     
@@ -984,6 +1004,16 @@ ${h.details || '-'}
                   >
                     <History className="w-5 h-5 text-text-muted group-hover:text-brand transition-colors" />ประวัติการทำรายการ
                   </button>
+                  
+                  {isAdminAcct && (
+                    <button 
+                      onClick={() => { setIsMobileMenuOpen(false); setCurrentView('admin'); }}
+                      className="flex items-center gap-3 p-3.5 rounded-[16px] hover:bg-brand-light text-left font-medium text-brand transition-colors w-full group"
+                    >
+                      <ShieldAlert className="w-5 h-5 text-brand opacity-80 group-hover:opacity-100 transition-opacity" /> แอดมินแดชบอร์ด
+                    </button>
+                  )}
+                  
                   <button 
                     onClick={handleLogout}
                     className="flex items-center gap-3 p-3.5 rounded-[16px] hover:bg-red-50 dark:hover:bg-red-500/10 text-left font-medium text-red-600 transition-colors w-full group mb-2"
@@ -1024,6 +1054,21 @@ ${h.details || '-'}
           {/* ---------------------------------------------------- */}
           {currentView === 'about' && <About />}
           {currentView === 'contact' && <Contact />}
+          {currentView === 'admin' && (
+            isAdminAcct ? <AdminDashboard /> : (
+              <div className="flex flex-col items-center justify-center py-20 text-text-muted">
+                <ShieldAlert className="w-16 h-16 text-red-500 mb-4 opacity-50" />
+                <h2 className="text-xl font-bold mb-2">เข้าถึงไม่ได้</h2>
+                <p>เฉพาะผู้ดูแลระบบเท่านั้นที่สามารถเข้าใช้งานหน้านี้ได้</p>
+                <button 
+                  onClick={() => setCurrentView('home')}
+                  className="mt-6 px-6 py-2 bg-brand text-white rounded-xl hover:opacity-90 transition-opacity"
+                >
+                  กลับสู่หน้าหลัก
+                </button>
+              </div>
+            )
+          )}
 
           {/* ---------------------------------------------------- */}
           {/* PAGE 1: RESOURCES GRID */}
@@ -1079,7 +1124,7 @@ ${h.details || '-'}
                   <StatsCard 
                     icon={Layers} 
                     title={t('statsItems') || 'Tài nguyên'}
-                    value={resourcesData.length.toLocaleString()}
+                    value={resources.length.toLocaleString()}
                     unit={t('unitItems') || 'mục'}
                   />
                   <StatsCard 
@@ -1118,12 +1163,12 @@ ${h.details || '-'}
                     <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-5 mb-2">
                       {categories.filter(tab => tab !== 'ALL').map((tab) => {
                         const isActive = activeCategory === tab;
-                        const count = resourcesData.filter(i => i.category === tab).length;
+                        const count = resources.filter(i => i.category === tab).length;
                         
                         const catData = categoriesData.find(c => c.name === tab);
                         let imgPath = catData?.imageUrl || "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1640&auto=format&fit=crop";
                         if (!catData) {
-                          const match = resourcesData.find(i => i.category === tab);
+                          const match = resources.find(i => i.category === tab);
                           if (match) imgPath = match.imageUrl;
                         }
 
@@ -1204,7 +1249,7 @@ ${h.details || '-'}
                   </div>
 
                   <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5 pb-12">
-                    {resourcesData.slice(0, 5).map((item, index) => {
+                    {resources.slice(0, 5).map((item, index) => {
                        return (
                         <motion.div 
                           layout
