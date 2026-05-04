@@ -4,6 +4,7 @@ import cors from "cors";
 import helmet from "helmet";
 import hpp from "hpp";
 import rateLimit from "express-rate-limit";
+import cookieParser from "cookie-parser";
 import { connectDB } from "./_lib/db.js";
 import authRoutes from "./_lib/auth.js";
 import statsRoutes from "./_lib/stats.js";
@@ -19,6 +20,8 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 app.use(hpp()); // ป้องกัน HTTP Parameter Pollution
+app.use(cookieParser()); // Added cookie-parser
+
 
 // --- 🛡️ 3. Global Rate Limiter ---
 // จำกัด 300 requests ต่อ 15 นาทีต่อ IP เพื่อป้องกัน DDoS เบื้องต้น

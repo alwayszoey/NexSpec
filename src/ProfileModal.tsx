@@ -24,15 +24,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentUser, onClose
     setLoading(true);
 
     try {
-      const localToken = localStorage.getItem('authToken');
-      const sessionToken = sessionStorage.getItem('authToken');
-      const token = localToken || sessionToken;
-
       const res = await fetch('/api/auth/me', {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ username, avatarUrl })
       });

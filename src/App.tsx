@@ -157,9 +157,8 @@ export default function App() {
 useEffect(() => {
   const handleOAuthMessage = (event: MessageEvent) => {
     if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
-      const { token, user } = event.data;
-      if (!token || !user) return;
-      localStorage.setItem('authToken', token);
+      const { user } = event.data;
+      if (!user) return;
       setCurrentUser({ id: user.id || user._id, username: user.username, email: user.email, avatarUrl: user.avatarUrl, history: user.history });
     }
   };
@@ -167,23 +166,13 @@ useEffect(() => {
   return () => window.removeEventListener('message', handleOAuthMessage);
 }, []);
 
-// ── OAuth: รับ token จาก URL fallback (?token=...) ───────────────────────
+// ── Session Check: Cookies are automatically sent back, so no token fallback needed ──
 useEffect(() => {
   const params = new URLSearchParams(window.location.search);
   const urlToken = params.get('token');
-  if (!urlToken) return;
-  window.history.replaceState({}, document.title, window.location.pathname);
-  localStorage.setItem('authToken', urlToken);
-  fetch('/api/auth/me', {
-    headers: { 'Authorization': `Bearer ${urlToken}` }
-  })
-    .then(res => res.json())
-    .then(data => {
-      if (data.user) {
-        setCurrentUser({ id: data.user._id, username: data.user.username, email: data.user.email, avatarUrl: data.user.avatarUrl, history: data.user.history });
-      }
-    })
-    .catch(() => localStorage.removeItem('authToken'));
+  if (urlToken) {
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
 }, []);
 
   
@@ -207,25 +196,16 @@ useEffect(() => {
     }
 
     // Check Auth Session
-    const localToken = localStorage.getItem('authToken');
-    const sessionToken = sessionStorage.getItem('authToken');
-    const token = localToken || sessionToken;
-    if (token) {
-      fetch('/api/auth/me', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.user) {
-          setCurrentUser({ id: data.user._id, username: data.user.username, email: data.user.email, avatarUrl: data.user.avatarUrl, history: data.user.history });
-        }
-      })
-      .catch(err => {
-        console.error("Session check failed:", err);
-        localStorage.removeItem('authToken');
-        sessionStorage.removeItem('authToken');
-      });
-    }
+    fetch('/api/auth/me')
+    .then(res => res.json())
+    .then(data => {
+      if (data.user) {
+        setCurrentUser({ id: data.user._id, username: data.user.username, email: data.user.email, avatarUrl: data.user.avatarUrl, history: data.user.history });
+      }
+    })
+    .catch(err => {
+      console.error("Session check failed:", err);
+    });
 
     // Fetch initial app stats and setup polling for real-time updates
     const fetchStats = () => {
@@ -270,10 +250,10 @@ useEffect(() => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('authToken');
-    sessionStorage.removeItem('authToken');
-    setCurrentUser(null);
-    setIsMobileMenuOpen(false);
+    fetch('/api/auth/logout', { method: 'POST' }).then(() => {
+      setCurrentUser(null);
+      setIsMobileMenuOpen(false);
+    });
   };
 
   const toggleTheme = () => {
@@ -564,12 +544,10 @@ useEffect(() => {
   const addHistoryRecord = async (type: 'link' | 'purchase', item: ResourceItem, detailsText: string) => {
     if (!currentUser) return;
     try {
-       const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
        const res = await fetch('/api/auth/history', {
          method: 'POST',
          headers: {
-           'Content-Type': 'application/json',
-           'Authorization': `Bearer ${token}`
+           'Content-Type': 'application/json'
          },
          body: JSON.stringify({
             id: item.id,
@@ -2427,11 +2405,7 @@ ${h.details || '-'}
             onClose={() => setAuthModalType(null)}
             t={t}
             onSuccess={(user, token, rememberMe) => {
-              if (rememberMe) {
-                localStorage.setItem('authToken', token);
-              } else {
-                sessionStorage.setItem('authToken', token);
-              }
+              // State update only; HttpOnly cookies handle auth persistence
               setCurrentUser({ id: user.id || user._id, username: user.username, email: user.email, avatarUrl: user.avatarUrl, history: user.history });
               setAuthModalType(null);
             }}
