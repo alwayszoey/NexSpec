@@ -139,6 +139,9 @@ app.patch('/api/admin/resources/:id', isAdmin, async (req: any, res: any) => {
 app.use("/api/auth", abuseLimiter, authRoutes);
 app.use("/api/stats", statsRoutes);
 
+import { secureResourceDetails } from "./_lib/secureResources.js";
+import { verifyAuth } from "./_lib/auth.js";
+
 // Stateless URL signer using HMAC (Original)
 function generateSignedToken(url: string, ip: string) {
   const expires = Date.now() + 5 * 60 * 1000;
@@ -175,8 +178,24 @@ function botDetection(req: express.Request) {
   return true;
 }
 
+// Secure Action Endpoints
+app.post("/api/buy", verifyAuth, abuseLimiter, async (req: any, res: any) => {
+  const { itemId } = req.body;
+  
+  if (!itemId) {
+    return res.status(400).json({ success: false, error: 'Missing item ID' });
+  }
+
+  const secureData = secureResourceDetails[itemId];
+  if (!secureData || !secureData.purchaseDetails) {
+    return res.status(404).json({ success: false, error: 'Item not found or has no purchase details' });
+  }
+
+  return res.json({ success: true, details: secureData.purchaseDetails });
+});
+
 // API Routes (Original)
-app.post("/api/verify-captcha", abuseLimiter, async (req, res) => {
+app.post("/api/verify-captcha", abuseLimiter, async (req: any, res: any) => {
   const ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'unknown';
   if (!botDetection(req)) {
       res.status(403).json({ success: false, error: 'Request blocked by bot detection' });
@@ -189,11 +208,19 @@ app.post("/api/verify-captcha", abuseLimiter, async (req, res) => {
          return;
      }
   }
-  const { token, targetUrl } = req.body;
-  if (!token || !targetUrl) {
-      res.status(400).json({ success: false, error: 'Missing token or target url' });
+  const { token, itemId } = req.body;
+  if (!token || !itemId) {
+      res.status(400).json({ success: false, error: 'Missing token or item ID' });
       return;
   }
+  
+  const secureData = secureResourceDetails[itemId];
+  if (!secureData || !secureData.link) {
+      res.status(400).json({ success: false, error: 'Invalid item ID or no link attached' });
+      return;
+  }
+  const targetUrl = secureData.link;
+
   if (usedTokens.has(token)) {
       res.status(400).json({ success: false, error: 'Captcha token reused' });
       return;
@@ -221,7 +248,7 @@ app.post("/api/verify-captcha", abuseLimiter, async (req, res) => {
   res.json({ success: true, key: signedKey, expiresIn: 300 });
 });
 
-app.get("/api/download/:key", (req, res) => {
+app.get("/api/download/:key", (req: any, res: any) => {
   const { key } = req.params;
   const targetUrl = verifySignedToken(key);
   if (!targetUrl) {

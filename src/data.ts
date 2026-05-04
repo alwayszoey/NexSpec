@@ -64,9 +64,7 @@ export const resourcesData: ResourceItem[] = [
 [+] พร้อมวิธีการใช้งานเบื้องต้น`,
     imageUrl: "https://img1.pic.in.th/images/-5_20260426220753.png",
     videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", // รองรับ YouTube หรือวีดีโออื่นๆ ได้เช่นกัน
-    link: "https://www.mediafire.com/file/k8d1yvgzcp3w56s/Freestyle_0.1.json/file?dkey=9o6wvtoyc1c&r=77",
     actionType: "purchase",
-    purchaseDetails: "ขอบคุณที่สั่งซื้อ!\n\nลิงก์สำหรับโหลด: https://www.mediafire.com/file/k8d1yvgzcp3w56s/Freestyle_0.1.json/file?dkey=9o6wvtoyc1c&r=77",
     tags: ["SRC", "Bot", "Xandria"],
     warning: "",
     category: "Script",

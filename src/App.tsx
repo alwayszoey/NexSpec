@@ -313,7 +313,8 @@ useEffect(() => {
     else if (view === 'contact') navigate('/contact');
   };
 
-  const [activeDownloadUrl, setActiveDownloadUrl] = useState<string | null>(null);
+  const [activeLinkId, setActiveLinkId] = useState<number | null>(null);
+  const [purchasedDetails, setPurchasedDetails] = useState<string>('');
   const [activeCategory, setActiveCategory] = useState('ALL');
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -385,7 +386,7 @@ useEffect(() => {
     setCurrentView('details', { id: String(item.id) });
   };
 
-  const handleGetLink = (e?: React.MouseEvent, item?: ResourceItem, specificLink?: string) => {
+  const handleGetLink = (e?: React.MouseEvent, item?: ResourceItem, linkIndex?: number) => {
     if (e) e.stopPropagation();
     
     // Determine which item we are acting on
@@ -403,9 +404,7 @@ useEffect(() => {
       return;
     }
     
-    // Default to targetItem.link if specificLink is not provided
-    const targetUrl = specificLink || targetItem?.link;
-    setActiveDownloadUrl(targetUrl || null);
+    setActiveLinkId(linkIndex !== undefined ? linkIndex : null);
     
     setStep1Status('idle');
     setStep2Status('idle');
@@ -422,27 +421,44 @@ useEffect(() => {
       if (!selectedItem) return;
       setIsProcessingOrder(true);
 
-      // Simulate a purchase delay or call real payment API if needed
-      setTimeout(async () => {
-         await addHistoryRecord('purchase', selectedItem, selectedItem.purchaseDetails || 'ไม่พบรายละเอียด');
-         
-         // Increment download/sales stat
-         fetch('/api/stats/download', { method: 'POST' })
-           .then(res => res.json())
-           .then(data => {
-             if (data.success) {
-                setAppStats(prev => {
-                  const newStats = { ...prev, downloads: data.downloads };
-                  localStorage.setItem('cachedStats', JSON.stringify(newStats));
-                  return newStats;
-                });
-             }
-           }).catch(err => console.error("Failed to update stat", err));
+      try {
+        const res = await fetch('/api/buy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ itemId: selectedItem.id })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+           const finalDetails = data.details || 'ไม่พบรายละเอียด';
+           setPurchasedDetails(finalDetails);
+           
+           await addHistoryRecord('purchase', selectedItem, finalDetails);
+           
+           // Increment download/sales stat
+           fetch('/api/stats/download', { method: 'POST' })
+             .then(res => res.json())
+             .then(statData => {
+               if (statData.success) {
+                  setAppStats(prev => {
+                    const newStats = { ...prev, downloads: statData.downloads };
+                    localStorage.setItem('cachedStats', JSON.stringify(newStats));
+                    return newStats;
+                  });
+               }
+             }).catch(err => console.error("Failed to update stat", err));
 
-         setIsProcessingOrder(false);
-         setShowOrderConfirmModal(false);
-         setShowPurchaseSuccessModal(true);
-      }, 1500);
+           setIsProcessingOrder(false);
+           setShowOrderConfirmModal(false);
+           setShowPurchaseSuccessModal(true);
+        } else {
+           alert("Purchase failed: " + data.error);
+           setIsProcessingOrder(false);
+        }
+      } catch (err) {
+        alert("An error occurred processing your purchase.");
+        setIsProcessingOrder(false);
+      }
   };
 
   const handleVerifyRecaptcha = async (token: string | null) => {
@@ -511,7 +527,8 @@ useEffect(() => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           token,
-          targetUrl: activeDownloadUrl || ''
+          itemId: selectedItem?.id,
+          linkIndex: activeLinkId
         })
       });
 
@@ -640,7 +657,7 @@ ${h.details || '-'}
         .catch(err => console.error("Failed to increment download:", err));
 
       if (currentUser) {
-         addHistoryRecord('link', selectedItem, activeDownloadUrl || '');
+         addHistoryRecord('link', selectedItem, 'Link Accessed');
       }
 
       window.open(`/api/download/${downloadKey}`, '_blank');
@@ -2149,11 +2166,11 @@ ${h.details || '-'}
                 
                 <div className="text-left bg-bg-app border border-border-subtle p-4 rounded-[16px] mt-6 relative group">
                   <div className="text-[12px] font-bold text-text-muted mb-2 uppercase tracking-wider">รายละเอียดสินค้า / ข้อมูล</div>
-                  <pre className="whitespace-pre-wrap break-all overflow-x-auto font-sans text-[14px] text-text-main">{selectedItem.purchaseDetails || 'ไม่พบรายละเอียด'}</pre>
+                  <pre className="whitespace-pre-wrap break-all overflow-x-auto font-sans text-[14px] text-text-main">{purchasedDetails || 'ไม่พบรายละเอียด'}</pre>
                   
                   <button 
                     onClick={() => {
-                        navigator.clipboard.writeText(selectedItem.purchaseDetails || 'ไม่พบรายละเอียด');
+                        navigator.clipboard.writeText(purchasedDetails || 'ไม่พบรายละเอียด');
                         alert('คัดลอกรายละเอียดแล้ว');
                     }}
                     className="absolute top-4 right-4 p-2 bg-card-bg hover:bg-brand/10 text-text-muted hover:text-brand transition-colors rounded-lg border border-border-subtle shadow-sm opacity-0 group-hover:opacity-100"
