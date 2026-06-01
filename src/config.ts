@@ -11,7 +11,7 @@ export const siteConfig = {
   name: "Zorix Shop",
   logoUrl: "https://img2.pic.in.th/IMG_0083.png",
   seoImageUrl: "https://img2.pic.in.th/IMG_0083.png", // แนะนำ: 1200x630 px (สำหรับ Social Media Preview)
-  bannerImageUrl: "https://img1.pic.in.th/images/zorixshop_20260426124700.png", // แนะนำเท่านนี้อัตราส่วน 10:3 หรือขนาด 2000x600 px
+  bannerImageUrl: "https://img1.pic.in.th/images/0C770CA8-CC73-413F-AE74-1445C20BE4CF.png", // แนะนำเท่านนี้อัตราส่วน 10:3 หรือขนาด 2000x600 px
   promoPopupImageUrl: "https://img2.pic.in.th/never.png", // แนะนำขนาดรูปภาพแนวตั้ง 1:1 หรือ 4:5
   
   // ขนาดภาพการ์ดสินค้าที่แนะนำ: อัตราส่วน 1:1 (สี่เหลี่ยมจัตุรัส) เช่น 500x500 px หรือ 800x800 px
