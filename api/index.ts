@@ -208,18 +208,27 @@ app.post("/api/verify-captcha", abuseLimiter, async (req: any, res: any) => {
          return;
      }
   }
-  const { token, itemId } = req.body;
+  const { token, itemId, linkIndex } = req.body;
   if (!token || !itemId) {
       res.status(400).json({ success: false, error: 'Missing token or item ID' });
       return;
   }
   
   const secureData = secureResourceDetails[itemId];
-  if (!secureData || !secureData.link) {
-      res.status(400).json({ success: false, error: 'Invalid item ID or no link attached' });
+  if (!secureData) {
+      res.status(400).json({ success: false, error: 'Invalid item ID' });
       return;
   }
-  const targetUrl = secureData.link;
+
+  let targetUrl = '';
+  if (linkIndex !== undefined && linkIndex !== null && secureData.downloadLinks && secureData.downloadLinks[linkIndex]) {
+     targetUrl = secureData.downloadLinks[linkIndex].url;
+  } else if (secureData.link) {
+     targetUrl = secureData.link;
+  } else {
+     res.status(400).json({ success: false, error: 'No link attached to this item' });
+     return;
+  }
 
   if (usedTokens.has(token)) {
       res.status(400).json({ success: false, error: 'Captcha token reused' });

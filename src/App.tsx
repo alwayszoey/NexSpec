@@ -86,7 +86,7 @@ function PromoPopup() {
             className="relative shadow-2xl rounded-2xl max-w-full"
           >
             <a href="https://discord.gg/hSuBbnwWZY" target="_blank" rel="noopener noreferrer" className="block outline-none ring-offset-2 ring-offset-black focus-visible:ring-2 focus-visible:ring-brand rounded-2xl">
-              <img src={siteConfig.promoPopupImageUrl} alt="Join Discord" className="block w-[500px] h-[500px] max-w-[90vw] max-h-[80vh] object-cover rounded-2xl" />
+              <img src={siteConfig.promoPopupImageUrl} alt="Join Discord" className="block w-[800px] h-[800px] max-w-[90vw] max-h-[80vh] object-cover rounded-2xl" />
             </a>
             
             <button 
@@ -155,6 +155,12 @@ export default function App() {
 
 // ── OAuth: รับ token จาก popup (postMessage) ──────────────────────────────
 useEffect(() => {
+  // --- Security Cleanup: Remove old insecure keys from previous versions ---
+  localStorage.removeItem('authToken');
+  sessionStorage.removeItem('authToken');
+  localStorage.removeItem('purchaseDetails'); 
+  // ----------------------------------------------------------------------
+
   const handleOAuthMessage = (event: MessageEvent) => {
     if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
       const { user } = event.data;
