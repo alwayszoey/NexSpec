@@ -194,12 +194,7 @@ useEffect(() => {
       localStorage.setItem('appTheme', 'light');
     }
 
-    const hasVerifiedEntry = sessionStorage.getItem('hasVerifiedEntry');
-    if (hasVerifiedEntry) {
-      setWelcomeState('done');
-    } else {
-      setWelcomeState('welcome');
-    }
+    setWelcomeState('done'); // Temporarily bypass the welcome screen
 
     // Check Auth Session
     fetch('/api/auth/me')

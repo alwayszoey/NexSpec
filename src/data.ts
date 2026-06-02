@@ -20,7 +20,7 @@ export const categoriesData: CategoryItem[] = [
     id: "cat-script",
     name: "Script",
     description: "สคริปต์ต่างๆ",
-    imageUrl: "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1640&auto=format&fit=crop", // placeholder image
+    imageUrl: "https://img1.pic.in.th/images/2000x600_20260602154514.png",
     isRecommended: true,
     isPopular: true
   }
