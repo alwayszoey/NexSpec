@@ -62,7 +62,7 @@ export const resourcesData: ResourceItem[] = [
 [+] SRC บอทเมนูทุกอย่าง ครบจบในตัวเดียว
 [+] เป็นเวอร์ชั่น 0.1.4.4_-_Xandria_-_Releases_FIXED
 [+] พร้อมวิธีการใช้งานเบื้องต้น`,
-    imageUrl: "https://img1.pic.in.th/images/-5_20260426220753.png",
+    imageUrl: "https://img1.pic.in.th/images/A555D9C4-01F8-461C-9007-04AAB3D47930c230b04e736443e0.png",
     videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", // รองรับ YouTube หรือวีดีโออื่นๆ ได้เช่นกัน
     actionType: "purchase",
     tags: ["SRC", "Bot", "Xandria"],
