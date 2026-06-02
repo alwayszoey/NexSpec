@@ -9,8 +9,8 @@ export const siteConfig = {
   // 📝 เนื้อหาทั่วไป (General Info)
   // ============================================
   name: "Zorix Shop",
-  logoUrl: "https://img2.pic.in.th/IMG_0083.png",
-  seoImageUrl: "https://img2.pic.in.th/IMG_0083.png", // แนะนำ: 1200x630 px (สำหรับ Social Media Preview)
+  logoUrl: "https://img2.pic.in.th/IMG_096921041a78ab4fa833.png",
+  seoImageUrl: "https://img2.pic.in.th/IMG_096921041a78ab4fa833.png", // แนะนำ: 1200x630 px (สำหรับ Social Media Preview)
   bannerImageUrl: "https://img2.pic.in.th/72689559-0E35-4B82-864D-9FEEB25A9D1D.png", // แนะนำเท่านนี้อัตราส่วน 10:3 หรือขนาด 2000x600 px
   promoPopupImageUrl: "https://img1.pic.in.th/images/213C8AE5-9976-45F8-BAFF-431E5EA0445A.png", // แนะนำขนาดรูปภาพแนวตั้ง 1:1 หรือ 4:5
   
