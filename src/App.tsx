@@ -7,7 +7,7 @@ import {
   Archive, Settings, FileText, Check, Zap, Menu, ArrowLeft, 
   Home, HelpCircle, Share2, Facebook, Instagram, MessageCircle,
   Play, ChevronRight, Loader2, Youtube, Send, MessageSquare, Sun, Moon, Lock, UserPlus, LogOut, Users, Eye, Star, Flame, ShoppingCart, Sparkles, ShoppingBag, History, HardDriveDownload, ExternalLink, Link2,
-  CircleX
+  CircleX, Key
 } from 'lucide-react';
 import { resourcesData, ResourceItem, categoriesData } from './data';
 import { motion, AnimatePresence } from 'motion/react';
@@ -19,7 +19,7 @@ import { ProfileModal } from './ProfileModal';
 
 const EMOTICONS = ['🇹🇭', '🇻🇳', '🎮', '🚀', '✨', '🎁', '🔥', '💖', '👋'];
 
-type ViewState = 'home' | 'details' | 'help' | 'category' | 'history';
+type ViewState = 'home' | 'details' | 'help' | 'category' | 'history' | 'generate-key';
 type AppLang = 'vi' | 'th';
 
 const StatsCard = ({ icon: Icon, title, value, unit }: { icon: any, title: string, value: string | number, unit: string }) => (
@@ -143,14 +143,22 @@ export default function App() {
   const [showProfileModal, setShowProfileModal] = useState(false);
 
   // ====== STATS STATES ======
-  const [appStats, setAppStats] = useState(() => {
+  const [appStats, setAppStats] = useState<{
+    users: number;
+    views: number;
+    downloads: number;
+    itemStats: Record<string, { views: number; downloads: number }>;
+  }>(() => {
     try {
       const cached = localStorage.getItem('cachedStats');
-      if (cached) return JSON.parse(cached);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        return { users: parsed.users || 0, views: parsed.views || 0, downloads: parsed.downloads || 0, itemStats: parsed.itemStats || {} };
+      }
     } catch (e) {
       console.error(e);
     }
-    return { users: 0, views: 0, downloads: 0 };
+    return { users: 0, views: 0, downloads: 0, itemStats: {} };
   });
 
 // ── OAuth: รับ token จาก popup (postMessage) ──────────────────────────────
@@ -214,7 +222,7 @@ useEffect(() => {
         .then(res => res.json())
         .then(data => {
           if (data.success) {
-            const newStats = { users: data.users, views: data.views, downloads: data.downloads };
+            const newStats = { users: data.users || 0, views: data.views || 0, downloads: data.downloads || 0, itemStats: data.itemStats || {} };
             setAppStats(newStats);
             localStorage.setItem('cachedStats', JSON.stringify(newStats));
           }
@@ -281,6 +289,12 @@ useEffect(() => {
   const [searchQuery, setSearchQuery] = useState('');
   const [_currentView, _setCurrentView] = useState<ViewState | 'about' | 'contact'>('home');
   const [selectedItem, setSelectedItem] = useState<ResourceItem | null>(null);
+
+  // Key system states
+  const [showEnterKeyModal, setShowEnterKeyModal] = useState(false);
+  const [inputKey, setInputKey] = useState('');
+  const [generatedKey, setGeneratedKey] = useState<string | null>(null);
+  const [proxyDetailsRevealed, setProxyDetailsRevealed] = useState(false);
 
   // Sync route with view
   useEffect(() => {
@@ -437,12 +451,26 @@ useEffect(() => {
            await addHistoryRecord('purchase', selectedItem, finalDetails);
            
            // Increment download/sales stat
-           fetch('/api/stats/download', { method: 'POST' })
+           fetch('/api/stats/download', { 
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify({ itemId: selectedItem.id })
+           })
              .then(res => res.json())
              .then(statData => {
                if (statData.success) {
                   setAppStats(prev => {
-                    const newStats = { ...prev, downloads: statData.downloads };
+                    const newStats = { 
+                       ...prev, 
+                       downloads: statData.downloads,
+                       itemStats: {
+                         ...prev.itemStats,
+                         [selectedItem.id]: {
+                           ...prev.itemStats?.[selectedItem.id],
+                           downloads: statData.itemDownloads
+                         }
+                       }
+                    };
                     localStorage.setItem('cachedStats', JSON.stringify(newStats));
                     return newStats;
                   });
@@ -644,14 +672,28 @@ ${h.details || '-'}
       }
       
       // Increment download stat
-      fetch('/api/stats/download', { method: 'POST' })
+      fetch('/api/stats/download', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemId: selectedItem.id })
+      })
         .then(res => res.json())
         .then(data => {
           if (data.success) {
              setAppStats(prev => {
-               const newStats = { ...prev, downloads: data.downloads };
-               localStorage.setItem('cachedStats', JSON.stringify(newStats));
-               return newStats;
+                const newStats = { 
+                   ...prev, 
+                   downloads: data.downloads,
+                   itemStats: {
+                     ...prev.itemStats,
+                     [selectedItem.id]: {
+                       ...prev.itemStats?.[selectedItem.id],
+                       downloads: data.itemDownloads
+                     }
+                   }
+                };
+                localStorage.setItem('cachedStats', JSON.stringify(newStats));
+                return newStats;
              });
           }
         })
@@ -659,6 +701,25 @@ ${h.details || '-'}
 
       if (currentUser) {
          addHistoryRecord('link', selectedItem, 'Link Accessed');
+      }
+
+      if (selectedItem.actionType === 'enterKey') {
+        const newKey = "XANDRIA-" + Math.random().toString(36).substring(2, 10).toUpperCase();
+        setGeneratedKey(newKey);
+        
+        try {
+          const storedKeysStr = localStorage.getItem('myGeneratedKeys');
+          const storedKeys = storedKeysStr ? JSON.parse(storedKeysStr) : {};
+          storedKeys[newKey] = { itemId: selectedItem.id, used: false, date: Date.now() };
+          localStorage.setItem('myGeneratedKeys', JSON.stringify(storedKeys));
+        } catch (e) {
+          console.error(e);
+        }
+
+        setShowVerifyModal(false);
+        setShowEnterKeyModal(false);
+        setCurrentView('generate-key');
+        return;
       }
 
       window.open(`/api/download/${downloadKey}`, '_blank');
@@ -1219,7 +1280,7 @@ ${h.details || '-'}
                           )}
                           <div className={`relative flex-1 z-10 bg-card-bg border transition-colors duration-200 rounded-md sm:rounded-lg p-1.5 sm:p-2 flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.02)] ${item.isOutOfStock ? 'grayscale opacity-70 border-transparent' : 'border-border-subtle group-hover/prod:border-transparent group-hover/prod:shadow-[0_8px_30px_rgba(106,154,251,0.12)] bg-clip-padding m-[1px] group-hover/prod:m-[1px]'}`}>
                             
-                            {appStats.downloads >= 100 && (
+                            {((item.salesCount || 0) >= 100) && (
                               <div className="absolute top-1 right-1 z-30 pointer-events-none">
                                 <div className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-red-500 to-orange-500 px-2 py-1 border border-orange-300/40 opacity-90">
                                   <Flame className="w-3 h-3 text-white fill-white" />
@@ -1286,7 +1347,7 @@ ${h.details || '-'}
 
                               <div className="mt-2.5 flex items-center justify-center">
                                 <p className="text-[10px] sm:text-[11px] inline-flex items-center gap-1 text-text-muted">
-                                  <Flame className="w-3 h-3 shrink-0 text-orange-500 fill-orange-500" /> ขายแล้ว {(appStats.downloads).toLocaleString()} ชิ้น
+                                  <Flame className="w-3 h-3 shrink-0 text-orange-500 fill-orange-500" /> {item.actionType === 'enterKey' ? 'ยอดการใช้งาน' : 'ขายแล้ว'} {(appStats.itemStats?.[item.id]?.downloads || 0).toLocaleString()} {item.actionType === 'enterKey' ? 'ครั้ง' : 'ชิ้น'}
                                 </p>
                               </div>
                             </div>
@@ -1357,7 +1418,7 @@ ${h.details || '-'}
                           )}
                           <div className={`relative flex-1 z-10 bg-card-bg border transition-colors duration-200 rounded-md sm:rounded-lg p-1.5 sm:p-2 flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.02)] ${item.isOutOfStock ? 'grayscale opacity-70 border-transparent' : 'border-border-subtle group-hover/prod:border-transparent group-hover/prod:shadow-[0_8px_30px_rgba(106,154,251,0.12)] bg-clip-padding m-[1px] group-hover/prod:m-[1px]'}`}>
                             
-                            {appStats.downloads >= 100 && (
+                            {((item.salesCount || 0) >= 100) && (
                               <div className="absolute top-1 right-1 z-30 pointer-events-none">
                                 <div className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-red-500 to-orange-500 px-2 py-1 border border-orange-300/40 opacity-90">
                                   <Flame className="w-3 h-3 text-white fill-white" />
@@ -1424,7 +1485,7 @@ ${h.details || '-'}
 
                               <div className="mt-2.5 flex items-center justify-center">
                                 <p className="text-[10px] sm:text-[11px] inline-flex items-center gap-1 text-text-muted">
-                                  <Flame className="w-3 h-3 shrink-0 text-orange-500 fill-orange-500" /> ขายแล้ว {(appStats.downloads).toLocaleString()} ชิ้น
+                                  <Flame className="w-3 h-3 shrink-0 text-orange-500 fill-orange-500" /> {item.actionType === 'enterKey' ? 'ยอดการใช้งาน' : 'ขายแล้ว'} {(appStats.itemStats?.[item.id]?.downloads || 0).toLocaleString()} {item.actionType === 'enterKey' ? 'ครั้ง' : 'ชิ้น'}
                                 </p>
                               </div>
                             </div>
@@ -1576,8 +1637,8 @@ ${h.details || '-'}
                               <span className="text-text-main font-medium line-clamp-1 text-right ml-4">{getLocalized(selectedItem.title)}</span>
                             </div>
                             <div className="flex justify-between items-center text-[13px] border-b border-border-subtle pb-2">
-                              <span className="text-text-muted">ยอดขาย :</span>
-                              <span className="text-text-main font-medium">{(appStats.downloads).toLocaleString()} ชิ้น</span>
+                              <span className="text-text-muted">{selectedItem.actionType === 'enterKey' ? 'ยอดการใช้งาน :' : 'ยอดขาย :'}</span>
+                              <span className="text-text-main font-medium">{(appStats.itemStats?.[selectedItem.id]?.downloads || 0).toLocaleString()} {selectedItem.actionType === 'enterKey' ? 'ครั้ง' : 'ชิ้น'}</span>
                             </div>
                             <div className="flex justify-between items-center text-[13px] pt-1">
                               <span className="text-text-muted">สถานะ :</span>
@@ -1627,10 +1688,16 @@ ${h.details || '-'}
                       ) : (
                         <div className="mt-2 text-center">
                           <button 
-                            onClick={() => handleGetLink(undefined, selectedItem)}
+                            onClick={(e) => {
+                                if (selectedItem.actionType === 'enterKey') {
+                                    setShowEnterKeyModal(true);
+                                } else {
+                                    handleGetLink(undefined, selectedItem);
+                                }
+                            }}
                             className="inline-flex shrink-0 items-center justify-center whitespace-nowrap text-sm font-medium outline-none select-none transition-[transform,background-color,color,border-color,box-shadow,opacity] duration-150 py-2.5 px-6 sm:w-auto w-full mx-auto rounded-xl bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)] group cursor-pointer"
                           >
-                            {(!currentUser && (selectedItem.requiresLogin || selectedItem.actionType === 'purchase')) ? (
+                            {(!currentUser && (selectedItem.requiresLogin || selectedItem.actionType === 'purchase' || selectedItem.actionType === 'enterKey')) ? (
                               <>
                                 <Lock className="w-4 h-4 group-hover:-translate-y-1 transition-transform" />
                                 {t('loginToDownload') || 'เข้าสู่ระบบก่อนทำรายการ'}
@@ -1641,6 +1708,11 @@ ${h.details || '-'}
                                     <>
                                         <ShoppingCart className="w-4 h-4 shrink-0 [transform:perspective(700px)_rotateY(0deg)] [transform-style:preserve-3d] transition-transform duration-700 group-hover:[transform:perspective(700px)_rotateY(360deg)]" />
                                         สั่งซื้อสินค้า
+                                    </>
+                                ) : selectedItem.actionType === 'enterKey' ? (
+                                    <>
+                                        <Key className="w-4 h-4 shrink-0 shrink-0 [transform:perspective(700px)_rotateY(0deg)] [transform-style:preserve-3d] transition-transform duration-700 group-hover:[transform:perspective(700px)_rotateY(360deg)]" />
+                                        กรอกคีย์ใช้งาน
                                     </>
                                 ) : (
                                     <>
@@ -1793,6 +1865,67 @@ ${h.details || '-'}
                 </div>
               )}
             </motion.div>
+          )}
+
+          {/* ---------------------------------------------------- */}
+          {/* PAGE: KEY GEN PAGE */}
+          {/* ---------------------------------------------------- */}
+          {currentView === 'generate-key' && (
+      <motion.div
+        key="generate-key-view"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
+        transition={{ duration: 0.2 }}
+        className="max-w-[800px] mx-auto px-4 sm:px-8 py-16 w-full text-center"
+      >
+        <div className="bg-card-bg rounded-[32px] p-8 sm:p-12 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border-subtle relative overflow-hidden">
+          <div className="w-16 h-16 bg-brand/10 text-brand rounded-full items-center justify-center flex mx-auto mb-6">
+             <Key className="w-8 h-8" />
+          </div>
+          <h1 className="text-2xl font-bold text-text-main mb-3">คีย์ของคุณพร้อมใช้งานแล้ว</h1>
+          <p className="text-red-500 font-medium text-[15px] mb-8 bg-red-500/10 px-4 py-2 rounded-xl inline-block">
+            ⚠️ โปรดคัดลอกคีย์ด้านล่างนี้ ถ้ารีเฟรชหน้านี้คีย์จะหายไปและต้องทำรายการใหม่
+          </p>
+          
+          <div className="bg-bg-app border-2 border-border-subtle p-6 rounded-2xl mb-8 group relative max-w-md mx-auto">
+             <div className="font-mono text-2xl sm:text-lg font-bold tracking-wider text-brand break-words">{generatedKey || 'ERROR-NO-KEY-FOUND'}</div>
+             <button 
+                onClick={() => {
+                   navigator.clipboard.writeText(generatedKey || '');
+                   setFeedbackText("คัดลอกคีย์แล้ว");
+                   setShowFeedbackModal(true);
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 bg-white dark:bg-slate-800 text-text-main p-2 rounded-xl shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:text-brand"
+             >
+                <HardDriveDownload className="w-5 h-5" />
+             </button>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button 
+                onClick={() => {
+                    navigator.clipboard.writeText(generatedKey || '');
+                    setFeedbackText("คัดลอกคีย์แล้ว");
+                    setShowFeedbackModal(true);
+                }}
+                className="bg-brand text-white font-bold py-3.5 px-8 rounded-xl hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand/30 transition-all active:scale-95"
+              >
+                คัดลอกคีย์
+              </button>
+
+              <button 
+                onClick={() => {
+                   setCurrentView('details');
+                   setShowEnterKeyModal(true);
+                }}
+                className="bg-bg-app border-2 border-border-subtle text-text-main font-bold py-3.5 px-8 rounded-xl hover:-translate-y-0.5 hover:bg-border-subtle transition-all active:scale-95"
+              >
+                กลับไปกรอกคีย์
+              </button>
+          </div>
+        </div>
+      </motion.div>
           )}
 
           {/* ---------------------------------------------------- */}
@@ -2443,6 +2576,144 @@ ${h.details || '-'}
             t={t}
           />
         )}
+      {/* ============================================================================ */}
+      {/* 📌 หน้าต่าง Pop-up กรอกคีย์ (Enter Key Modal) */}
+      {/* ============================================================================ */}
+      {showEnterKeyModal && selectedItem && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm px-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-card-bg w-full max-w-md rounded-[28px] shadow-2xl overflow-hidden flex flex-col border border-border-subtle relative"
+            >
+                <div className="flex items-center justify-between px-6 py-5 border-b border-border-subtle bg-bg-app">
+                    <h3 className="font-bold text-lg flex items-center gap-2">
+                        <Key className="w-5 h-5 text-brand" /> 
+                        ระบบยืนยันคีย์
+                    </h3>
+                    <button 
+                      onClick={() => setShowEnterKeyModal(false)}
+                      className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-text-muted hover:text-text-main"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                </div>
+                
+                <div className="p-6">
+                    {proxyDetailsRevealed ? (
+                        <div className="text-center">
+                            <div className="w-16 h-16 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Check className="w-8 h-8" />
+                            </div>
+                            <h4 className="text-xl font-bold mb-6 text-text-main">ยืนยันคีย์สำเร็จ</h4>
+                            <div className="bg-bg-app border border-border-subtle p-5 rounded-2xl text-left space-y-4 mb-4">
+                                <div className="space-y-1">
+                                    <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">IP ADDRESS</span>
+                                    <div className="font-mono text-brand font-medium">103.14.22.45</div>
+                                </div>
+                                <div className="space-y-1">
+                                    <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">PORT</span>
+                                    <div className="font-mono text-brand font-medium">3128</div>
+                                </div>
+                                <div className="space-y-1">
+                                    <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">PROXY PIN</span>
+                                    <div className="font-mono text-brand font-medium">998877</div>
+                                </div>
+                            </div>
+                            <p className="text-sm text-text-muted">โปรดเก็บข้อมูลนี้ไว้เป็นความลับ อย่าเปิดเผยให้ผู้อื่นเด็ดขาด</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-6">
+                            <p className="text-text-muted text-sm line-clamp-2">
+                                สินค้า <strong>{getLocalized(selectedItem.title)}</strong> จำเป็นต้องใช้คีย์เพื่อเข้าสู่ขั้นตอนถัดไป หากยังไม่มีคีย์โปรดกดรับคีย์ฟรีด้านล่าง
+                            </p>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold ml-1">กรอกคีย์ที่ได้รับ</label>
+                                <input 
+                                    type="text" 
+                                    placeholder="XANDRIA-..." 
+                                    value={inputKey}
+                                    onChange={(e) => setInputKey(e.target.value)}
+                                    className="w-full bg-bg-app border-2 border-border-subtle focus:border-brand rounded-xl px-4 py-3.5 outline-none transition-all font-mono font-medium text-text-main"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-3">
+                                <button 
+                                    onClick={() => {
+                                        const trimmedKey = inputKey.trim();
+                                        let valid = false;
+                                        try {
+                                          const storedKeysStr = localStorage.getItem('myGeneratedKeys');
+                                          if (storedKeysStr) {
+                                              const storedKeys = JSON.parse(storedKeysStr);
+                                              const keyInfo = storedKeys[trimmedKey];
+                                              if (keyInfo && keyInfo.itemId === selectedItem.id && !keyInfo.used) {
+                                                  valid = true;
+                                                  storedKeys[trimmedKey].used = true;
+                                                  localStorage.setItem('myGeneratedKeys', JSON.stringify(storedKeys));
+                                              }
+                                          }
+                                        } catch(e) {}
+                                        
+                                        if (valid || (generatedKey && trimmedKey === generatedKey)) {
+                                            setProxyDetailsRevealed(true);
+                                            fetch('/api/stats/download', { 
+                                              method: 'POST',
+                                              headers: { 'Content-Type': 'application/json' },
+                                              body: JSON.stringify({ itemId: selectedItem.id })
+                                            })
+                                            .then(res => res.json())
+                                            .then(data => {
+                                               if(data.success) {
+                                                 setAppStats(prev => {
+                                                   const newStats = { 
+                                                     ...prev, 
+                                                     downloads: data.downloads,
+                                                     itemStats: {
+                                                         ...prev.itemStats,
+                                                         [selectedItem.id]: {
+                                                            ...prev.itemStats?.[selectedItem.id],
+                                                            downloads: data.itemDownloads
+                                                         }
+                                                     }
+                                                   };
+                                                   localStorage.setItem('cachedStats', JSON.stringify(newStats));
+                                                   return newStats;
+                                                 });
+                                               }
+                                            }).catch(()=>{});
+
+                                        } else {
+                                            alert('❌ คีย์ไม่ถูกต้อง ถูกใช้งานไปแล้ว หมดอายุ หรือไม่พบในระบบ');
+                                        }
+                                    }}
+                                    className="w-full inline-flex shrink-0 items-center justify-center whitespace-nowrap text-[15px] font-bold outline-none select-none transition-[transform,background-color,color,border-color,box-shadow,opacity] duration-150 py-3.5 px-6 rounded-xl bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)] cursor-pointer"
+                                >
+                                    ยืนยันคีย์
+                                </button>
+                                <div className="relative flex items-center py-2">
+                                    <div className="flex-grow border-t border-border-subtle"></div>
+                                    <span className="flex-shrink-0 mx-4 text-text-muted text-xs font-medium">หรือ</span>
+                                    <div className="flex-grow border-t border-border-subtle"></div>
+                                </div>
+                                <button 
+                                    onClick={() => {
+                                        setShowEnterKeyModal(false);
+                                        handleGetLink(undefined, selectedItem);
+                                    }}
+                                    className="w-full py-3.5 rounded-xl text-[14px] font-bold text-center bg-bg-app border-2 border-border-subtle hover:bg-border-subtle text-text-main transition-all active:scale-95"
+                                >
+                                    ยังไม่มีคีย์? รับคีย์ใหม่
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </motion.div>
+          </div>
+      )}
+
       </AnimatePresence>
     </div>
   );
