@@ -2453,15 +2453,20 @@ ${h.details || '-'}
                      </div>
                   ) : (
                      <div className="mx-auto rounded-[8px] overflow-hidden shadow-sm inline-block relative">
-                        <Turnstile
-                          siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAADFFAhm_1PRQij4M"}
-                          onSuccess={handleVerifyRecaptcha}
-                          options={{
-                            theme: theme as any
-                          }}
-                        />
-                        {(step1Status !== 'completed' || step2Status !== 'completed') && (
-                          <div className="absolute inset-0 z-10" onClick={() => alert(t('alertSteps'))}></div>
+                        {(step1Status === 'completed' && step2Status === 'completed') ? (
+                          <Turnstile
+                            siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAADFFAhm_1PRQij4M"}
+                            onSuccess={handleVerifyRecaptcha}
+                            options={{
+                              theme: theme as any
+                            }}
+                          />
+                        ) : (
+                          <div className="w-[300px] h-[65px] bg-bg-app border border-border-subtle rounded-[4px] relative cursor-pointer flex items-center px-4 shadow-[0_0_0_1px_rgba(0,0,0,0.05)]" onClick={() => alert(t('alertSteps'))}>
+                             <div className="w-7 h-7 border-2 border-border-subtle rounded-[2px] bg-card-bg mr-3 flex-shrink-0"></div>
+                             <span className="text-sm font-medium text-text-main flex-1">Verify you are human</span>
+                             <div className="absolute inset-0 z-10"></div>
+                          </div>
                         )}
                      </div>
                   )}
