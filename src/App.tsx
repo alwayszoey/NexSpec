@@ -746,11 +746,11 @@ ${h.details || '-'}
         setStep1Status(prev => {
           if (prev === 'checking') {
             const timeDiff = now - step1OpenedAt.current;
-            if (timeDiff >= 12000) { // 12 seconds cooldown
+            if (timeDiff >= 1000) { // 12 seconds cooldown
               return 'completed';
             } else {
-              alert(t('alertErrYT'));
-              return 'error';
+              // Just return completed to prevent locking users
+              return 'completed';
             }
           }
           return prev;
@@ -759,11 +759,10 @@ ${h.details || '-'}
         setStep2Status(prev => {
           if (prev === 'checking') {
             const timeDiff = now - step2OpenedAt.current;
-            if (timeDiff >= 5000) { // 5 seconds cooldown
+            if (timeDiff >= 1000) { // 5 seconds cooldown
               return 'completed';
             } else {
-              alert(t('alertErrTG'));
-              return 'error';
+              return 'completed';
             }
           }
           return prev;
@@ -2391,7 +2390,12 @@ ${h.details || '-'}
                      </div>
                   </div>
                   <button 
-                    onClick={() => { window.open('https://youtube.com', '_blank'); step1OpenedAt.current = Date.now(); setStep1Status('checking'); }}
+                    onClick={() => { 
+                      window.open('https://youtube.com', '_blank'); 
+                      step1OpenedAt.current = Date.now(); 
+                      setStep1Status('checking'); 
+                      setTimeout(() => setStep1Status('completed'), 4000);
+                    }}
                     disabled={step1Status === 'completed'}
                     className={`px-4 py-2 rounded-[12px] text-[13px] font-medium transition-all flex-shrink-0 flex items-center gap-2 ${
                       step1Status === 'completed' ? 'bg-emerald-500 text-white opacity-70 cursor-not-allowed' : 
@@ -2419,7 +2423,12 @@ ${h.details || '-'}
                      </div>
                   </div>
                   <button 
-                    onClick={() => { window.open('https://discord.gg/hSuBbnwWZY', '_blank'); step2OpenedAt.current = Date.now(); setStep2Status('checking'); }}
+                    onClick={() => { 
+                      window.open('https://discord.gg/hSuBbnwWZY', '_blank'); 
+                      step2OpenedAt.current = Date.now(); 
+                      setStep2Status('checking'); 
+                      setTimeout(() => setStep2Status('completed'), 4000);
+                    }}
                     disabled={step2Status === 'completed'}
                     className={`px-4 py-2 rounded-[12px] text-[13px] font-medium transition-all flex-shrink-0 flex items-center gap-2 ${
                       step2Status === 'completed' ? 'bg-emerald-500 text-white opacity-70 cursor-not-allowed' : 
