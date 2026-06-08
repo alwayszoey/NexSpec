@@ -7,7 +7,7 @@ import {
   Archive, Settings, FileText, Check, Zap, Menu, ArrowLeft, 
   Home, HelpCircle, Share2, Facebook, Instagram, MessageCircle,
   Play, ChevronRight, Loader2, Youtube, Send, MessageSquare, Sun, Moon, Lock, UserPlus, LogOut, Users, Eye, Star, Flame, ShoppingCart, Sparkles, ShoppingBag, History, HardDriveDownload, ExternalLink, Link2,
-  CircleX, Key
+  CircleX
 } from 'lucide-react';
 import { resourcesData, ResourceItem, categoriesData } from './data';
 import { motion, AnimatePresence } from 'motion/react';
@@ -19,11 +19,11 @@ import { ProfileModal } from './ProfileModal';
 
 const EMOTICONS = ['🇹🇭', '🇻🇳', '🎮', '🚀', '✨', '🎁', '🔥', '💖', '👋'];
 
-type ViewState = 'home' | 'details' | 'help' | 'category' | 'history' | 'generate-key';
+type ViewState = 'home' | 'details' | 'help' | 'category' | 'history';
 type AppLang = 'vi' | 'th';
 
 const StatsCard = ({ icon: Icon, title, value, unit }: { icon: any, title: string, value: string | number, unit: string }) => (
-  <div className="relative overflow-hidden rounded-[16px] sm:rounded-[20px] flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 sm:py-4 bg-card-bg border border-border-subtle shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_4px_15px_rgba(0,0,0,0.05)] transition-shadow">
+  <div className="relative overflow-hidden rounded-[16px] sm:rounded-[20px] flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 sm:py-4 bg-card-bg/60 backdrop-blur-md border border-border-subtle shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_4px_15px_rgba(0,0,0,0.05)] transition-shadow">
     <div className="absolute -right-2 -bottom-2 pointer-events-none opacity-[0.03] text-brand">
       <Icon className="w-16 h-16 sm:w-20 sm:h-20" />
     </div>
@@ -143,22 +143,14 @@ export default function App() {
   const [showProfileModal, setShowProfileModal] = useState(false);
 
   // ====== STATS STATES ======
-  const [appStats, setAppStats] = useState<{
-    users: number;
-    views: number;
-    downloads: number;
-    itemStats: Record<string, { views: number; downloads: number }>;
-  }>(() => {
+  const [appStats, setAppStats] = useState(() => {
     try {
       const cached = localStorage.getItem('cachedStats');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        return { users: parsed.users || 0, views: parsed.views || 0, downloads: parsed.downloads || 0, itemStats: parsed.itemStats || {} };
-      }
+      if (cached) return JSON.parse(cached);
     } catch (e) {
       console.error(e);
     }
-    return { users: 0, views: 0, downloads: 0, itemStats: {} };
+    return { users: 0, views: 0, downloads: 0 };
   });
 
 // ── OAuth: รับ token จาก popup (postMessage) ──────────────────────────────
@@ -222,7 +214,7 @@ useEffect(() => {
         .then(res => res.json())
         .then(data => {
           if (data.success) {
-            const newStats = { users: data.users || 0, views: data.views || 0, downloads: data.downloads || 0, itemStats: data.itemStats || {} };
+            const newStats = { users: data.users, views: data.views, downloads: data.downloads };
             setAppStats(newStats);
             localStorage.setItem('cachedStats', JSON.stringify(newStats));
           }
@@ -290,12 +282,6 @@ useEffect(() => {
   const [_currentView, _setCurrentView] = useState<ViewState | 'about' | 'contact'>('home');
   const [selectedItem, setSelectedItem] = useState<ResourceItem | null>(null);
 
-  // Key system states
-  const [showEnterKeyModal, setShowEnterKeyModal] = useState(false);
-  const [inputKey, setInputKey] = useState('');
-  const [generatedKey, setGeneratedKey] = useState<string | null>(null);
-  const [proxyDetailsRevealed, setProxyDetailsRevealed] = useState(false);
-
   // Sync route with view
   useEffect(() => {
     const path = location.pathname;
@@ -315,7 +301,6 @@ useEffect(() => {
     else if (path === '/help') _setCurrentView('help');
     else if (path === '/about') _setCurrentView('about');
     else if (path === '/contact') _setCurrentView('contact');
-    else if (path === '/generate-key') _setCurrentView('generate-key');
   }, [location.pathname]);
 
   const currentView = _currentView;
@@ -327,7 +312,6 @@ useEffect(() => {
     else if (view === 'help') navigate('/help');
     else if (view === 'about') navigate('/about');
     else if (view === 'contact') navigate('/contact');
-    else if (view === 'generate-key') navigate('/generate-key');
   };
 
   const [activeLinkId, setActiveLinkId] = useState<number | null>(null);
@@ -453,26 +437,12 @@ useEffect(() => {
            await addHistoryRecord('purchase', selectedItem, finalDetails);
            
            // Increment download/sales stat
-           fetch('/api/stats/download', { 
-             method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ itemId: selectedItem.id })
-           })
+           fetch('/api/stats/download', { method: 'POST' })
              .then(res => res.json())
              .then(statData => {
                if (statData.success) {
                   setAppStats(prev => {
-                    const newStats = { 
-                       ...prev, 
-                       downloads: statData.downloads,
-                       itemStats: {
-                         ...prev.itemStats,
-                         [selectedItem.id]: {
-                           ...prev.itemStats?.[selectedItem.id],
-                           downloads: statData.itemDownloads
-                         }
-                       }
-                    };
+                    const newStats = { ...prev, downloads: statData.downloads };
                     localStorage.setItem('cachedStats', JSON.stringify(newStats));
                     return newStats;
                   });
@@ -674,28 +644,14 @@ ${h.details || '-'}
       }
       
       // Increment download stat
-      fetch('/api/stats/download', { 
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId: selectedItem.id })
-      })
+      fetch('/api/stats/download', { method: 'POST' })
         .then(res => res.json())
         .then(data => {
           if (data.success) {
              setAppStats(prev => {
-                const newStats = { 
-                   ...prev, 
-                   downloads: data.downloads,
-                   itemStats: {
-                     ...prev.itemStats,
-                     [selectedItem.id]: {
-                       ...prev.itemStats?.[selectedItem.id],
-                       downloads: data.itemDownloads
-                     }
-                   }
-                };
-                localStorage.setItem('cachedStats', JSON.stringify(newStats));
-                return newStats;
+               const newStats = { ...prev, downloads: data.downloads };
+               localStorage.setItem('cachedStats', JSON.stringify(newStats));
+               return newStats;
              });
           }
         })
@@ -703,25 +659,6 @@ ${h.details || '-'}
 
       if (currentUser) {
          addHistoryRecord('link', selectedItem, 'Link Accessed');
-      }
-
-      if (selectedItem.actionType === 'enterKey') {
-        const newKey = "XANDRIA-" + Math.random().toString(36).substring(2, 10).toUpperCase();
-        setGeneratedKey(newKey);
-        
-        try {
-          const storedKeysStr = localStorage.getItem('myGeneratedKeys');
-          const storedKeys = storedKeysStr ? JSON.parse(storedKeysStr) : {};
-          storedKeys[newKey] = { itemId: selectedItem.id, used: false, date: Date.now() };
-          localStorage.setItem('myGeneratedKeys', JSON.stringify(storedKeys));
-        } catch (e) {
-          console.error(e);
-        }
-
-        setShowVerifyModal(false);
-        setShowEnterKeyModal(false);
-        setCurrentView('generate-key');
-        return;
       }
 
       window.open(`/api/download/${downloadKey}`, '_blank');
@@ -748,11 +685,11 @@ ${h.details || '-'}
         setStep1Status(prev => {
           if (prev === 'checking') {
             const timeDiff = now - step1OpenedAt.current;
-            if (timeDiff >= 1000) { // 12 seconds cooldown
+            if (timeDiff >= 12000) { // 12 seconds cooldown
               return 'completed';
             } else {
-              // Just return completed to prevent locking users
-              return 'completed';
+              alert(t('alertErrYT'));
+              return 'error';
             }
           }
           return prev;
@@ -761,10 +698,11 @@ ${h.details || '-'}
         setStep2Status(prev => {
           if (prev === 'checking') {
             const timeDiff = now - step2OpenedAt.current;
-            if (timeDiff >= 1000) { // 5 seconds cooldown
+            if (timeDiff >= 5000) { // 5 seconds cooldown
               return 'completed';
             } else {
-              return 'completed';
+              alert(t('alertErrTG'));
+              return 'error';
             }
           }
           return prev;
@@ -892,8 +830,25 @@ ${h.details || '-'}
   // 📌 RENDER - โครงสร้าง HTML ทั้งหมดของเว็บ
   // ============================================================================
   return (
-    <div className="flex flex-col h-[100dvh] overflow-hidden bg-bg-app text-text-main font-sans selection:bg-brand selection:text-white">
+    <div className="relative flex flex-col h-[100dvh] overflow-hidden bg-bg-app text-text-main font-sans selection:bg-brand selection:text-white">
       
+      {/* Background with Full Image and Gradient Overlay */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+        {/* Full Image */}
+        <div 
+          className="absolute inset-0 opacity-30 dark:opacity-40 mix-blend-luminosity"
+          style={{
+            backgroundImage: `url('https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3cTJ3d2k5aTJxdW5kOWJnYWo1OWpiN2N0YmowcDRxMWtpMzlvY25taiZlcD12MV9naWZzX3NlYXJjaCZjdD1n/8gSh4No47eIGA/giphy.gif')`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+          }}
+        />
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-bg-app/60 via-bg-app/80 to-brand/20 dark:from-bg-app/70 dark:via-bg-app/85 dark:to-brand/30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-bg-app via-transparent to-transparent opacity-70" />
+      </div>
+
       <PromoPopup />
 
       {/* ========================================================================= */}
@@ -1074,7 +1029,7 @@ ${h.details || '-'}
       {/* ========================================================================= */}
       {/* MAIN CONTENT AREA */}
       {/* ========================================================================= */}
-      <main className="flex-1 overflow-y-auto w-full relative">
+      <main className="flex-1 overflow-y-auto w-full relative z-10">
         <AnimatePresence mode="wait">
           
           {/* ---------------------------------------------------- */}
@@ -1098,9 +1053,40 @@ ${h.details || '-'}
               transition={{ duration: 0.2 }}
               className="max-w-[1600px] mx-auto px-4 sm:px-8 py-8 w-full"
             >
-              <div className="mb-6 sm:mb-8">
-                <h1 className="text-[20px] sm:text-[24px] lg:text-[28px] font-semibold text-slate-900 m-0 leading-tight tracking-tight">{t('welcomeTitle')}</h1>
-                <p className="text-slate-500 text-[13px] sm:text-[14px] mt-1.5 font-normal mb-5 leading-relaxed max-w-2xl">{t('welcomeDesc')}</p>
+              <div className="mb-6 sm:mb-12">
+                
+                {/* 🌟 PREMIUM WELCOME BANNER 🌟 */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-50px" }}
+                  transition={{ duration: 0.7, ease: "easeOut" }}
+                  className="relative pb-8 sm:pb-12 pt-4 mb-4 sm:mb-8 flex flex-col items-start text-left"
+                >
+                  <div className="flex flex-col gap-2 sm:gap-3 relative z-10 max-w-4xl">
+                    <h1 className="text-[36px] sm:text-[46px] lg:text-[64px] font-black tracking-tight text-brand leading-[1.1] m-0 drop-shadow-sm">
+                      ยินดีต้อนรับสู่ Zorix Shop
+                    </h1>
+                    <h2 className="text-[18px] sm:text-[24px] lg:text-[30px] font-bold text-text-main leading-[1.3] m-0">
+                      ศูนย์รวมซอร์สโค้ดเว็บไซต์, สคริปต์เกม, และคอนฟิกระบบคุณภาพเยี่ยม
+                    </h2>
+                    <p className="text-[15px] sm:text-[18px] lg:text-[20px] font-medium text-text-muted leading-[1.6] m-0 mt-1 sm:mt-2">
+                      พร้อมทีมงานซัพพอร์ตตลอดการใช้งาน เลือกชมสินค้าหน้าเว็บได้เลย!
+                    </p>
+                  </div>
+
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.5, duration: 0.4 }}
+                    className="mt-10 flex gap-4"
+                  >
+                     <button onClick={() => { setActiveCategory('ALL'); setCurrentView('category'); window.scrollTo({ top: 500, behavior: 'smooth' }); }} className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white font-bold py-3.5 px-10 rounded-full shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95 transition-all text-lg">
+                       <ShoppingBag className="w-5 h-5" /> ช้อปเลย
+                     </button>
+                  </motion.div>
+                </motion.div>
                 
                 {/* Promotional Banner */}
                 <motion.div 
@@ -1154,24 +1140,35 @@ ${h.details || '-'}
                   />
                 </motion.div>
 
-                <section className="relative -mt-px flex flex-col items-center overflow-hidden bg-card-bg px-3 pt-4 pb-8 w-[100vw] ml-[calc(-50vw+50%)] border-t border-border-subtle transition-colors duration-300">
+                <section className="relative -mt-px flex flex-col items-center overflow-hidden bg-card-bg/30 backdrop-blur-[8px] px-3 pt-4 pb-8 w-[100vw] ml-[calc(-50vw+50%)] border-t border-border-subtle transition-colors duration-300">
                   <div className="w-full max-w-[1600px] relative mx-auto">
-                    <div className="mt-2 flex items-center justify-between space-x-2">
+                    <motion.div 
+                      initial={{ opacity: 0, x: -20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.5 }}
+                      className="mt-2 flex items-center justify-between space-x-2"
+                    >
                       <div>
                         <h3 className="font-semibold text-xl sm:text-2xl text-text-main">หมวดหมู่ที่คุณอาจสนใจ</h3>
                         <p className="text-sm text-text-muted mt-1 inline-flex items-center gap-1.5">
                           <Star className="w-4 h-4 text-brand fill-brand" /> แนะนำหมวดหมู่ยอดฮิต
                         </p>
                       </div>
-                      <div>
+                      <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                      >
                         <button 
                           onClick={() => { setActiveCategory('ALL'); setCurrentView('category'); }}
                           className="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap text-sm font-medium outline-none select-none transition-all duration-150 ease-out hover:-translate-y-px active:scale-[0.98] bg-brand/15 text-brand border border-brand/40 hover:opacity-90 h-9 px-4 py-2 rounded-xl cursor-pointer"
                         >
                           <LayoutGrid className="w-4 h-4" /> ดูทั้งหมด
                         </button>
-                      </div>
-                    </div>
+                      </motion.div>
+                    </motion.div>
 
                     <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-5 mb-2">
                       {categories.filter(tab => tab !== 'ALL').map((tab) => {
@@ -1186,17 +1183,21 @@ ${h.details || '-'}
                         }
 
                         return (
-                          <div 
+                          <motion.div 
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true, margin: "-20px" }}
+                            transition={{ duration: 0.5, ease: "easeOut" }}
                             key={tab} 
                             tabIndex={0} 
                             onClick={() => { setActiveCategory(tab); setCurrentView('category'); }}
-                            className="cursor-pointer focus:outline-none relative group/cat block transition-transform active:scale-[0.98] rounded-xl overflow-hidden p-[2px]"
+                            className="cursor-pointer focus:outline-none relative group/cat block transition-transform active:scale-[0.98] rounded-[20px] overflow-hidden p-[2px]"
                           >
                             <div className={`absolute inset-0 z-0 transition-colors ${isActive ? 'bg-brand' : 'bg-border-subtle group-hover/cat:bg-bg-app'}`} />
                             <div className="absolute inset-[-100%] z-0 animate-[spin_3s_linear_infinite] opacity-0 group-hover/cat:opacity-100 group-active/cat:opacity-100 bg-[conic-gradient(from_0deg,transparent_0_240deg,#3b82f6_280deg_360deg)] transition-opacity duration-300 pointer-events-none" />
-                            <div className="relative z-10 w-full h-full rounded-[calc(12px-2px)] p-2 bg-card-bg">
-                              <div className={`absolute inset-0 -z-10 rounded-[calc(12px-2px)] pointer-events-none transition-colors ${isActive ? 'bg-brand/10 shadow-[0_0_15px_rgba(36,168,235,0.12)]' : ''}`} />
-                              <div className="relative overflow-hidden rounded-md bg-zinc-950 aspect-[1640/500]">
+                            <div className="relative z-10 w-full h-full rounded-[calc(20px-2px)] p-2 bg-card-bg/60 backdrop-blur-[4px]">
+                              <div className={`absolute inset-0 -z-10 rounded-[calc(20px-2px)] pointer-events-none transition-colors ${isActive ? 'bg-brand/10 shadow-[0_0_15px_rgba(36,168,235,0.12)]' : ''}`} />
+                              <div className="relative overflow-hidden rounded-[14px] bg-zinc-950 aspect-[1640/500]">
                                   <img 
                                     className="w-full h-full object-cover rounded-md transition-[opacity,transform] duration-500 ease-out opacity-0 !opacity-100 group-hover:scale-[1.02]" 
                                     alt={tab} 
@@ -1233,7 +1234,7 @@ ${h.details || '-'}
                                   </div>
                                 </div>
                               </div>
-                            </div>
+                            </motion.div>
                         );
                       })}
                     </div>
@@ -1244,32 +1245,44 @@ ${h.details || '-'}
                 {/* RECOMMENDED PRODUCTS SECTION */}
                 {/* ---------------------------------------------------- */}
                 <div className="w-full relative mt-8 pt-6 border-t border-border-subtle">
-                  <div className="flex items-center space-x-2 justify-between">
+                  <motion.div 
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5 }}
+                    className="flex items-center space-x-2 justify-between"
+                  >
                     <div>
                       <h3 className="font-semibold text-xl sm:text-2xl text-text-main line-clamp-1">สินค้าที่คุณอาจสนใจ</h3>
                       <p className="text-xs sm:text-sm text-text-muted mt-1 inline-flex items-center gap-1.5">
                         <Sparkles className="w-4 h-4 text-brand" /> แนะนำสินค้ายอดฮิต
                       </p>
                     </div>
-                    <div>
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.5, delay: 0.2 }}
+                    >
                       <button 
                         onClick={() => { setActiveCategory('ALL'); setCurrentView('category'); }}
                         className="inline-flex shrink-0 items-center justify-center whitespace-nowrap font-medium transition-colors duration-150 py-1.5 px-3 text-xs sm:text-sm rounded-xl bg-card-bg text-text-main border border-border-subtle hover:bg-bg-app shadow-sm gap-1.5"
                       >
                         <ShoppingCart className="w-4 h-4" /> ดูทั้งหมด
                       </button>
-                    </div>
-                  </div>
+                    </motion.div>
+                  </motion.div>
 
                   <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5 pb-12">
                     {resourcesData.slice(0, 5).map((item, index) => {
                        return (
                         <motion.div 
                           layout
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
+                          initial={{ opacity: 0, y: 30 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          viewport={{ once: true, margin: "0px 0px -50px 0px" }}
                           exit={{ opacity: 0, scale: 0.95 }}
-                          transition={{ duration: 0.2, delay: index * 0.03 }}
+                          transition={{ duration: 0.5, ease: "easeOut", delay: (index % 5) * 0.05 }}
                           key={"rec-" + item.id}
                           onClick={() => { if (!item.isOutOfStock) handleOpenDetails(item) }}
                           className={`relative rounded-md sm:rounded-lg group/prod flex flex-col shadow-sm ${item.isOutOfStock ? 'cursor-not-allowed' : 'cursor-pointer'}`}
@@ -1279,9 +1292,9 @@ ${h.details || '-'}
                                <div className="absolute inset-[-100%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_0_240deg,#3b82f6_280deg_360deg)]" />
                             </div>
                           )}
-                          <div className={`relative flex-1 z-10 bg-card-bg border transition-colors duration-200 rounded-md sm:rounded-lg p-1.5 sm:p-2 flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.02)] ${item.isOutOfStock ? 'grayscale opacity-70 border-transparent' : 'border-border-subtle group-hover/prod:border-transparent group-hover/prod:shadow-[0_8px_30px_rgba(106,154,251,0.12)] bg-clip-padding m-[1px] group-hover/prod:m-[1px]'}`}>
+                          <div className={`relative flex-1 z-10 bg-card-bg/60 backdrop-blur-md border transition-colors duration-200 rounded-md sm:rounded-lg p-1.5 sm:p-2 flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.02)] ${item.isOutOfStock ? 'grayscale opacity-70 border-transparent' : 'border-border-subtle group-hover/prod:border-transparent group-hover/prod:shadow-[0_8px_30px_rgba(106,154,251,0.12)] bg-clip-padding m-[1px] group-hover/prod:m-[1px]'}`}>
                             
-                            {((item.salesCount || 0) >= 100) && (
+                            {appStats.downloads >= 100 && (
                               <div className="absolute top-1 right-1 z-30 pointer-events-none">
                                 <div className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-red-500 to-orange-500 px-2 py-1 border border-orange-300/40 opacity-90">
                                   <Flame className="w-3 h-3 text-white fill-white" />
@@ -1348,7 +1361,7 @@ ${h.details || '-'}
 
                               <div className="mt-2.5 flex items-center justify-center">
                                 <p className="text-[10px] sm:text-[11px] inline-flex items-center gap-1 text-text-muted">
-                                  <Flame className="w-3 h-3 shrink-0 text-orange-500 fill-orange-500" /> {item.actionType === 'enterKey' ? 'ยอดการใช้งาน' : 'ขายแล้ว'} {(appStats.itemStats?.[item.id]?.downloads || 0).toLocaleString()} {item.actionType === 'enterKey' ? 'ครั้ง' : 'ชิ้น'}
+                                  <Flame className="w-3 h-3 shrink-0 text-orange-500 fill-orange-500" /> ขายแล้ว {(appStats.downloads).toLocaleString()} ชิ้น
                                 </p>
                               </div>
                             </div>
@@ -1386,7 +1399,12 @@ ${h.details || '-'}
               </button>
 
               <div className="w-full relative mx-auto border-t border-border-subtle pt-6 transition-colors duration-300">
-                <div className="flex items-center space-x-2 justify-between">
+                <motion.div 
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="flex items-center space-x-2 justify-between"
+                >
                   <div>
                     <h3 className="font-semibold text-xl sm:text-2xl text-text-main line-clamp-1">
                       {activeCategory === 'ALL' ? 'สินค้าทั้งหมด' : `หมวดหมู่ : ${activeCategory}`}
@@ -1395,7 +1413,7 @@ ${h.details || '-'}
                       <Star className="w-4 h-4 text-brand fill-brand" /> {filteredResources.length} สินค้าในหมวดหมู่
                     </p>
                   </div>
-                </div>
+                </motion.div>
 
                 <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5 pb-12">
                   <AnimatePresence mode="popLayout">
@@ -1404,10 +1422,11 @@ ${h.details || '-'}
                        return (
                         <motion.div 
                           layout
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
+                          initial={{ opacity: 0, y: 40 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          viewport={{ once: true, margin: "0px 0px -50px 0px" }}
                           exit={{ opacity: 0, scale: 0.95 }}
-                          transition={{ duration: 0.2, delay: index * 0.03 }}
+                          transition={{ duration: 0.5, ease: "easeOut", delay: (index % 5) * 0.05 }}
                           key={item.id}
                           onClick={() => { if (!item.isOutOfStock) handleOpenDetails(item) }}
                           className={`relative rounded-md sm:rounded-lg group/prod flex flex-col shadow-sm ${item.isOutOfStock ? 'cursor-not-allowed' : 'cursor-pointer'}`}
@@ -1417,9 +1436,9 @@ ${h.details || '-'}
                                <div className="absolute inset-[-100%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_0_240deg,#3b82f6_280deg_360deg)]" />
                             </div>
                           )}
-                          <div className={`relative flex-1 z-10 bg-card-bg border transition-colors duration-200 rounded-md sm:rounded-lg p-1.5 sm:p-2 flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.02)] ${item.isOutOfStock ? 'grayscale opacity-70 border-transparent' : 'border-border-subtle group-hover/prod:border-transparent group-hover/prod:shadow-[0_8px_30px_rgba(106,154,251,0.12)] bg-clip-padding m-[1px] group-hover/prod:m-[1px]'}`}>
+                          <div className={`relative flex-1 z-10 bg-card-bg/60 backdrop-blur-md border transition-colors duration-200 rounded-md sm:rounded-lg p-1.5 sm:p-2 flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.02)] ${item.isOutOfStock ? 'grayscale opacity-70 border-transparent' : 'border-border-subtle group-hover/prod:border-transparent group-hover/prod:shadow-[0_8px_30px_rgba(106,154,251,0.12)] bg-clip-padding m-[1px] group-hover/prod:m-[1px]'}`}>
                             
-                            {((item.salesCount || 0) >= 100) && (
+                            {appStats.downloads >= 100 && (
                               <div className="absolute top-1 right-1 z-30 pointer-events-none">
                                 <div className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-red-500 to-orange-500 px-2 py-1 border border-orange-300/40 opacity-90">
                                   <Flame className="w-3 h-3 text-white fill-white" />
@@ -1486,7 +1505,7 @@ ${h.details || '-'}
 
                               <div className="mt-2.5 flex items-center justify-center">
                                 <p className="text-[10px] sm:text-[11px] inline-flex items-center gap-1 text-text-muted">
-                                  <Flame className="w-3 h-3 shrink-0 text-orange-500 fill-orange-500" /> {item.actionType === 'enterKey' ? 'ยอดการใช้งาน' : 'ขายแล้ว'} {(appStats.itemStats?.[item.id]?.downloads || 0).toLocaleString()} {item.actionType === 'enterKey' ? 'ครั้ง' : 'ชิ้น'}
+                                  <Flame className="w-3 h-3 shrink-0 text-orange-500 fill-orange-500" /> ขายแล้ว {(appStats.downloads).toLocaleString()} ชิ้น
                                 </p>
                               </div>
                             </div>
@@ -1585,7 +1604,7 @@ ${h.details || '-'}
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                         {/* Product Price */}
                         <div className="flex items-center gap-2">
-                          <span className="text-xl sm:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600">
+                          <span className="text-xl sm:text-2xl font-bold text-brand">
                             {selectedItem.price ? selectedItem.price : "ฟรี"}
                           </span>
                           {!selectedItem.price && (
@@ -1638,8 +1657,8 @@ ${h.details || '-'}
                               <span className="text-text-main font-medium line-clamp-1 text-right ml-4">{getLocalized(selectedItem.title)}</span>
                             </div>
                             <div className="flex justify-between items-center text-[13px] border-b border-border-subtle pb-2">
-                              <span className="text-text-muted">{selectedItem.actionType === 'enterKey' ? 'ยอดการใช้งาน :' : 'ยอดขาย :'}</span>
-                              <span className="text-text-main font-medium">{(appStats.itemStats?.[selectedItem.id]?.downloads || 0).toLocaleString()} {selectedItem.actionType === 'enterKey' ? 'ครั้ง' : 'ชิ้น'}</span>
+                              <span className="text-text-muted">ยอดขาย :</span>
+                              <span className="text-text-main font-medium">{(appStats.downloads).toLocaleString()} ชิ้น</span>
                             </div>
                             <div className="flex justify-between items-center text-[13px] pt-1">
                               <span className="text-text-muted">สถานะ :</span>
@@ -1689,16 +1708,10 @@ ${h.details || '-'}
                       ) : (
                         <div className="mt-2 text-center">
                           <button 
-                            onClick={(e) => {
-                                if (selectedItem.actionType === 'enterKey') {
-                                    setShowEnterKeyModal(true);
-                                } else {
-                                    handleGetLink(undefined, selectedItem);
-                                }
-                            }}
+                            onClick={() => handleGetLink(undefined, selectedItem)}
                             className="inline-flex shrink-0 items-center justify-center whitespace-nowrap text-sm font-medium outline-none select-none transition-[transform,background-color,color,border-color,box-shadow,opacity] duration-150 py-2.5 px-6 sm:w-auto w-full mx-auto rounded-xl bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)] group cursor-pointer"
                           >
-                            {(!currentUser && (selectedItem.requiresLogin || selectedItem.actionType === 'purchase' || selectedItem.actionType === 'enterKey')) ? (
+                            {(!currentUser && (selectedItem.requiresLogin || selectedItem.actionType === 'purchase')) ? (
                               <>
                                 <Lock className="w-4 h-4 group-hover:-translate-y-1 transition-transform" />
                                 {t('loginToDownload') || 'เข้าสู่ระบบก่อนทำรายการ'}
@@ -1709,11 +1722,6 @@ ${h.details || '-'}
                                     <>
                                         <ShoppingCart className="w-4 h-4 shrink-0 [transform:perspective(700px)_rotateY(0deg)] [transform-style:preserve-3d] transition-transform duration-700 group-hover:[transform:perspective(700px)_rotateY(360deg)]" />
                                         สั่งซื้อสินค้า
-                                    </>
-                                ) : selectedItem.actionType === 'enterKey' ? (
-                                    <>
-                                        <Key className="w-4 h-4 shrink-0 shrink-0 [transform:perspective(700px)_rotateY(0deg)] [transform-style:preserve-3d] transition-transform duration-700 group-hover:[transform:perspective(700px)_rotateY(360deg)]" />
-                                        กรอกคีย์ใช้งาน
                                     </>
                                 ) : (
                                     <>
@@ -1869,67 +1877,6 @@ ${h.details || '-'}
           )}
 
           {/* ---------------------------------------------------- */}
-          {/* PAGE: KEY GEN PAGE */}
-          {/* ---------------------------------------------------- */}
-          {currentView === 'generate-key' && (
-      <motion.div
-        key="generate-key-view"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -10 }}
-        transition={{ duration: 0.2 }}
-        className="max-w-[800px] mx-auto px-4 sm:px-8 py-16 w-full text-center"
-      >
-        <div className="bg-card-bg rounded-[32px] p-8 sm:p-12 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border-subtle relative overflow-hidden">
-          <div className="w-16 h-16 bg-brand/10 text-brand rounded-full items-center justify-center flex mx-auto mb-6">
-             <Key className="w-8 h-8" />
-          </div>
-          <h1 className="text-2xl font-bold text-text-main mb-3">คีย์ของคุณพร้อมใช้งานแล้ว</h1>
-          <p className="text-red-500 font-medium text-[15px] mb-8 bg-red-500/10 px-4 py-2 rounded-xl inline-block">
-            ⚠️ โปรดคัดลอกคีย์ด้านล่างนี้ ถ้ารีเฟรชหน้านี้คีย์จะหายไปและต้องทำรายการใหม่
-          </p>
-          
-          <div className="bg-bg-app border-2 border-border-subtle p-6 rounded-2xl mb-8 group relative max-w-md mx-auto">
-             <div className="font-mono text-2xl sm:text-lg font-bold tracking-wider text-brand break-words">{generatedKey || 'ERROR-NO-KEY-FOUND'}</div>
-             <button 
-                onClick={() => {
-                   navigator.clipboard.writeText(generatedKey || '');
-                   setFeedbackText("คัดลอกคีย์แล้ว");
-                   setShowFeedbackModal(true);
-                }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 bg-white dark:bg-slate-800 text-text-main p-2 rounded-xl shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:text-brand"
-             >
-                <HardDriveDownload className="w-5 h-5" />
-             </button>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button 
-                onClick={() => {
-                    navigator.clipboard.writeText(generatedKey || '');
-                    setFeedbackText("คัดลอกคีย์แล้ว");
-                    setShowFeedbackModal(true);
-                }}
-                className="bg-brand text-white font-bold py-3.5 px-8 rounded-xl hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand/30 transition-all active:scale-95"
-              >
-                คัดลอกคีย์
-              </button>
-
-              <button 
-                onClick={() => {
-                   setCurrentView('details');
-                   setShowEnterKeyModal(true);
-                }}
-                className="bg-bg-app border-2 border-border-subtle text-text-main font-bold py-3.5 px-8 rounded-xl hover:-translate-y-0.5 hover:bg-border-subtle transition-all active:scale-95"
-              >
-                กลับไปกรอกคีย์
-              </button>
-          </div>
-        </div>
-      </motion.div>
-          )}
-
-          {/* ---------------------------------------------------- */}
           {/* PAGE 3: HELP & FAQ PAGE */}
           {/* ---------------------------------------------------- */}
           {/* ============================================================================ */}
@@ -2010,7 +1957,7 @@ ${h.details || '-'}
                     <p className="text-[14px] text-text-muted mb-6 max-w-sm">{t('feedbackDesc')}</p>
                     <button 
                       onClick={() => setShowFeedbackModal(true)} 
-                      className="px-6 py-2.5 bg-brand text-white font-medium rounded-full hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all w-full sm:w-auto flex items-center justify-center gap-2"
+                      className="px-6 py-2.5 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white font-medium rounded-full shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)] hover:-translate-y-0.5 hover:brightness-110 active:scale-95 transition-all w-full sm:w-auto flex items-center justify-center gap-2"
                     >
                       {t('feedbackTitle')} <ChevronRight className="w-4 h-4" />
                     </button>
@@ -2171,7 +2118,7 @@ ${h.details || '-'}
                      }}
                      className={`w-full py-4 rounded-[20px] font-medium text-[15px] transition-all flex items-center justify-center gap-2 ${
                        feedbackText.trim() && feedbackStatus !== 'submitting' 
-                         ? 'bg-brand text-white hover:shadow-xl hover:shadow-brand/30 active:scale-95 cursor-pointer' 
+                         ? 'bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)] hover:brightness-110 active:scale-95 cursor-pointer' 
                          : 'bg-bg-app text-text-muted cursor-not-allowed border border-border-subtle'
                      }`}
                    >
@@ -2392,12 +2339,7 @@ ${h.details || '-'}
                      </div>
                   </div>
                   <button 
-                    onClick={() => { 
-                      window.open('https://youtube.com', '_blank'); 
-                      step1OpenedAt.current = Date.now(); 
-                      setStep1Status('checking'); 
-                      setTimeout(() => setStep1Status('completed'), 4000);
-                    }}
+                    onClick={() => { window.open('https://youtube.com', '_blank'); step1OpenedAt.current = Date.now(); setStep1Status('checking'); }}
                     disabled={step1Status === 'completed'}
                     className={`px-4 py-2 rounded-[12px] text-[13px] font-medium transition-all flex-shrink-0 flex items-center gap-2 ${
                       step1Status === 'completed' ? 'bg-emerald-500 text-white opacity-70 cursor-not-allowed' : 
@@ -2425,12 +2367,7 @@ ${h.details || '-'}
                      </div>
                   </div>
                   <button 
-                    onClick={() => { 
-                      window.open('https://discord.gg/hSuBbnwWZY', '_blank'); 
-                      step2OpenedAt.current = Date.now(); 
-                      setStep2Status('checking'); 
-                      setTimeout(() => setStep2Status('completed'), 4000);
-                    }}
+                    onClick={() => { window.open('https://discord.gg/hSuBbnwWZY', '_blank'); step2OpenedAt.current = Date.now(); setStep2Status('checking'); }}
                     disabled={step2Status === 'completed'}
                     className={`px-4 py-2 rounded-[12px] text-[13px] font-medium transition-all flex-shrink-0 flex items-center gap-2 ${
                       step2Status === 'completed' ? 'bg-emerald-500 text-white opacity-70 cursor-not-allowed' : 
@@ -2455,20 +2392,15 @@ ${h.details || '-'}
                      </div>
                   ) : (
                      <div className="mx-auto rounded-[8px] overflow-hidden shadow-sm inline-block relative">
-                        {(step1Status === 'completed' && step2Status === 'completed') ? (
-                          <Turnstile
-                            siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAADFFAhm_1PRQij4M"}
-                            onSuccess={handleVerifyRecaptcha}
-                            options={{
-                              theme: theme as any
-                            }}
-                          />
-                        ) : (
-                          <div className="w-[300px] h-[65px] bg-bg-app border border-border-subtle rounded-[4px] relative cursor-pointer flex items-center px-4 shadow-[0_0_0_1px_rgba(0,0,0,0.05)]" onClick={() => alert(t('alertSteps'))}>
-                             <div className="w-7 h-7 border-2 border-border-subtle rounded-[2px] bg-card-bg mr-3 flex-shrink-0"></div>
-                             <span className="text-sm font-medium text-text-main flex-1">Verify you are human</span>
-                             <div className="absolute inset-0 z-10"></div>
-                          </div>
+                        <Turnstile
+                          siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAADFFAhm_1PRQij4M"}
+                          onSuccess={handleVerifyRecaptcha}
+                          options={{
+                            theme: theme as any
+                          }}
+                        />
+                        {(step1Status !== 'completed' || step2Status !== 'completed') && (
+                          <div className="absolute inset-0 z-10" onClick={() => alert(t('alertSteps'))}></div>
                         )}
                      </div>
                   )}
@@ -2592,144 +2524,6 @@ ${h.details || '-'}
             t={t}
           />
         )}
-      {/* ============================================================================ */}
-      {/* 📌 หน้าต่าง Pop-up กรอกคีย์ (Enter Key Modal) */}
-      {/* ============================================================================ */}
-      {showEnterKeyModal && selectedItem && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm px-4">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-card-bg w-full max-w-md rounded-[28px] shadow-2xl overflow-hidden flex flex-col border border-border-subtle relative"
-            >
-                <div className="flex items-center justify-between px-6 py-5 border-b border-border-subtle bg-bg-app">
-                    <h3 className="font-bold text-lg flex items-center gap-2">
-                        <Key className="w-5 h-5 text-brand" /> 
-                        ระบบยืนยันคีย์
-                    </h3>
-                    <button 
-                      onClick={() => setShowEnterKeyModal(false)}
-                      className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-text-muted hover:text-text-main"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                </div>
-                
-                <div className="p-6">
-                    {proxyDetailsRevealed ? (
-                        <div className="text-center">
-                            <div className="w-16 h-16 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Check className="w-8 h-8" />
-                            </div>
-                            <h4 className="text-xl font-bold mb-6 text-text-main">ยืนยันคีย์สำเร็จ</h4>
-                            <div className="bg-bg-app border border-border-subtle p-5 rounded-2xl text-left space-y-4 mb-4">
-                                <div className="space-y-1">
-                                    <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">IP ADDRESS</span>
-                                    <div className="font-mono text-brand font-medium">103.14.22.45</div>
-                                </div>
-                                <div className="space-y-1">
-                                    <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">PORT</span>
-                                    <div className="font-mono text-brand font-medium">3128</div>
-                                </div>
-                                <div className="space-y-1">
-                                    <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">PROXY PIN</span>
-                                    <div className="font-mono text-brand font-medium">998877</div>
-                                </div>
-                            </div>
-                            <p className="text-sm text-text-muted">โปรดเก็บข้อมูลนี้ไว้เป็นความลับ อย่าเปิดเผยให้ผู้อื่นเด็ดขาด</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-6">
-                            <p className="text-text-muted text-sm line-clamp-2">
-                                สินค้า <strong>{getLocalized(selectedItem.title)}</strong> จำเป็นต้องใช้คีย์เพื่อเข้าสู่ขั้นตอนถัดไป หากยังไม่มีคีย์โปรดกดรับคีย์ฟรีด้านล่าง
-                            </p>
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold ml-1">กรอกคีย์ที่ได้รับ</label>
-                                <input 
-                                    type="text" 
-                                    placeholder="XANDRIA-..." 
-                                    value={inputKey}
-                                    onChange={(e) => setInputKey(e.target.value)}
-                                    className="w-full bg-bg-app border-2 border-border-subtle focus:border-brand rounded-xl px-4 py-3.5 outline-none transition-all font-mono font-medium text-text-main"
-                                />
-                            </div>
-                            <div className="flex flex-col gap-3">
-                                <button 
-                                    onClick={() => {
-                                        const trimmedKey = inputKey.trim();
-                                        let valid = false;
-                                        try {
-                                          const storedKeysStr = localStorage.getItem('myGeneratedKeys');
-                                          if (storedKeysStr) {
-                                              const storedKeys = JSON.parse(storedKeysStr);
-                                              const keyInfo = storedKeys[trimmedKey];
-                                              if (keyInfo && keyInfo.itemId === selectedItem.id && !keyInfo.used) {
-                                                  valid = true;
-                                                  storedKeys[trimmedKey].used = true;
-                                                  localStorage.setItem('myGeneratedKeys', JSON.stringify(storedKeys));
-                                              }
-                                          }
-                                        } catch(e) {}
-                                        
-                                        if (valid || (generatedKey && trimmedKey === generatedKey)) {
-                                            setProxyDetailsRevealed(true);
-                                            fetch('/api/stats/download', { 
-                                              method: 'POST',
-                                              headers: { 'Content-Type': 'application/json' },
-                                              body: JSON.stringify({ itemId: selectedItem.id })
-                                            })
-                                            .then(res => res.json())
-                                            .then(data => {
-                                               if(data.success) {
-                                                 setAppStats(prev => {
-                                                   const newStats = { 
-                                                     ...prev, 
-                                                     downloads: data.downloads,
-                                                     itemStats: {
-                                                         ...prev.itemStats,
-                                                         [selectedItem.id]: {
-                                                            ...prev.itemStats?.[selectedItem.id],
-                                                            downloads: data.itemDownloads
-                                                         }
-                                                     }
-                                                   };
-                                                   localStorage.setItem('cachedStats', JSON.stringify(newStats));
-                                                   return newStats;
-                                                 });
-                                               }
-                                            }).catch(()=>{});
-
-                                        } else {
-                                            alert('❌ คีย์ไม่ถูกต้อง ถูกใช้งานไปแล้ว หมดอายุ หรือไม่พบในระบบ');
-                                        }
-                                    }}
-                                    className="w-full inline-flex shrink-0 items-center justify-center whitespace-nowrap text-[15px] font-bold outline-none select-none transition-[transform,background-color,color,border-color,box-shadow,opacity] duration-150 py-3.5 px-6 rounded-xl bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)] cursor-pointer"
-                                >
-                                    ยืนยันคีย์
-                                </button>
-                                <div className="relative flex items-center py-2">
-                                    <div className="flex-grow border-t border-border-subtle"></div>
-                                    <span className="flex-shrink-0 mx-4 text-text-muted text-xs font-medium">หรือ</span>
-                                    <div className="flex-grow border-t border-border-subtle"></div>
-                                </div>
-                                <button 
-                                    onClick={() => {
-                                        setShowEnterKeyModal(false);
-                                        handleGetLink(undefined, selectedItem);
-                                    }}
-                                    className="w-full py-3.5 rounded-xl text-[14px] font-bold text-center bg-bg-app border-2 border-border-subtle hover:bg-border-subtle text-text-main transition-all active:scale-95"
-                                >
-                                    ยังไม่มีคีย์? รับคีย์ใหม่
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </motion.div>
-          </div>
-      )}
-
       </AnimatePresence>
     </div>
   );

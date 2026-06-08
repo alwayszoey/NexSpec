@@ -10,26 +10,16 @@ router.get('/', async (req, res) => {
   try {
     const userCount = await User.countDocuments();
     // @ts-ignore
-    let globalStats = await Stat.findOne({ name: 'global' });
-    if (!globalStats) {
+    let stats = await Stat.findOne({ name: 'global' });
+    if (!stats) {
     // @ts-ignore
-      globalStats = await Stat.create({ name: 'global', views: 0, downloads: 0 });
+      stats = await Stat.create({ name: 'global', views: 0, downloads: 0 });
     }
-    
-    // Fetch all item stats
-    const allItemStats = await Stat.find({ name: { $regex: /^item_/ } });
-    const itemStats = allItemStats.reduce((acc: any, stat: any) => {
-      const itemId = stat.name.replace('item_', '');
-      acc[itemId] = { views: stat.views, downloads: stat.downloads };
-      return acc;
-    }, {});
-
     res.json({
       success: true,
       users: userCount,
-      views: globalStats.views,
-      downloads: globalStats.downloads,
-      itemStats
+      views: stats.views,
+      downloads: stats.downloads
     });
   } catch (error) {
     console.error("Error fetching stats:", error);
@@ -40,27 +30,13 @@ router.get('/', async (req, res) => {
 // Increment views
 router.post('/view', async (req, res) => {
   try {
-    const { itemId } = req.body || {};
-    
-    // Increment global 
     // @ts-ignore
-    const globalStats = await Stat.findOneAndUpdate(
+    const stats = await Stat.findOneAndUpdate(
       { name: 'global' },
       { $inc: { views: 1 } },
       { new: true, upsert: true }
     );
-    
-    let itemViews = 0;
-    if (itemId) {
-      const itemStat = await Stat.findOneAndUpdate(
-        { name: `item_${itemId}` },
-        { $inc: { views: 1 } },
-        { new: true, upsert: true }
-      );
-      itemViews = itemStat.views;
-    }
-
-    res.json({ success: true, views: globalStats.views, itemViews });
+    res.json({ success: true, views: stats.views });
   } catch (error) {
     console.error("Error incrementing view:", error);
     res.status(500).json({ success: false, error: "Server Error" });
@@ -70,26 +46,13 @@ router.post('/view', async (req, res) => {
 // Increment downloads
 router.post('/download', async (req, res) => {
   try {
-    const { itemId } = req.body || {};
-
     // @ts-ignore
-    const globalStats = await Stat.findOneAndUpdate(
+    const stats = await Stat.findOneAndUpdate(
       { name: 'global' },
       { $inc: { downloads: 1 } },
       { new: true, upsert: true }
     );
-    
-    let itemDownloads = 0;
-    if (itemId) {
-      const itemStat = await Stat.findOneAndUpdate(
-        { name: `item_${itemId}` },
-        { $inc: { downloads: 1 } },
-        { new: true, upsert: true }
-      );
-      itemDownloads = itemStat.downloads;
-    }
-
-    res.json({ success: true, downloads: globalStats.downloads, itemDownloads });
+    res.json({ success: true, downloads: stats.downloads });
   } catch (error) {
     console.error("Error incrementing download:", error);
     res.status(500).json({ success: false, error: "Server Error" });

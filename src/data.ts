@@ -4,7 +4,7 @@ export interface DownloadLink {
 }
 
 export type StringOrObj = string;
-export type ActionType = "link" | "purchase" | "enterKey";
+export type ActionType = "link" | "purchase";
 
 export interface CategoryItem {
   id: string;
@@ -45,7 +45,6 @@ export interface ResourceItem {
   price?: string;
   requiresLogin?: boolean;
   isOutOfStock?: boolean;
-  salesCount?: number;
 }
 
 // ============================================================================
@@ -55,28 +54,6 @@ export interface ResourceItem {
 // ============================================================================
 
 export const resourcesData: ResourceItem[] = [
-  {
-    id: "2",
-    title: "Xandria Proxy",
-    shortDescription: "Proxy ที่มาพร้อมกับระบบ WIFI / PIN และฟังก์ชันขยายดราเมจตัว ยิงหัว ขยายหัว และอื่นๆ สลับฟังก์ชันได้เอง",
-    fullDescription: `รายละเอียด:
-[+] ระบบ WIFI / PROXY PIN
-[+] ใช้ IP / PORT (ไม่ใช้ json)
-[+] เพิ่มขยายดราเมจตัว
-[+] ยิงตัวโดนหัว
-[+] ขยายหัว
-[+] เพิ่มฟังชั่น "เลือกใช้งานเอง (สลับฟังชั่นได้)"
-[+] และอื่นๆเพิ่มเติม`,
-    imageUrl: "https://img1.pic.in.th/images/-5_20260426220753.png", // Or maybe an appropriate image or placeholder
-    actionType: "enterKey",
-    tags: ["Proxy", "Xandria", "Config"],
-    warning: "",
-    category: "Script",
-    price: "0",
-    dateAdded: "2026-06-03",
-    fileSize: "Unknown",
-    salesCount: 142
-  },
   {
     id: "1",
     title: "SRC บอทหลายเมนู Xandria",
@@ -93,7 +70,6 @@ export const resourcesData: ResourceItem[] = [
     category: "Script",
     price: "0",
     dateAdded: "2026-04-26",
-    fileSize: "Unknown",
-    salesCount: 1658
+    fileSize: "Unknown"
   }
 ];

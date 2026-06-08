@@ -8,9 +8,9 @@
    เปลี่ยนสีหลักของระบบได้ที่นี่ เฉพาะคุณเท่านั้นที่เห็น (หลังบ้าน/โค้ด)
    วิธีแก้: เปลี่ยนโค้ด HEX ด้านล่าง (เช่น #1e293b)
   */
-  --theme-brand: #6a9afb;         /* สีหลักของแบรนด์ (ปุ่มหลัก, โลโก้, สีเน้น) */
-  --theme-brand-hover: #568ced;   /* สีปุ่มหลักเมื่อเอาเมาส์ชี้ */
-  --theme-brand-light: #edf3ff;   /* สีพื้นหลังแบบอ่อน (ใช้ในปุ่มรอง, องค์ประกอบเน้นข้อความ) */
+  --theme-brand: #3b82f6;         /* สีหลักของแบรนด์ (ปุ่มหลัก, โลโก้, สีเน้น) */
+  --theme-brand-hover: #2563eb;   /* สีปุ่มหลักเมื่อเอาเมาส์ชี้ */
+  --theme-brand-light: #eff6ff;   /* สีพื้นหลังแบบอ่อน (ใช้ในปุ่มรอง, องค์ประกอบเน้นข้อความ) */
   
   --theme-bg-app: #ffffff;        /* สีพื้นหลังของทั้งเว็บ */
   --theme-card-bg: #ffffff;       /* สีพื้นหลังของการ์ดและหน้าต่าง (Modal) */
@@ -20,9 +20,9 @@
 }
 
 .dark {
-  --theme-brand: #24A8EB;
-  --theme-brand-hover: #1b89c2;
-  --theme-brand-light: rgba(36, 168, 235, 0.15);
+  --theme-brand: #3b82f6;
+  --theme-brand-hover: #2563eb;
+  --theme-brand-light: rgba(59, 130, 246, 0.15);
   
   --theme-bg-app: #000000;
   --theme-card-bg: #000000;
@@ -100,6 +100,15 @@ body {
 }
 
 /* Shiny Sweep Animation Effect */
+@keyframes slide-diagonal {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 200px 200px;
+  }
+}
+
 @keyframes shine {
   0% {
     transform: translateX(-200%) skewX(-25deg);
