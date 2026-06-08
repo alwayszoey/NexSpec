@@ -781,7 +781,7 @@ ${h.details || '-'}
           <AnimatePresence mode="wait">
             {welcomeState === 'welcome' && (
               <motion.div key="welcome" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }}>
-                <h2 className="text-[22px] sm:text-[26px] font-bold text-text-main mb-2 tracking-tight">ยินดีต้อนรับสู่ Zorix Shop</h2>
+                <h2 className="text-[22px] sm:text-[26px] font-bold text-text-main mb-2 tracking-tight">ยินดีต้อนรับ</h2>
                 <h2 className="text-[15px] sm:text-[16px] font-normal text-text-muted mb-8 leading-relaxed">
                   ศูนย์รวมซอร์สโค้ดและสคริปต์คุณภาพสูง พร้อมใช้สำหรับโปรเจกต์ของคุณ
                 </h2>
