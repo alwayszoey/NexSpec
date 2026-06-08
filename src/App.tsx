@@ -1045,48 +1045,89 @@ ${h.details || '-'}
         {/* 📌 2. หน้าแรก (Home View) */}
         {/* ============================================================================ */}
         {currentView === 'home' && (
-            <motion.div 
-              key="grid-view"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="max-w-[1600px] mx-auto px-4 sm:px-8 py-8 w-full"
-            >
-              <div className="mb-6 sm:mb-12">
-                
-                {/* 🌟 PREMIUM WELCOME BANNER 🌟 */}
-                <motion.div 
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-50px" }}
-                  transition={{ duration: 0.7, ease: "easeOut" }}
-                  className="relative pb-8 sm:pb-12 pt-4 mb-4 sm:mb-8 flex flex-col items-start text-left"
-                >
-                  <div className="flex flex-col gap-2 sm:gap-3 relative z-10 max-w-4xl">
-                    <h1 className="text-[36px] sm:text-[46px] lg:text-[64px] font-black tracking-tight text-brand leading-[1.1] m-0 drop-shadow-sm">
-                      ยินดีต้อนรับสู่ Zorix Shop
-                    </h1>
-                    <h2 className="text-[18px] sm:text-[24px] lg:text-[30px] font-bold text-text-main leading-[1.3] m-0">
-                      ศูนย์รวมซอร์สโค้ดเว็บไซต์, สคริปต์เกม, และคอนฟิกระบบคุณภาพเยี่ยม
-                    </h2>
-                    <p className="text-[15px] sm:text-[18px] lg:text-[20px] font-medium text-text-muted leading-[1.6] m-0 mt-1 sm:mt-2">
-                      พร้อมทีมงานซัพพอร์ตตลอดการใช้งาน เลือกชมสินค้าหน้าเว็บได้เลย!
-                    </p>
-                  </div>
+<motion.div 
+  initial={{ opacity: 0, y: 30 }}
+  whileInView={{ opacity: 1, y: 0 }}
+  viewport={{ once: true, margin: "-50px" }}
+  transition={{ duration: 0.7, ease: "easeOut" }}
+  className="relative pb-8 sm:pb-12 pt-4 mb-4 sm:mb-8 flex flex-col items-start text-left"
+>
+  <div className="flex flex-col gap-3 sm:gap-4 relative z-10 max-w-4xl">
+    
+    {/* Welcome pill */}
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.5, delay: 0.1 }}
+      className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand/10 border border-brand/20 w-fit"
+    >
+      <span className="w-2 h-2 rounded-full bg-brand animate-pulse shrink-0" />
+      <span className="text-sm font-semibold text-brand tracking-wide">ยินดีต้อนรับสู่</span>
+    </motion.div>
 
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: 0.5, duration: 0.4 }}
-                    className="mt-10 flex gap-4"
-                  >
-                     <button onClick={() => { setActiveCategory('ALL'); setCurrentView('category'); window.scrollTo({ top: 500, behavior: 'smooth' }); }} className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white font-bold py-3.5 px-10 rounded-full shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95 transition-all text-lg">
-                       <ShoppingBag className="w-5 h-5" /> ช้อปเลย
-                     </button>
-                  </motion.div>
-                </motion.div>
+    {/* Store name — the hero */}
+    <motion.h1
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: 0.2 }}
+      className="text-[52px] sm:text-[72px] lg:text-[96px] font-black tracking-tighter leading-[0.95] m-0"
+    >
+      <span className="bg-gradient-to-br from-blue-400 via-blue-500 to-blue-700 bg-clip-text text-transparent drop-shadow-sm">
+        Zorix
+      </span>
+      <span className="text-text-main"> Shop</span>
+    </motion.h1>
+
+    {/* Divider accent */}
+    <motion.div
+      initial={{ scaleX: 0 }}
+      animate={{ scaleX: 1 }}
+      transition={{ duration: 0.5, delay: 0.4, ease: "easeOut" }}
+      className="origin-left w-24 h-1 rounded-full bg-gradient-to-r from-blue-400 to-blue-600"
+    />
+
+    {/* Tagline */}
+    <motion.h2
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.45 }}
+      className="text-[17px] sm:text-[22px] lg:text-[26px] font-semibold text-text-main leading-[1.4] m-0"
+    >
+      ศูนย์รวมซอร์สโค้ดเว็บไซต์, สคริปต์เกม,
+      <br className="hidden sm:block" /> และคอนฟิกระบบคุณภาพเยี่ยม
+    </motion.h2>
+
+    {/* Sub copy */}
+    <motion.p
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.55 }}
+      className="text-[14px] sm:text-[16px] lg:text-[18px] font-medium text-text-muted leading-[1.7] m-0"
+    >
+      พร้อมทีมงานซัพพอร์ตตลอดการใช้งาน เลือกชมสินค้าหน้าเว็บได้เลย
+    </motion.p>
+  </div>
+
+  <motion.div
+    initial={{ opacity: 0, scale: 0.8 }}
+    whileInView={{ opacity: 1, scale: 1 }}
+    viewport={{ once: true }}
+    transition={{ delay: 0.65, duration: 0.4 }}
+    className="mt-10 flex gap-4"
+  >
+    <button
+      onClick={() => {
+        setActiveCategory('ALL');
+        setCurrentView('category');
+        window.scrollTo({ top: 500, behavior: 'smooth' });
+      }}
+      className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white font-bold py-3.5 px-10 rounded-full shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95 transition-all text-lg"
+    >
+      <ShoppingBag className="w-5 h-5" /> ช้อปเลย
+    </button>
+  </motion.div>
+</motion.div>
+
                 
                 {/* Promotional Banner */}
                 <motion.div 
