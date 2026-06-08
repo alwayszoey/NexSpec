@@ -315,6 +315,7 @@ useEffect(() => {
     else if (path === '/help') _setCurrentView('help');
     else if (path === '/about') _setCurrentView('about');
     else if (path === '/contact') _setCurrentView('contact');
+    else if (path === '/generate-key') _setCurrentView('generate-key');
   }, [location.pathname]);
 
   const currentView = _currentView;
@@ -326,6 +327,7 @@ useEffect(() => {
     else if (view === 'help') navigate('/help');
     else if (view === 'about') navigate('/about');
     else if (view === 'contact') navigate('/contact');
+    else if (view === 'generate-key') navigate('/generate-key');
   };
 
   const [activeLinkId, setActiveLinkId] = useState<number | null>(null);

@@ -230,11 +230,11 @@ app.post("/api/verify-captcha", abuseLimiter, async (req: any, res: any) => {
      return;
   }
 
-  if (usedTokens.has(token)) {
-      res.status(400).json({ success: false, error: 'Captcha token reused' });
-      return;
-  }
-  usedTokens.add(token);
+  // if (usedTokens.has(token)) {
+  //     res.status(400).json({ success: false, error: 'Captcha token reused' });
+  //     return;
+  // }
+  // usedTokens.add(token);
   try {
     const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
     if (turnstileSecret) {
