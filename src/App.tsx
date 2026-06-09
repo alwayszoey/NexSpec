@@ -191,15 +191,26 @@ useEffect(() => {
 
   
   useEffect(() => {
-    // Theme Initializer (Default to Light always on first visit)
+    // Theme Initializer (Default to system preference on first visit)
     const savedTheme = localStorage.getItem('appTheme') as 'light' | 'dark';
     if (savedTheme === 'dark') {
       setTheme('dark');
       document.documentElement.classList.add('dark');
-    } else {
+    } else if (savedTheme === 'light') {
       setTheme('light');
       document.documentElement.classList.remove('dark');
-      localStorage.setItem('appTheme', 'light');
+    } else {
+      // No saved theme, check system preference
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (prefersDark) {
+        setTheme('dark');
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('appTheme', 'dark');
+      } else {
+        setTheme('light');
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('appTheme', 'light');
+      }
     }
 
     setWelcomeState('done'); // Temporarily bypass the welcome screen
@@ -259,7 +270,7 @@ useEffect(() => {
     // Simulate loading to ensure everything is ready
     setTimeout(() => {
       setIsAppLoading(false);
-    }, 1000);
+    }, 1500);
 
     return () => clearInterval(statsInterval);
   }, []);
@@ -836,9 +847,37 @@ ${h.details || '-'}
 
   if (isAppLoading && lang) {
     return (
-      <div className="fixed inset-0 bg-slate-50 z-[9999] flex flex-col justify-center items-center">
-        <Loader2 className="w-10 h-10 text-brand animate-spin mb-4" />
-        <h2 className="text-slate-700 font-medium text-[16px]">{t('loadingData')}</h2>
+      <div className="fixed inset-0 bg-bg-app z-[9999] flex flex-col justify-center items-center">
+        <motion.div
+           initial={{ opacity: 0, y: 10 }}
+           animate={{ opacity: 1, y: 0 }}
+           transition={{ duration: 0.6, ease: "easeOut" }}
+           className="flex flex-col items-center gap-6 cursor-default"
+        >
+          <div className="relative">
+            {/* Glow effect matching the brand */}
+            <div className="absolute inset-0 bg-brand/30 blur-3xl rounded-full scale-150 animate-pulse" style={{ animationDuration: '3s' }}></div>
+            {/* Logo scaling up and glowing slightly */}
+            <motion.img 
+              initial={{ scale: 0.8 }}
+              animate={{ scale: [0.8, 1, 0.8] }}
+              transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+              src={siteConfig.logoUrl} 
+              alt="Logo" 
+              className="w-20 sm:w-24 h-auto object-contain drop-shadow-xl relative z-10" 
+            />
+          </div>
+          
+          <div className="flex flex-col items-center gap-3 mt-4">
+            <h2 className="text-text-main font-bold tracking-tight text-xl sm:text-2xl flex items-center gap-3">
+              <Loader2 className="w-6 h-6 text-brand animate-spin" />
+              {t('loadingData')}
+            </h2>
+            <p className="text-text-muted text-sm px-6 text-center max-w-[300px]">
+              กำลังเตรียมระบบและการเชื่อมต่อข้อมูลสำหรับคุณ โปรดรอสักครู่
+            </p>
+          </div>
+        </motion.div>
       </div>
     );
   }
