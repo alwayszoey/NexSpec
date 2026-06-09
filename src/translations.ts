@@ -70,7 +70,7 @@ export const translations = {
   noRobot: "ฉันไม่ใช่โปรแกรมอัตโนมัติ",
   backHelp: "กลับหน้าแรก",
   changeLang: "เปลี่ยนภาษา",
-  loadingData: "กำลังโหลดข้อมูลสินค้า...",
+  loadingData: "กำลังเริ่มต้นระบบ...",
   feedbackMenu: "ติดต่อ & ติชม",
   feedbackTitle: "ส่งข้อความถึงทีมงาน",
   feedbackDesc: "ต้องการเคลมสินค้า แจ้งปัญหาระบบ หรือส่งข้อเสนอแนะ สามารถระบุได้ที่นี่",

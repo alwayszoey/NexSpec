@@ -845,7 +845,7 @@ ${h.details || '-'}
     );
   }
 
-  if (isAppLoading && lang) {
+  if (isAppLoading) {
     return (
       <div className="fixed inset-0 bg-bg-app z-[9999] flex flex-col justify-center items-center">
         <motion.div
