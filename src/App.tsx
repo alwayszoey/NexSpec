@@ -23,22 +23,20 @@ type ViewState = 'home' | 'details' | 'help' | 'category' | 'history';
 type AppLang = 'vi' | 'th';
 
 const StatsCard = ({ icon: Icon, title, value, unit }: { icon: any, title: string, value: string | number, unit: string }) => (
-  <div className="group relative overflow-hidden rounded-[16px] sm:rounded-[20px] flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-4 sm:py-5 bg-card-bg/40 backdrop-blur-xl border border-white/10 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgba(59,130,246,0.15)] transition-all duration-300 hover:-translate-y-1">
-    <div className="absolute inset-0 bg-gradient-to-br from-brand/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-    <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-brand/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-    <div className="absolute -right-4 -bottom-4 pointer-events-none opacity-[0.03] group-hover:opacity-[0.08] group-hover:scale-110 group-hover:rotate-12 transition-all duration-500 text-brand">
-      <Icon className="w-24 h-24" />
+  <div className="relative overflow-hidden rounded-[16px] sm:rounded-[20px] flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 sm:py-4 bg-card-bg/60 backdrop-blur-md border border-border-subtle shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_4px_15px_rgba(0,0,0,0.05)] transition-shadow">
+    <div className="absolute -right-2 -bottom-2 pointer-events-none opacity-[0.03] text-brand">
+      <Icon className="w-16 h-16 sm:w-20 sm:h-20" />
     </div>
-    <div className="shrink-0 relative flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-[14px] bg-brand/10 text-brand group-hover:bg-brand group-hover:text-white transition-all duration-300 shadow-inner group-hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]">
-      <Icon className="w-6 h-6 sm:w-7 sm:h-7 relative z-10" />
+    <div className="shrink-0 flex items-center justify-center w-10 h-10 rounded-[12px] bg-brand/10 text-brand">
+      <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
     </div>
-    <div className="flex flex-col min-w-0 z-10">
-      <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider leading-tight mb-0.5 text-text-muted">{title}</span>
+    <div className="flex flex-col min-w-0">
+      <span className="text-xs font-medium leading-tight mb-0.5 text-text-muted">{title}</span>
       <div className="flex items-baseline gap-1.5">
-        <span className="text-[20px] sm:text-[26px] font-bold tabular-nums leading-none text-text-main drop-shadow-sm group-hover:text-brand transition-colors">
+        <span className="text-lg sm:text-xl font-bold tabular-nums leading-none text-text-main">
           {value}
         </span>
-        <span className="text-[11px] sm:text-xs font-medium text-text-muted whitespace-nowrap group-hover:text-brand/80 transition-colors">{unit}</span>
+        <span className="text-[10px] sm:text-xs font-medium text-text-muted/70 whitespace-nowrap">{unit}</span>
       </div>
     </div>
   </div>
@@ -783,12 +781,12 @@ ${h.details || '-'}
           <AnimatePresence mode="wait">
             {welcomeState === 'welcome' && (
               <motion.div key="welcome" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }}>
-                <h2 className="flex flex-col gap-0 font-bold tracking-tight mb-2">
-                  <span className="text-[18px] sm:text-[20px] text-text-muted mb-1">ยินดีต้อนรับสู่</span>
-                  <span className="text-[36px] sm:text-[46px] font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-blue-400 to-cyan-400 pb-1 drop-shadow-md">ZORIX SHOP</span>
+                <h2 className="flex flex-col gap-1 font-bold tracking-tight mb-2">
+                  <span className="text-[20px] sm:text-[22px] text-text-main">ยินดีต้อนรับสู่</span>
+                  <span className="text-[32px] sm:text-[40px] font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 pb-1 drop-shadow-md">ZORIX SHOP</span>
                 </h2>
-                <h2 className="text-[15px] sm:text-[16px] font-medium text-text-main mb-8 leading-relaxed px-4">
-                  ศูนย์รวมซอร์สโค้ดและสคริปต์คุณภาพสูง<br className="hidden sm:block" /> พร้อมใช้สำหรับโปรเจกต์ของคุณ
+                <h2 className="text-[15px] sm:text-[16px] font-normal text-text-muted mb-8 leading-relaxed">
+                  ศูนย์รวมซอร์สโค้ดและสคริปต์คุณภาพสูง พร้อมใช้สำหรับโปรเจกต์ของคุณ
                 </h2>
                 
                 <div className="flex justify-center mb-6">
@@ -849,22 +847,9 @@ ${h.details || '-'}
             backgroundRepeat: 'no-repeat',
           }}
         />
-        {/* Grid Pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_80%_at_50%_0%,#000_70%,transparent_100%)]"></div>
-        {/* Glowing Orbs */}
-        <motion.div
-           animate={{ rotate: 360 }}
-           transition={{ duration: 50, repeat: Infinity, ease: "linear" }}
-           className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/20 rounded-full blur-[120px]"
-        />
-        <motion.div
-           animate={{ rotate: -360 }}
-           transition={{ duration: 70, repeat: Infinity, ease: "linear" }}
-           className="absolute top-[20%] right-[-10%] w-[30%] h-[50%] bg-cyan-500/10 rounded-full blur-[150px]"
-        />
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-bg-app/50 via-bg-app/80 to-bg-app" />
-        <div className="absolute inset-0 bg-gradient-to-br from-transparent to-brand/30 mix-blend-overlay" />
+        <div className="absolute inset-0 bg-gradient-to-br from-transparent to-brand/10" />
       </div>
 
       <PromoPopup />
@@ -1081,21 +1066,16 @@ ${h.details || '-'}
                   transition={{ duration: 0.7, ease: "easeOut" }}
                   className="relative pb-8 sm:pb-12 pt-4 mb-4 sm:mb-8 flex flex-col items-start text-left"
                 >
-                  <div className="flex flex-col gap-2 sm:gap-4 relative z-10 max-w-4xl pt-4 sm:pt-0">
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand/10 border border-brand/20 w-fit mb-1 sm:mb-2 backdrop-blur-sm shadow-[0_0_15px_rgba(59,130,246,0.15)]">
-                      <span className="flex h-2 w-2 rounded-full bg-brand animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.8)]"></span>
-                      <span className="text-brand text-[11px] sm:text-[13px] font-bold tracking-wider">PREMIUM DIGITAL ASSETS</span>
-                    </div>
-
-                    <h1 className="flex flex-col gap-0 font-black tracking-tighter leading-[1] m-0 drop-shadow-sm">
-                      <span className="text-[20px] sm:text-[28px] lg:text-[34px] text-text-muted font-bold tracking-tight mb-2 sm:mb-3">ยินดีต้อนรับสู่</span>
-                      <span className="text-[54px] sm:text-[80px] lg:text-[110px] uppercase font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-blue-400 to-cyan-400 pb-2 drop-shadow-lg drop-shadow-[0_4px_20px_rgba(59,130,246,0.25)]">ZORIX SHOP</span>
+                  <div className="flex flex-col gap-2 sm:gap-3 relative z-10 max-w-4xl">
+                    <h1 className="flex flex-col gap-1 font-black tracking-tight leading-[1.1] m-0 drop-shadow-sm">
+                      <span className="text-[28px] sm:text-[36px] lg:text-[44px] text-text-main">ยินดีต้อนรับสู่</span>
+                      <span className="text-[44px] sm:text-[60px] lg:text-[84px] uppercase font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 pb-2 drop-shadow-lg drop-shadow-[0_4px_10px_rgba(59,130,246,0.2)]">ZORIX SHOP</span>
                     </h1>
-                    <h2 className="text-[18px] sm:text-[28px] lg:text-[36px] font-bold text-text-main leading-[1.35] m-0 mt-3 sm:mt-5 max-w-3xl drop-shadow-sm">
-                      ศูนย์รวมซอร์สโค้ดเว็บไซต์ สคริปต์เกม <br className="hidden md:block"/>และระบบเครื่องมือคุณภาพระดับพรีเมียม
+                    <h2 className="text-[18px] sm:text-[24px] lg:text-[30px] font-bold text-text-main leading-[1.3] m-0 mt-2">
+                      ศูนย์รวมซอร์สโค้ดเว็บไซต์, สคริปต์เกม, และคอนฟิกระบบคุณภาพเยี่ยม
                     </h2>
-                    <p className="text-[15px] sm:text-[18px] lg:text-[22px] font-medium text-text-muted leading-[1.6] m-0 mt-1 max-w-2xl">
-                      ยกระดับโปรเจกต์ของคุณด้วยเทคโนโลยีที่ทันสมัย การันตีการใช้งานจริง พร้อมทีมงานซัพพอร์ตดูแลคุณตลอดอายุการใช้งาน
+                    <p className="text-[15px] sm:text-[18px] lg:text-[20px] font-medium text-text-muted leading-[1.6] m-0 mt-1 sm:mt-2">
+                      พร้อมทีมงานซัพพอร์ตตลอดการใช้งาน เลือกชมสินค้าหน้าเว็บได้เลย!
                     </p>
                   </div>
 
@@ -1106,8 +1086,8 @@ ${h.details || '-'}
                     transition={{ delay: 0.5, duration: 0.4 }}
                     className="mt-10 flex gap-4"
                   >
-                     <button onClick={() => { setActiveCategory('ALL'); setCurrentView('category'); window.scrollTo({ top: 500, behavior: 'smooth' }); }} className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white font-bold py-3.5 px-10 rounded-full shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95 transition-all text-lg cursor-pointer">
-                       <ShoppingBag className="w-5 h-5" /> เริ่มช้อปเลย
+                     <button onClick={() => { setActiveCategory('ALL'); setCurrentView('category'); window.scrollTo({ top: 500, behavior: 'smooth' }); }} className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white font-bold py-3.5 px-10 rounded-full shadow-[0_4px_14px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.22)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95 transition-all text-lg">
+                       <ShoppingBag className="w-5 h-5" /> ช้อปเลย
                      </button>
                   </motion.div>
                 </motion.div>
@@ -1117,7 +1097,7 @@ ${h.details || '-'}
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.4, delay: 0.1 }}
-                  className="w-full mb-6 rounded-[16px] sm:rounded-[20px] overflow-hidden shadow-sm border border-slate-100 dark:border-white/5 bg-white dark:bg-card-bg/60 relative shiny-effect"
+                  className="w-full mb-6 rounded-[16px] sm:rounded-[20px] overflow-hidden shadow-sm border border-slate-100 bg-white relative shiny-effect"
                 >
                   <img 
                     alt="Carousel" 
