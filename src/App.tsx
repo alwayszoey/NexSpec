@@ -11,7 +11,11 @@ import {
 } from 'lucide-react';
 import { resourcesData, ResourceItem, categoriesData } from './data';
 import { motion, AnimatePresence } from 'motion/react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Turnstile } from '@marsidev/react-turnstile';
+
+
+
 import { translations } from './translations';
 import { siteConfig } from './config';
 import { AuthModal } from './AuthModal';
@@ -143,14 +147,18 @@ export default function App() {
   const [showProfileModal, setShowProfileModal] = useState(false);
 
   // ====== STATS STATES ======
-  const [appStats, setAppStats] = useState(() => {
+  const [appStats, setAppStats] = useState<{ 
+      users: number, views: number, downloads: number, 
+      trustData?: {name: string, users: number}[], 
+      performanceData?: {name: string, score: number}[] 
+  }>(() => {
     try {
       const cached = localStorage.getItem('cachedStats');
       if (cached) return JSON.parse(cached);
     } catch (e) {
       console.error(e);
     }
-    return { users: 0, views: 0, downloads: 0 };
+    return { users: 0, views: 0, downloads: 0, trustData: [], performanceData: [] };
   });
 
 // ── OAuth: รับ token จาก popup (postMessage) ──────────────────────────────
@@ -214,7 +222,13 @@ useEffect(() => {
         .then(res => res.json())
         .then(data => {
           if (data.success) {
-            const newStats = { users: data.users, views: data.views, downloads: data.downloads };
+            const newStats = { 
+                users: data.users, 
+                views: data.views, 
+                downloads: data.downloads,
+                trustData: data.trustData || [],
+                performanceData: data.performanceData || []
+            };
             setAppStats(newStats);
             localStorage.setItem('cachedStats', JSON.stringify(newStats));
           }
@@ -1375,6 +1389,133 @@ ${h.details || '-'}
                     })}
                   </div>
                 </div>
+
+                {/* ---------------------------------------------------- */}
+                {/* WHY CHOOSE US SECTION */}
+                {/* ---------------------------------------------------- */}
+                <div className="w-full relative mt-2 pt-10 border-t border-border-subtle pb-12">
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    className="text-center mb-10"
+                  >
+                    <h3 className="font-bold text-2xl sm:text-3xl text-text-main mb-3">ทำไมคุณต้องเลือกเรา?</h3>
+                    <p className="text-sm sm:text-base text-text-muted max-w-2xl mx-auto">
+                      สถิติเสียงตอบรับจากผู้ใช้งานจริง ยืนยันถึงคุณภาพและความปลอดภัยที่คุณจะได้รับจาก ZORIX SHOP
+                    </p>
+                  </motion.div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+                    {/* Graph 1: Area Chart */}
+                    <motion.div 
+                      initial={{ opacity: 0, x: -20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.1, duration: 0.8, type: 'spring', bounce: 0.4 }}
+                      className="bg-card-bg/60 backdrop-blur-md border border-border-subtle rounded-2xl p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex flex-col hover:shadow-lg transition-shadow"
+                    >
+                      <div className="mb-6 flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-[12px] bg-brand/10 flex items-center justify-center shrink-0">
+                          <Users className="w-5 h-5 text-brand" />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="font-bold text-text-main text-base sm:text-lg">ผู้ใช้งานระบบ (Real-time)</h4>
+                          <p className="text-xs text-text-muted line-clamp-1">จำนวนบัญชีผู้ใช้งานที่ลงทะเบียนในระบบทั้งหมด</p>
+                        </div>
+                      </div>
+                      <div className="h-[240px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={appStats.trustData?.length ? appStats.trustData : [{name: 'Loading', users: 0}]} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                            <defs>
+                              <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-border-subtle opacity-30" vertical={false} />
+                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} className="text-text-muted" />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12 }} className="text-text-muted" />
+                            <Tooltip 
+                              contentStyle={{ backgroundColor: 'var(--color-card-bg)', borderColor: 'var(--color-border-subtle)', borderRadius: '12px', fontSize: '13px' }}
+                              itemStyle={{ color: '#3b82f6', fontWeight: 600 }}
+                            />
+                            <Area type="monotone" dataKey="users" name="จำนวนผู้ใช้" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorUsers)" />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </motion.div>
+
+                    {/* Graph 2: Bar Chart */}
+                    <motion.div 
+                      initial={{ opacity: 0, x: 20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.2, duration: 0.8, type: 'spring', bounce: 0.4 }}
+                      className="bg-card-bg/60 backdrop-blur-md border border-border-subtle rounded-2xl p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex flex-col hover:shadow-lg transition-shadow"
+                    >
+                      <div className="mb-6 flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-[12px] bg-brand/10 flex items-center justify-center shrink-0">
+                          <ShieldAlert className="w-5 h-5 text-brand" />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="font-bold text-text-main text-base sm:text-lg">มาตรฐานและความปลอดภัย</h4>
+                          <p className="text-xs text-text-muted line-clamp-1">สถิติประสิทธิภาพและความคุ้มครองข้อมูล</p>
+                        </div>
+                      </div>
+                      <div className="h-[240px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={appStats.performanceData?.length ? appStats.performanceData : [{name: 'Loading', score: 0}]} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-border-subtle opacity-30" vertical={false} />
+                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} className="text-text-muted" />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12 }} className="text-text-muted" domain={[0, 100]} />
+                            <Tooltip 
+                              cursor={{ fill: 'var(--color-text-muted)', opacity: 0.05 }}
+                              contentStyle={{ backgroundColor: 'var(--color-card-bg)', borderColor: 'var(--color-border-subtle)', borderRadius: '12px', fontSize: '13px' }}
+                              itemStyle={{ color: '#3b82f6', fontWeight: 600 }}
+                            />
+                            <Bar dataKey="score" name="คะแนน (%)" fill="#3b82f6" radius={[6, 6, 0, 0]} maxBarSize={40} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </motion.div>
+                  </div>
+                </div>
+
+                {/* ---------------------------------------------------- */}
+                {/* CUSTOMER SUPPORT SECTION */}
+                {/* ---------------------------------------------------- */}
+                <div className="w-full relative mt-6 pt-10 border-t border-border-subtle pb-8">
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                    whileInView={{ opacity: 1, scale: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6, type: 'spring', bounce: 0.3 }}
+                    className="bg-card-bg/60 backdrop-blur-md border border-border-subtle rounded-[24px] p-6 lg:p-10 shadow-lg flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden"
+                  >
+                    {/* Background glow for Discord */}
+                    <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-[#5865F2]/20 rounded-full blur-[80px] pointer-events-none"></div>
+                    
+                    <div className="flex-1 text-center md:text-left z-10">
+                      <div className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 rounded-full bg-[#5865F2]/10 text-[#5865F2] font-semibold text-sm">
+                        <MessageCircle className="w-4 h-4" />
+                        Customer Support
+                      </div>
+                      <h3 className="font-bold text-2xl sm:text-3xl text-text-main mb-3">ต้องการความช่วยเหลือ?</h3>
+                      <p className="text-sm sm:text-base text-text-muted max-w-xl mx-auto md:mx-0">
+                        มีทีมงานคอยช่วยเหลือและตอบคำถามผ่านระบบ Ticket ใน Discord ตลอดเวลาทำการ พร้อมอัปเดตข่าวสารและแจ้งเตือนสถานะต่างๆ 
+                      </p>
+                    </div>
+                    
+                    <div className="shrink-0 z-10 w-full md:w-auto">
+                      <a href="https://discord.gg/hSuBbnwWZY" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-3 bg-[#5865F2] hover:bg-[#4752C4] text-white px-8 py-4 rounded-[16px] font-bold text-lg transition-all shadow-[0_8px_20px_rgba(88,101,242,0.3)] hover:shadow-[0_10px_25px_rgba(88,101,242,0.4)] hover:-translate-y-1 w-full md:w-auto">
+                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
+                        เข้าร่วม Discord ทีมงาน
+                      </a>
+                    </div>
+                  </motion.div>
+                </div>
+
               </div>
             </motion.div>
           )}
