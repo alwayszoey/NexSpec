@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;900&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 :root {
@@ -67,7 +67,7 @@
 }
 
 @theme {
-  --font-sans: "Noto Sans Thai", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-sans: "IBM Plex Sans Thai", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   
   --color-brand: var(--theme-brand);
   --color-brand-hover: var(--theme-brand-hover);
@@ -159,4 +159,12 @@ body {
   white-space: nowrap;
   animation: annScroll 25s linear infinite;
   will-change: transform;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-200%); }
+  100% { transform: translateX(200%); }
+}
+.animate-shimmer {
+  animation: shimmer 3s infinite;
 }
