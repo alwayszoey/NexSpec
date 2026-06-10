@@ -81,13 +81,15 @@
   --color-danger-light: #fef2f2;
 }
 
-body {
+html, body {
   font-family: var(--font-sans);
   background-color: var(--color-bg-app);
   color: var(--color-text-main);
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+  overflow-x: hidden;
 }
 
 /* Hide scrollbar for category tabs */

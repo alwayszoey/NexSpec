@@ -195,20 +195,16 @@ useEffect(() => {
     const savedTheme = localStorage.getItem('appTheme') as 'light' | 'dark';
     if (savedTheme === 'dark') {
       setTheme('dark');
-      document.documentElement.classList.add('dark');
     } else if (savedTheme === 'light') {
       setTheme('light');
-      document.documentElement.classList.remove('dark');
     } else {
       // No saved theme, check system preference
       const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
       if (prefersDark) {
         setTheme('dark');
-        document.documentElement.classList.add('dark');
         localStorage.setItem('appTheme', 'dark');
       } else {
         setTheme('light');
-        document.documentElement.classList.remove('dark');
         localStorage.setItem('appTheme', 'light');
       }
     }
@@ -286,12 +282,30 @@ useEffect(() => {
     const nextTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(nextTheme);
     localStorage.setItem('appTheme', nextTheme);
-    if (nextTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
   };
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const body = document.body;
+    let metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (!metaThemeColor) {
+      metaThemeColor = document.createElement('meta');
+      metaThemeColor.setAttribute('name', 'theme-color');
+      document.head.appendChild(metaThemeColor);
+    }
+    
+    if (theme === 'dark') {
+      root.classList.add('dark');
+      root.style.backgroundColor = '#000000';
+      body.style.backgroundColor = '#000000';
+      metaThemeColor.setAttribute('content', '#000000');
+    } else {
+      root.classList.remove('dark');
+      root.style.backgroundColor = '#ffffff';
+      body.style.backgroundColor = '#ffffff';
+      metaThemeColor.setAttribute('content', '#ffffff');
+    }
+  }, [theme]);
 
   const t = (key: keyof typeof translations) => {
     return translations[key] || key;
@@ -886,10 +900,10 @@ ${h.details || '-'}
   // 📌 RENDER - โครงสร้าง HTML ทั้งหมดของเว็บ
   // ============================================================================
   return (
-    <div className="relative flex flex-col h-[100dvh] overflow-hidden bg-bg-app text-text-main font-sans selection:bg-brand selection:text-white">
+    <div className="relative flex flex-col min-h-[100dvh] bg-bg-app text-text-main font-sans selection:bg-brand selection:text-white overscroll-none">
       
       {/* Background with Full Image and Gradient Overlay */}
-      <div className="absolute inset-0 pointer-events-none z-0">
+      <div className="fixed inset-0 pointer-events-none z-0">
         {/* Full Image */}
         <div 
           className="absolute inset-0 opacity-60 dark:opacity-80"
@@ -1085,7 +1099,7 @@ ${h.details || '-'}
       {/* ========================================================================= */}
       {/* MAIN CONTENT AREA */}
       {/* ========================================================================= */}
-      <main className="flex-1 overflow-y-auto w-full relative z-10">
+      <main className="flex-1 w-full relative z-10">
         <AnimatePresence mode="wait">
           
           {/* ---------------------------------------------------- */}
@@ -1150,7 +1164,7 @@ ${h.details || '-'}
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.4, delay: 0.1 }}
-                  className="w-full mb-6 rounded-[16px] sm:rounded-[20px] overflow-hidden shadow-sm border border-slate-100 bg-white relative shiny-effect"
+                  className="w-full mb-6 rounded-[16px] sm:rounded-[20px] overflow-hidden shadow-sm border border-border-subtle bg-card-bg relative shiny-effect"
                 >
                   <img 
                     alt="Carousel" 
