@@ -149,6 +149,7 @@ export default function App() {
   // ====== STATS STATES ======
   const [appStats, setAppStats] = useState<{ 
       users: number, views: number, downloads: number, 
+      itemDownloads?: Record<string, number>,
       trustData?: {name: string, users: number}[], 
       performanceData?: {name: string, score: number}[] 
   }>(() => {
@@ -233,6 +234,7 @@ useEffect(() => {
                 users: data.users, 
                 views: data.views, 
                 downloads: data.downloads,
+                itemDownloads: data.itemDownloads || {},
                 trustData: data.trustData || [],
                 performanceData: data.performanceData || []
             };
@@ -476,12 +478,23 @@ useEffect(() => {
            await addHistoryRecord('purchase', selectedItem, finalDetails);
            
            // Increment download/sales stat
-           fetch('/api/stats/download', { method: 'POST' })
+           fetch('/api/stats/download', { 
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({ itemId: selectedItem.id })
+           })
              .then(res => res.json())
              .then(statData => {
                if (statData.success) {
                   setAppStats(prev => {
-                    const newStats = { ...prev, downloads: statData.downloads };
+                    const newStats = { 
+                      ...prev, 
+                      downloads: statData.downloads,
+                      itemDownloads: {
+                         ...prev.itemDownloads,
+                         [selectedItem.id]: statData.itemDownloads
+                      }
+                    };
                     localStorage.setItem('cachedStats', JSON.stringify(newStats));
                     return newStats;
                   });
@@ -683,12 +696,23 @@ ${h.details || '-'}
       }
       
       // Increment download stat
-      fetch('/api/stats/download', { method: 'POST' })
+      fetch('/api/stats/download', { 
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ itemId: selectedItem.id })
+      })
         .then(res => res.json())
         .then(data => {
           if (data.success) {
              setAppStats(prev => {
-               const newStats = { ...prev, downloads: data.downloads };
+               const newStats = { 
+                 ...prev, 
+                 downloads: data.downloads,
+                 itemDownloads: {
+                    ...prev.itemDownloads,
+                    [selectedItem.id]: data.itemDownloads
+                 }
+               };
                localStorage.setItem('cachedStats', JSON.stringify(newStats));
                return newStats;
              });
@@ -1365,7 +1389,7 @@ ${h.details || '-'}
                           )}
                           <div className={`relative flex-1 z-10 bg-card-bg/60 backdrop-blur-md border transition-colors duration-200 rounded-md sm:rounded-lg p-1.5 sm:p-2 flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.02)] ${item.isOutOfStock ? 'grayscale opacity-70 border-transparent' : 'border-border-subtle group-hover/prod:border-transparent group-hover/prod:shadow-[0_8px_30px_rgba(106,154,251,0.12)] bg-clip-padding m-[1px] group-hover/prod:m-[1px]'}`}>
                             
-                            {appStats.downloads >= 100 && (
+                            {((appStats.itemDownloads && appStats.itemDownloads[item.id]) || 0) >= 10 && (
                               <div className="absolute top-1 right-1 z-30 pointer-events-none">
                                 <div className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-red-500 to-orange-500 px-2 py-1 border border-orange-300/40 opacity-90">
                                   <Flame className="w-3 h-3 text-white fill-white" />
@@ -1432,7 +1456,7 @@ ${h.details || '-'}
 
                               <div className="mt-2.5 flex items-center justify-center">
                                 <p className="text-[10px] sm:text-[11px] inline-flex items-center gap-1 text-text-muted">
-                                  <Flame className="w-3 h-3 shrink-0 text-orange-500 fill-orange-500" /> ขายแล้ว {(appStats.downloads).toLocaleString()} ชิ้น
+                                  <Flame className="w-3 h-3 shrink-0 text-orange-500 fill-orange-500" /> ขายแล้ว {((appStats.itemDownloads && appStats.itemDownloads[item.id]) || 0).toLocaleString()} ชิ้น
                                 </p>
                               </div>
                             </div>
@@ -1636,7 +1660,7 @@ ${h.details || '-'}
                           )}
                           <div className={`relative flex-1 z-10 bg-card-bg/60 backdrop-blur-md border transition-colors duration-200 rounded-md sm:rounded-lg p-1.5 sm:p-2 flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.02)] ${item.isOutOfStock ? 'grayscale opacity-70 border-transparent' : 'border-border-subtle group-hover/prod:border-transparent group-hover/prod:shadow-[0_8px_30px_rgba(106,154,251,0.12)] bg-clip-padding m-[1px] group-hover/prod:m-[1px]'}`}>
                             
-                            {appStats.downloads >= 100 && (
+                            {((appStats.itemDownloads && appStats.itemDownloads[item.id]) || 0) >= 10 && (
                               <div className="absolute top-1 right-1 z-30 pointer-events-none">
                                 <div className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-red-500 to-orange-500 px-2 py-1 border border-orange-300/40 opacity-90">
                                   <Flame className="w-3 h-3 text-white fill-white" />
@@ -1703,7 +1727,7 @@ ${h.details || '-'}
 
                               <div className="mt-2.5 flex items-center justify-center">
                                 <p className="text-[10px] sm:text-[11px] inline-flex items-center gap-1 text-text-muted">
-                                  <Flame className="w-3 h-3 shrink-0 text-orange-500 fill-orange-500" /> ขายแล้ว {(appStats.downloads).toLocaleString()} ชิ้น
+                                  <Flame className="w-3 h-3 shrink-0 text-orange-500 fill-orange-500" /> ขายแล้ว {((appStats.itemDownloads && appStats.itemDownloads[item.id]) || 0).toLocaleString()} ชิ้น
                                 </p>
                               </div>
                             </div>
@@ -1856,7 +1880,7 @@ ${h.details || '-'}
                             </div>
                             <div className="flex justify-between items-center text-[13px] border-b border-border-subtle pb-2">
                               <span className="text-text-muted">ยอดขาย :</span>
-                              <span className="text-text-main font-medium">{(appStats.downloads).toLocaleString()} ชิ้น</span>
+                              <span className="text-text-main font-medium">{((appStats.itemDownloads && appStats.itemDownloads[selectedItem.id]) || 0).toLocaleString()} ชิ้น</span>
                             </div>
                             <div className="flex justify-between items-center text-[13px] pt-1">
                               <span className="text-text-muted">สถานะ :</span>

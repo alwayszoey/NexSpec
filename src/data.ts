@@ -55,6 +55,23 @@ export interface ResourceItem {
 
 export const resourcesData: ResourceItem[] = [
   {
+    id: "2",
+    title: "สคริปต์เว็บสุ่มบัตรทรู",
+    shortDescription: "สคริปต์สุ่มบัตรการีน่า/ทรูมันนี่ ใช้งานง่าย ไม่ซับซ้อน",
+    fullDescription: `รายละเอียด:
+[+] ระบบแอดมินจัดการสินค้าและผู้เล่น
+[+] ตัวสคริปต์ไม่กินทรัพยากร
+[+] เปลี่ยนรูปและตั้งค่าในโค้ดได้ง่ายดาย`,
+    imageUrl: "https://img1.pic.in.th/images/2000x600_20260602154514.png",
+    actionType: "purchase",
+    tags: ["เว็บ", "สุ่ม", "PHP"],
+    warning: "รองรับ Phatom CSS เท่านั้น",
+    category: "Script",
+    price: "150",
+    dateAdded: "2026-06-10",
+    fileSize: "7MB"
+  },
+  {
     id: "1",
     title: "SRC บอทหลายเมนู Xandria",
     shortDescription: "SRC บอทเมนูทุกอย่าง 0.1.4.4 - Xandria Releases FIXED",

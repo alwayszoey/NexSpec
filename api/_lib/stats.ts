@@ -16,7 +16,24 @@ router.get('/', async (req, res) => {
       stats = await Stat.create({ name: 'global', views: 0, downloads: 0 });
     }
 
+    // @ts-ignore
+    const allItemStats = await Stat.find({ name: { $regex: /^item_/ } });
+    const itemDownloads: Record<string, number> = {};
+    let totalDownloads = 0;
+    allItemStats.forEach((stat: any) => {
+      const itemId = stat.name.replace('item_', '');
+      itemDownloads[itemId] = stat.downloads || 0;
+      totalDownloads += stat.downloads || 0;
+    });
+    
+    // Sync the global downloads with totalDownloads just to be accurate
+    if (stats.downloads !== totalDownloads) {
+       stats.downloads = totalDownloads;
+       await stats.save();
+    }
+
     // 1) REALTIME USER GROWTH STATS (trustData) from MongoDB
+
     const currentYear = new Date().getFullYear();
     const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
     const currentMonthIndex = new Date().getMonth();
@@ -70,6 +87,7 @@ router.get('/', async (req, res) => {
       users: userCount,
       views: stats.views,
       downloads: stats.downloads,
+      itemDownloads,
       trustData,
       performanceData
     });
@@ -98,13 +116,35 @@ router.post('/view', async (req, res) => {
 // Increment downloads
 router.post('/download', async (req, res) => {
   try {
+    const { itemId } = req.body || {};
+    
+    let itemDownloads = 0;
+    if (itemId) {
+      // @ts-ignore
+      const itemStats = await Stat.findOneAndUpdate(
+        { name: `item_${itemId}` },
+        { $inc: { downloads: 1 } },
+        { new: true, upsert: true }
+      );
+      itemDownloads = itemStats.downloads;
+    }
+    
+    // Recalculate total
+    // @ts-ignore
+    const allItemStats = await Stat.find({ name: { $regex: /^item_/ } });
+    let totalDownloads = 0;
+    allItemStats.forEach((stat: any) => {
+      totalDownloads += stat.downloads || 0;
+    });
+
     // @ts-ignore
     const stats = await Stat.findOneAndUpdate(
       { name: 'global' },
-      { $inc: { downloads: 1 } },
+      { $set: { downloads: totalDownloads } },
       { new: true, upsert: true }
     );
-    res.json({ success: true, downloads: stats.downloads });
+    
+    res.json({ success: true, downloads: stats.downloads, itemDownloads });
   } catch (error) {
     console.error("Error incrementing download:", error);
     res.status(500).json({ success: false, error: "Server Error" });
