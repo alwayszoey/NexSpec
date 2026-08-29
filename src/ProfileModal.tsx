@@ -71,7 +71,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentUser, onClose
         <div className="p-5 sm:p-6 pb-4 border-b border-border-subtle flex items-center justify-between shrink-0">
           <h2 className="text-xl sm:text-2xl font-bold text-text-main flex items-center gap-3">
              <div className="w-10 h-10 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center text-brand">
-               {currentUser.avatarUrl ? (
+               {currentUser.avatarUrl && currentUser.avatarUrl.trim() ? (
                  <img src={currentUser.avatarUrl} alt="Avatar" className="w-full h-full rounded-full object-cover" />
                ) : (
                  <UserIcon className="w-5 h-5" />

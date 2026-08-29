@@ -3,27 +3,27 @@ import { Routes, Route, useNavigate, useLocation, Link, Navigate } from 'react-r
 import { About } from './pages/About';
 import { Contact } from './pages/Contact';
 import { 
-  Search, ShieldAlert, Download, X, RefreshCcw, LayoutGrid, Layers, 
+  Search, ShieldAlert, ShieldCheck, Download, X, RefreshCcw, LayoutGrid, Layers, 
   Archive, Settings, FileText, Check, Zap, Menu, ArrowLeft, 
   Home, HelpCircle, Share2, Facebook, Instagram, MessageCircle,
   Play, ChevronRight, Loader2, Youtube, Send, MessageSquare, Sun, Moon, Lock, UserPlus, LogOut, Users, Eye, Star, Flame, ShoppingCart, Sparkles, ShoppingBag, History, HardDriveDownload, ExternalLink, Link2,
-  CircleX
+  CircleX, Plus
 } from 'lucide-react';
 import { resourcesData, ResourceItem, categoriesData } from './data';
 import { motion, AnimatePresence } from 'motion/react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Turnstile } from '@marsidev/react-turnstile';
 
-
-
 import { translations } from './translations';
 import { siteConfig } from './config';
 import { AuthModal } from './AuthModal';
 import { ProfileModal } from './ProfileModal';
+import { AdminDashboardModal } from './components/AdminDashboardModal';
+import { AdminPortalPage } from './pages/AdminPortalPage';
 
 const EMOTICONS = ['🇹🇭', '🇻🇳', '🎮', '🚀', '✨', '🎁', '🔥', '💖', '👋'];
 
-type ViewState = 'home' | 'details' | 'help' | 'category' | 'history';
+type ViewState = 'home' | 'details' | 'help' | 'category' | 'history' | 'admin';
 type AppLang = 'vi' | 'th';
 
 const StatsCard = ({ icon: Icon, title, value, unit }: { icon: any, title: string, value: string | number, unit: string }) => (
@@ -60,6 +60,12 @@ function PromoPopup() {
       return;
     }
     
+    // Check if popup image exists
+    const popupImg = siteConfig.promoPopupImageUrl;
+    if (!popupImg || !popupImg.trim()) {
+      return;
+    }
+
     // Slight delay so it poops up nicely after page load
     const t = setTimeout(() => {
       setIsOpen(true);
@@ -73,6 +79,9 @@ function PromoPopup() {
     }
     setIsOpen(false);
   };
+
+  const popupImg = siteConfig.promoPopupImageUrl;
+  if (!popupImg || !popupImg.trim()) return null;
 
   return (
     <AnimatePresence>
@@ -90,7 +99,7 @@ function PromoPopup() {
             className="relative shadow-2xl rounded-2xl max-w-full"
           >
             <a href="https://discord.gg/hSuBbnwWZY" target="_blank" rel="noopener noreferrer" className="block outline-none ring-offset-2 ring-offset-black focus-visible:ring-2 focus-visible:ring-brand rounded-2xl">
-              <img src={siteConfig.promoPopupImageUrl} alt="Join Discord" className="block w-[800px] max-w-[90vw] h-auto aspect-square object-contain rounded-2xl" />
+              <img src={popupImg} alt="Join Discord" className="block w-[800px] max-w-[90vw] h-auto aspect-square object-contain rounded-2xl" />
             </a>
             
             <button 
@@ -217,12 +226,22 @@ useEffect(() => {
     .then(res => res.json())
     .then(data => {
       if (data.user) {
-        setCurrentUser({ id: data.user._id, username: data.user.username, email: data.user.email, avatarUrl: data.user.avatarUrl, history: data.user.history });
+        setCurrentUser({ 
+          id: data.user.id || data.user._id, 
+          username: data.user.username, 
+          email: data.user.email, 
+          role: data.user.role, 
+          avatarUrl: data.user.avatarUrl, 
+          history: data.user.history 
+        });
       }
     })
     .catch(err => {
       console.error("Session check failed:", err);
     });
+
+    // Fetch dynamic catalog and site settings from backend
+    fetchPublicCatalogAndSettings();
 
     // Fetch initial app stats and setup polling for real-time updates
     const fetchStats = () => {
@@ -314,14 +333,100 @@ useEffect(() => {
   };
 
   const getLocalized = (val: any): string => {
-    if (!val) return '';
+    if (val === null || val === undefined) return '';
     if (typeof val === 'string') return val;
-    return val['th'] || val['vi'] || '';
+    if (typeof val === 'object') {
+      return val['th'] || val['vi'] || val['en'] || Object.values(val)[0] || '';
+    }
+    return String(val);
   };
 
   const [searchQuery, setSearchQuery] = useState('');
   const [_currentView, _setCurrentView] = useState<ViewState | 'about' | 'contact'>('home');
   const [selectedItem, setSelectedItem] = useState<ResourceItem | null>(null);
+
+  // Dynamic Catalog and Settings from Backend
+  const [dynamicResources, setDynamicResources] = useState<ResourceItem[]>([]);
+  const [dynamicCategories, setDynamicCategories] = useState<any[]>(categoriesData);
+  const [siteSettings, setSiteSettings] = useState<any>(null);
+  const [showAdminDashboard, setShowAdminDashboard] = useState(false);
+
+  // Check Master Admin (Authorized strictly for cpjustink@gmail.com)
+  const isMasterAdmin = (user: any) => {
+    if (!user) return false;
+    const email = user.email?.toLowerCase() || '';
+    return email === 'cpjustink@gmail.com';
+  };
+
+  // Fetch Public Catalog, Categories and Site Settings
+  const fetchPublicCatalogAndSettings = async () => {
+    try {
+      const [settingsRes, resourcesRes, categoriesRes] = await Promise.all([
+        fetch('/api/settings'),
+        fetch('/api/resources'),
+        fetch('/api/categories'),
+      ]);
+
+      if (settingsRes.ok) {
+        const sData = await settingsRes.json();
+        if (sData.success && sData.settings) {
+          setSiteSettings(sData.settings);
+        }
+      }
+
+      if (resourcesRes.ok) {
+        const rData = await resourcesRes.json();
+        if (rData.success && Array.isArray(rData.resources)) {
+          setDynamicResources(rData.resources);
+          // If a product is currently open in detail view, update its state with latest data
+          setSelectedItem((prev) => {
+            if (!prev) return null;
+            const updated = rData.resources.find(
+              (r: any) => String(r.id || r.itemId) === String(prev.id || (prev as any).itemId)
+            );
+            return updated ? { ...prev, ...updated } : prev;
+          });
+        }
+      }
+
+      if (categoriesRes.ok) {
+        const cData = await categoriesRes.json();
+        if (cData.success && Array.isArray(cData.categories)) {
+          setDynamicCategories(cData.categories);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load catalog or site settings:", err);
+    }
+  };
+
+  // Dynamically apply site settings color to CSS Variables
+  useEffect(() => {
+    if (siteSettings?.primaryColor) {
+      const color = siteSettings.primaryColor;
+      document.documentElement.style.setProperty('--theme-brand', color);
+      document.documentElement.style.setProperty('--theme-brand-hover', color);
+      document.documentElement.style.setProperty('--theme-brand-light', `${color}22`);
+    }
+  }, [siteSettings?.primaryColor]);
+
+  // Merge dynamic settings with static defaults
+  const activeConfig = {
+    ...siteConfig,
+    name: siteSettings?.name || siteConfig.name || "Zorix Shop",
+    logoUrl: siteSettings?.logoUrl || siteConfig.logoUrl,
+    slogan: siteSettings?.slogan || "ศูนย์รวมสคริปต์ ม็อด และแพ็กเกจเกมพรีเมียมคุณภาพสูง",
+    bannerImageUrl: siteSettings?.bannerImageUrl || siteConfig.bannerImageUrl,
+    promoPopupImageUrl: siteSettings?.promoPopupImageUrl || siteConfig.promoPopupImageUrl,
+    announcementText: siteSettings?.announcementText !== undefined ? siteSettings.announcementText : "ยินดีต้อนรับสู่ ZORIX SHOP เว็บไซต์จำหน่ายสคริปต์และทรัพยากรเกมออนไลน์คุณภาพสูง ปลอดภัย 100%",
+    announcementEnabled: siteSettings?.announcementEnabled !== undefined ? siteSettings.announcementEnabled : true,
+    announcementLink: siteSettings?.announcementLink || "",
+    socials: {
+      ...siteConfig.socials,
+      ...(siteSettings?.socials || {})
+    },
+    footerText: siteSettings?.footerText || "© 2026 ZORIX SHOP. All rights reserved.",
+  };
 
   // Sync route with view
   useEffect(() => {
@@ -330,29 +435,52 @@ useEffect(() => {
     else if (path === '/category') _setCurrentView('category');
     else if (path.startsWith('/shop/product/')) {
         const id = path.split('/').pop();
-        const item = resourcesData.find(r => String(r.id) === id);
+        const item = dynamicResources.find(r => String(r.id || (r as any).itemId) === id);
         if (item) {
             setSelectedItem(item);
             _setCurrentView('details');
         } else {
-            _setCurrentView('home'); // or 404
+            _setCurrentView('home');
         }
     }
     else if (path === '/history') _setCurrentView('history');
     else if (path === '/help') _setCurrentView('help');
     else if (path === '/about') _setCurrentView('about');
     else if (path === '/contact') _setCurrentView('contact');
-  }, [location.pathname]);
+    else if (
+      path === '/portal-gateway-x99' ||
+      path === '/sys-console-gate-x98' ||
+      path === '/_gateway_root_zorix99' ||
+      path === '/admin-portal' ||
+      path === '/admin' ||
+      path === '/dashboard'
+    ) {
+      _setCurrentView('admin');
+    }
+  }, [location.pathname, dynamicResources]);
+
+  // Global secret shortcut for Master Admin: Ctrl + Shift + A
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+        e.preventDefault();
+        navigate('/portal-gateway-x99');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [navigate]);
 
   const currentView = _currentView;
   const setCurrentView = (view: ViewState | 'about' | 'contact', params?: { id?: string | number }) => {
     if (view === 'home') navigate('/');
     else if (view === 'category') navigate('/category');
-    else if (view === 'details') navigate('/shop/product/' + (params?.id || selectedItem?.id || ''));
+    else if (view === 'details') navigate('/shop/product/' + (params?.id || selectedItem?.id || (selectedItem as any)?.itemId || ''));
     else if (view === 'history') navigate('/history');
     else if (view === 'help') navigate('/help');
     else if (view === 'about') navigate('/about');
     else if (view === 'contact') navigate('/contact');
+    else if (view === 'admin') navigate('/portal-gateway-x99');
   };
 
   const [activeLinkId, setActiveLinkId] = useState<number | null>(null);
@@ -362,8 +490,8 @@ useEffect(() => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showSocialsModal, setShowSocialsModal] = useState(false);
   
-  // Use categories strictly from categoriesData
-  const categories = ['ALL', ...categoriesData.map(c => c.name)];
+  // Use dynamic categories state
+  const categories = ['ALL', ...dynamicCategories.map(c => c.name)];
 
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [showOrderConfirmModal, setShowOrderConfirmModal] = useState(false);
@@ -405,7 +533,7 @@ useEffect(() => {
     if (selectedItem) setSelectedItem(null);
   };
 
-  const filteredResources = resourcesData.filter(item => {
+  const filteredResources = dynamicResources.filter(item => {
     const isAll = activeCategory === 'ALL';
     const matchesCategory = isAll || item.category === activeCategory;
     
@@ -426,6 +554,17 @@ useEffect(() => {
   const handleOpenDetails = (item: ResourceItem) => {
     setSelectedItem(item);
     setCurrentView('details', { id: String(item.id) });
+
+    // Track item view
+    try {
+      fetch('/api/stats/view', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemId: String(item.id || item.itemId) }),
+      }).catch(() => {});
+    } catch (e) {
+      // quiet fail
+    }
   };
 
   const handleGetLink = (e?: React.MouseEvent, item?: ResourceItem, linkIndex?: number) => {
@@ -839,7 +978,11 @@ ${h.details || '-'}
           transition={{ duration: 0.6, type: 'spring', bounce: 0.5 }}
           className="bg-card-bg/95 backdrop-blur-xl max-w-md w-full p-8 rounded-[32px] text-center shadow-2xl relative z-10 border border-border-subtle"
         >
-          <img src={siteConfig.logoUrl} alt="Logo" className="h-16 mx-auto mb-6 object-contain drop-shadow-md" />
+          {siteConfig.logoUrl && siteConfig.logoUrl.trim() ? (
+            <img src={siteConfig.logoUrl} alt="Logo" className="h-16 mx-auto mb-6 object-contain drop-shadow-md" />
+          ) : (
+            <div className="text-2xl font-black uppercase text-brand mb-6">ZORIX SHOP</div>
+          )}
           
           <AnimatePresence mode="wait">
             {welcomeState === 'welcome' && (
@@ -896,14 +1039,18 @@ ${h.details || '-'}
             {/* Glow effect matching the brand */}
             <div className="absolute inset-0 bg-brand/30 blur-3xl rounded-full scale-150 animate-pulse" style={{ animationDuration: '3s' }}></div>
             {/* Logo scaling up and glowing slightly */}
-            <motion.img 
-              initial={{ scale: 0.8 }}
-              animate={{ scale: [0.8, 1, 0.8] }}
-              transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-              src={siteConfig.logoUrl} 
-              alt="Logo" 
-              className="w-20 sm:w-24 h-auto object-contain drop-shadow-xl relative z-10" 
-            />
+            {siteConfig.logoUrl && siteConfig.logoUrl.trim() ? (
+              <motion.img 
+                initial={{ scale: 0.8 }}
+                animate={{ scale: [0.8, 1, 0.8] }}
+                transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                src={siteConfig.logoUrl} 
+                alt="Logo" 
+                className="w-20 sm:w-24 h-auto object-contain drop-shadow-xl relative z-10" 
+              />
+            ) : (
+              <div className="w-20 h-20 rounded-2xl bg-brand/20 flex items-center justify-center text-brand font-black text-2xl">Z</div>
+            )}
           </div>
           
           <div className="flex flex-col items-center gap-3 mt-4">
@@ -917,6 +1064,23 @@ ${h.details || '-'}
           </div>
         </motion.div>
       </div>
+    );
+  }
+
+  // ============================================================================
+  // 📌 RENDER DEDICATED ADMIN PORTAL (ZERO-TRUST STEALTH GATEWAY)
+  // ============================================================================
+  if (currentView === 'admin') {
+    return (
+      <AdminPortalPage
+        currentUser={currentUser}
+        siteSettings={siteSettings}
+        onUpdateSiteSettings={(newSettings) => {
+          setSiteSettings(newSettings);
+          fetchPublicCatalogAndSettings();
+        }}
+        onRefreshResources={fetchPublicCatalogAndSettings}
+      />
     );
   }
 
@@ -948,6 +1112,8 @@ ${h.details || '-'}
       {/* ========================================================================= */}
       {/* TOP NAVBAR */}
       {/* ========================================================================= */}
+      {/* 📌 NAVBAR (แถบเมนูด้านบนสุด) */}
+      {/* ========================================================================= */}
       <nav className="sticky top-0 z-40 bg-card-bg/95 backdrop-blur-xl border-b border-border-subtle px-4 sm:px-8 py-3.5 flex items-center justify-between gap-3 shadow-[0_4px_30px_rgba(0,0,0,0.02)]">
         
         {/* Logo Section */}
@@ -955,7 +1121,11 @@ ${h.details || '-'}
           onClick={() => { setCurrentView('home'); setSelectedItem(null); }} 
           className="flex items-center gap-3 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
         >
-          <img src={siteConfig.logoUrl} alt="Logo" className="h-9 sm:h-10 object-contain drop-shadow-sm" />
+          {activeConfig.logoUrl && activeConfig.logoUrl.trim() ? (
+            <img src={activeConfig.logoUrl} alt={activeConfig.name || "Logo"} className="h-9 sm:h-10 object-contain drop-shadow-sm max-w-[140px] sm:max-w-[180px]" />
+          ) : (
+            <span className="font-extrabold text-xl tracking-tight text-brand">{activeConfig.name || "ZORIX SHOP"}</span>
+          )}
         </div>
         
         {/* Center Search Bar */}
@@ -975,16 +1145,28 @@ ${h.details || '-'}
         {/* Right Actions & Burger Menu */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0 relative">
           
+          {/* Admin Dashboard Quick Button (Master Account Only) */}
+          {isMasterAdmin(currentUser) && (
+            <button 
+              onClick={() => setShowAdminDashboard(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[14px] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-blue-500/25 transition-all border border-blue-400/30 active:scale-95 cursor-pointer"
+              title="เปิดแผงควบคุมระบบแอดมิน (Admin Dashboard)"
+            >
+              <ShieldCheck className="w-4 h-4 text-white" />
+              <span className="hidden sm:inline">แดชบอร์ดแอดมิน</span>
+            </button>
+          )}
+
           <button 
             onClick={toggleTheme}
-            className="p-2 sm:p-2.5 text-text-muted bg-card-bg border border-border-subtle hover:bg-bg-app rounded-[12px] transition-colors shadow-sm"
+            className="p-2 sm:p-2.5 text-text-muted bg-card-bg border border-border-subtle hover:bg-bg-app rounded-[12px] transition-colors shadow-sm cursor-pointer"
           >
             {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5 text-amber-400" />}
           </button>
 
           <button 
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 sm:p-2.5 text-text-muted bg-card-bg border border-border-subtle hover:bg-bg-app rounded-[12px] transition-colors shadow-sm"
+            className="p-2 sm:p-2.5 text-text-muted bg-card-bg border border-border-subtle hover:bg-bg-app rounded-[12px] transition-colors shadow-sm cursor-pointer"
           >
             {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -992,19 +1174,21 @@ ${h.details || '-'}
       </nav>
 
       {/* ANNOUNCEMENT BANNER */}
-      <div className="bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 overflow-hidden h-8 relative flex items-center shrink-0 w-full">
-        <div className="animate-marquee flex items-center h-full absolute whitespace-nowrap px-4">
-          <div className="shrink-0 flex items-center whitespace-nowrap">
-            <svg stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 shrink-0 mx-3 text-white" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-            </svg>
-            <span className="text-xs font-medium text-white">
-              {t('marquee')}
-            </span>
+      {activeConfig.announcementEnabled !== false && (
+        <div className="bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 overflow-hidden h-8 relative flex items-center shrink-0 w-full">
+          <div className="animate-marquee flex items-center h-full absolute whitespace-nowrap px-4">
+            <div className="shrink-0 flex items-center whitespace-nowrap">
+              <svg stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 shrink-0 mx-3 text-white" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+              </svg>
+              <span className="text-xs font-medium text-white">
+                {activeConfig.announcementText || t('marquee')}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* BURGER MENU DROPDOWN */}
       <AnimatePresence>
@@ -1023,6 +1207,17 @@ ${h.details || '-'}
               exit={{ opacity: 0, y: -10 }}
               className="absolute top-[68px] right-0 sm:right-6 w-full sm:w-[280px] bg-card-bg border-b sm:border border-border-subtle sm:rounded-[24px] shadow-2xl z-50 p-4 flex flex-col gap-1.5"
             >
+              {/* Admin Dashboard Button inside Mobile Menu (Master Account Only) */}
+              {isMasterAdmin(currentUser) && (
+                <button 
+                  onClick={() => { setIsMobileMenuOpen(false); setShowAdminDashboard(true); }}
+                  className="flex items-center gap-3 p-3.5 rounded-[16px] bg-gradient-to-r from-blue-600/15 to-indigo-600/15 border border-blue-500/30 text-left font-bold text-blue-500 hover:text-blue-400 hover:bg-blue-500/25 transition-all w-full group mb-1 shadow-sm cursor-pointer"
+                >
+                  <ShieldCheck className="w-5 h-5 text-blue-500 group-hover:scale-110 transition-transform" />
+                  <span>แดชบอร์ดแอดมิน (Admin Dashboard)</span>
+                </button>
+              )}
+
               <button 
                 onClick={() => { setIsMobileMenuOpen(false); setCurrentView('home'); setSelectedItem(null); }} 
                 className="flex items-center gap-3 p-3.5 rounded-[16px] hover:bg-bg-app text-left font-medium text-text-main hover:text-brand transition-colors w-full group"
@@ -1066,7 +1261,7 @@ ${h.details || '-'}
               {currentUser ? (
                 <div className="flex flex-col gap-1.5">
                   <div className="px-3.5 py-2 flex items-center gap-3">
-                    {currentUser.avatarUrl ? (
+                    {currentUser.avatarUrl && currentUser.avatarUrl.trim() ? (
                       <img src={currentUser.avatarUrl} alt="Avatar" className="w-10 h-10 rounded-full object-cover border border-border-subtle" referrerPolicy="no-referrer" />
                     ) : (
                       <div className="w-10 h-10 rounded-full bg-brand/10 border border-brand/20 flex px-0 items-center justify-center text-brand font-bold text-lg">
@@ -1184,23 +1379,25 @@ ${h.details || '-'}
                 </motion.div>
                 
                 {/* Promotional Banner */}
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.4, delay: 0.1 }}
-                  className="w-full mb-6 rounded-[16px] sm:rounded-[20px] overflow-hidden shadow-sm border border-border-subtle bg-card-bg relative shiny-effect"
-                >
-                  <img 
-                    alt="Carousel" 
-                    fetchPriority="high" 
-                    loading="eager" 
-                    width="2000" 
-                    height="600" 
-                    decoding="async" 
-                    className="w-full h-auto aspect-[10/3] object-cover object-center" 
-                    src={siteConfig.bannerImageUrl} 
-                  />
-                </motion.div>
+                {activeConfig.bannerImageUrl && activeConfig.bannerImageUrl.trim() && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.4, delay: 0.1 }}
+                    className="w-full mb-6 rounded-[16px] sm:rounded-[20px] overflow-hidden shadow-sm border border-border-subtle bg-card-bg relative shiny-effect"
+                  >
+                    <img 
+                      alt="Carousel" 
+                      fetchPriority="high" 
+                      loading="eager" 
+                      width="2000" 
+                      height="600" 
+                      decoding="async" 
+                      className="w-full h-auto aspect-[10/3] object-cover object-center" 
+                      src={activeConfig.bannerImageUrl} 
+                    />
+                  </motion.div>
+                )}
 
                 {/* Dashboard Stats */}
                 <motion.div 
@@ -1218,7 +1415,7 @@ ${h.details || '-'}
                   <StatsCard 
                     icon={Layers} 
                     title={t('statsItems') || 'Tài nguyên'}
-                    value={resourcesData.length.toLocaleString()}
+                    value={dynamicResources.length.toLocaleString()}
                     unit={t('unitItems') || 'mục'}
                   />
                   <StatsCard 
@@ -1268,13 +1465,16 @@ ${h.details || '-'}
                     <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-5 mb-2">
                       {categories.filter(tab => tab !== 'ALL').map((tab) => {
                         const isActive = activeCategory === tab;
-                        const count = resourcesData.filter(i => i.category === tab).length;
+                        const count = dynamicResources.filter(i => i.category === tab).length;
                         
-                        const catData = categoriesData.find(c => c.name === tab);
-                        let imgPath = catData?.imageUrl || "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1640&auto=format&fit=crop";
-                        if (!catData) {
-                          const match = resourcesData.find(i => i.category === tab);
+                        const catData = dynamicCategories.find(c => c.name === tab);
+                        let imgPath = (catData?.imageUrl && catData.imageUrl.trim()) || "";
+                        if (!imgPath) {
+                          const match = dynamicResources.find(i => i.category === tab && i.imageUrl && i.imageUrl.trim());
                           if (match) imgPath = match.imageUrl;
+                        }
+                        if (!imgPath) {
+                          imgPath = "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1640&auto=format&fit=crop";
                         }
 
                         return (
@@ -1293,15 +1493,21 @@ ${h.details || '-'}
                             <div className="relative z-10 w-full h-full rounded-[calc(20px-2px)] p-2 bg-card-bg/60 backdrop-blur-[4px]">
                               <div className={`absolute inset-0 -z-10 rounded-[calc(20px-2px)] pointer-events-none transition-colors ${isActive ? 'bg-brand/10 shadow-[0_0_15px_rgba(36,168,235,0.12)]' : ''}`} />
                               <div className="relative overflow-hidden rounded-[14px] bg-zinc-950 aspect-[1640/500]">
-                                  <img 
-                                    className="w-full h-full object-cover rounded-md transition-[opacity,transform] duration-500 ease-out opacity-0 !opacity-100 group-hover:scale-[1.02]" 
-                                    alt={tab} 
-                                    draggable="false" 
-                                    loading="eager" 
-                                    fetchPriority="high"
-                                    decoding="async"
-                                    src={imgPath} 
-                                  />
+                                  {imgPath ? (
+                                    <img 
+                                      className="w-full h-full object-cover rounded-md transition-[opacity,transform] duration-500 ease-out opacity-0 !opacity-100 group-hover:scale-[1.02]" 
+                                      alt={tab} 
+                                      draggable="false" 
+                                      loading="eager" 
+                                      fetchPriority="high"
+                                      decoding="async"
+                                      src={imgPath} 
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-zinc-500">
+                                      <Layers className="w-8 h-8 opacity-40" />
+                                    </div>
+                                  )}
                                 </div>
                                 <div className="mt-3 flex items-start justify-between gap-3 px-1">
                                   <div className="min-w-0">
@@ -1368,8 +1574,28 @@ ${h.details || '-'}
                     </motion.div>
                   </motion.div>
 
-                  <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5 pb-12">
-                    {resourcesData.slice(0, 5).map((item, index) => {
+                  {dynamicResources.length === 0 ? (
+                    <div className="my-8 py-12 px-4 rounded-3xl border border-dashed border-border-subtle bg-card-bg/50 backdrop-blur-md text-center max-w-xl mx-auto flex flex-col items-center">
+                      <div className="w-14 h-14 rounded-2xl bg-brand/10 text-brand flex items-center justify-center mb-3">
+                        <Archive size={28} />
+                      </div>
+                      <h4 className="text-base font-bold text-text-main mb-1">กำลังเตรียมสินค้าชุดใหม่</h4>
+                      <p className="text-xs text-text-muted mb-4 max-w-sm">
+                        ร้านค้าได้ทำการล้างแคตตาล็อกเดิมเรียบร้อยแล้ว แอดมินสามารถเพิ่มสินค้าใหม่ได้ตลอดเวลาผ่านแดชบอร์ด
+                      </p>
+                      {isMasterAdmin(currentUser) && (
+                        <button
+                          onClick={() => navigate('/portal-gateway-x99')}
+                          className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-500/20 flex items-center gap-2"
+                        >
+                          <Plus size={16} />
+                          <span>เปิดแผงควบคุมเพื่อเพิ่มสินค้า</span>
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5 pb-12">
+                      {dynamicResources.slice(0, 5).map((item, index) => {
                        return (
                         <motion.div 
                           layout
@@ -1399,14 +1625,20 @@ ${h.details || '-'}
                             )}
 
                             <div className="relative z-20 rounded-md overflow-hidden bg-bg-app aspect-square">
-                              <motion.img 
-                                whileHover={!item.isOutOfStock ? { scale: 1.05 } : {}}
-                                transition={{ duration: 0.4 }}
-                                src={item.imageUrl} 
-                                alt={getLocalized(item.title)} 
-                                className={`w-full h-full object-cover sm:object-contain object-center transition-opacity duration-500 ease-out`} 
-                                referrerPolicy="no-referrer" 
-                              />
+                              {item.imageUrl && item.imageUrl.trim() ? (
+                                <motion.img 
+                                  whileHover={!item.isOutOfStock ? { scale: 1.05 } : {}}
+                                  transition={{ duration: 0.4 }}
+                                  src={item.imageUrl} 
+                                  alt={getLocalized(item.title)} 
+                                  className={`w-full h-full object-cover sm:object-contain object-center transition-opacity duration-500 ease-out`} 
+                                  referrerPolicy="no-referrer" 
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-card-bg/60 text-text-muted">
+                                  <Layers className="w-8 h-8 opacity-30" />
+                                </div>
+                              )}
                               {item.isOutOfStock && (
                                 <div className="absolute top-0 left-0 w-full h-full bg-black/75 backdrop-blur-[1px] rounded-md flex items-center justify-center z-10">
                                   <p className="text-white text-sm flex items-center gap-2 font-medium">
@@ -1465,6 +1697,7 @@ ${h.details || '-'}
                        )
                     })}
                   </div>
+                  )}
                 </div>
 
                 {/* ---------------------------------------------------- */}
@@ -1625,22 +1858,43 @@ ${h.details || '-'}
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5 }}
-                  className="flex items-center space-x-2 justify-between"
+                  className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 justify-between mb-4"
                 >
                   <div>
                     <h3 className="font-semibold text-xl sm:text-2xl text-text-main line-clamp-1">
                       {activeCategory === 'ALL' ? 'สินค้าทั้งหมด' : `หมวดหมู่ : ${activeCategory}`}
                     </h3>
                     <p className="text-xs sm:text-sm text-text-muted mt-1 inline-flex items-center gap-1.5">
-                      <Star className="w-4 h-4 text-brand fill-brand" /> {filteredResources.length} สินค้าในหมวดหมู่
+                      <Star className="w-4 h-4 text-brand fill-brand" /> {filteredResources.length} สินค้าในหมวดหมู่นี้
                     </p>
+                  </div>
+
+                  {/* Category Pills Bar */}
+                  <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 max-w-full hide-scrollbar">
+                    {categories.map((catName) => {
+                      const isActive = activeCategory === catName;
+                      return (
+                        <button
+                          key={catName}
+                          onClick={() => setActiveCategory(catName)}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                            isActive
+                              ? 'bg-brand text-white shadow-md shadow-brand/25'
+                              : 'bg-card-bg text-text-muted hover:text-text-main hover:bg-bg-app border border-border-subtle'
+                          }`}
+                        >
+                          {catName === 'ALL' ? 'ทั้งหมด' : catName}
+                        </button>
+                      );
+                    })}
                   </div>
                 </motion.div>
 
                 <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5 pb-12">
                   <AnimatePresence mode="popLayout">
                     {filteredResources.map((item, index) => {
-                       const pseudoSold = (item.title as any)?.th?.length * 15 + index * 7 + 10;
+                       const titleStr = getLocalized(item.title);
+                       const pseudoSold = (titleStr ? titleStr.length : 6) * 15 + index * 7 + 10;
                        return (
                         <motion.div 
                           layout
@@ -1670,14 +1924,20 @@ ${h.details || '-'}
                             )}
 
                             <div className="relative z-20 rounded-md overflow-hidden bg-bg-app aspect-square">
-                              <motion.img 
-                                whileHover={!item.isOutOfStock ? { scale: 1.05 } : {}}
-                                transition={{ duration: 0.4 }}
-                                src={item.imageUrl} 
-                                alt={getLocalized(item.title)} 
-                                className={`w-full h-full object-cover sm:object-contain object-center transition-opacity duration-500 ease-out`} 
-                                referrerPolicy="no-referrer" 
-                              />
+                              {item.imageUrl && item.imageUrl.trim() ? (
+                                <motion.img 
+                                  whileHover={!item.isOutOfStock ? { scale: 1.05 } : {}}
+                                  transition={{ duration: 0.4 }}
+                                  src={item.imageUrl} 
+                                  alt={getLocalized(item.title)} 
+                                  className={`w-full h-full object-cover sm:object-contain object-center transition-opacity duration-500 ease-out`} 
+                                  referrerPolicy="no-referrer" 
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-card-bg/60 text-text-muted">
+                                  <Layers className="w-8 h-8 opacity-30" />
+                                </div>
+                              )}
                               {item.isOutOfStock && (
                                 <div className="absolute top-0 left-0 w-full h-full bg-black/75 backdrop-blur-[1px] rounded-md flex items-center justify-center z-10">
                                   <p className="text-white text-sm flex items-center gap-2 font-medium">
@@ -1797,7 +2057,13 @@ ${h.details || '-'}
               <div className="flex flex-col lg:flex-row gap-6 lg:gap-12">
                 <div className="w-full lg:w-1/2">
                   <div className="w-full aspect-[4/3] sm:aspect-video lg:aspect-[4/3] bg-bg-app rounded-[24px] sm:rounded-[32px] overflow-hidden relative shadow-lg shadow-black/5 border border-border-subtle">
-                    <img src={selectedItem.imageUrl} alt={getLocalized(selectedItem.title)} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    {selectedItem.imageUrl && selectedItem.imageUrl.trim() ? (
+                      <img src={selectedItem.imageUrl} alt={getLocalized(selectedItem.title)} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-card-bg text-text-muted">
+                        <Layers className="w-16 h-16 opacity-30" />
+                      </div>
+                    )}
                     <div className="absolute top-4 left-4 bg-card-bg/80 backdrop-blur-md px-3 py-1.5 text-[11px] sm:text-[12px] font-medium text-text-main rounded-full shadow-sm border border-border-subtle">
                       {selectedItem.category}
                     </div>
@@ -2188,6 +2454,32 @@ ${h.details || '-'}
              </motion.div>
           )}
 
+          {/* ---------------------------------------------------- */}
+          {/* PAGE: ADMIN PORTAL GATEWAY */}
+          {/* ---------------------------------------------------- */}
+          {currentView === 'admin' && (
+            <motion.div
+              key="admin-view"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.2 }}
+              className="w-full"
+            >
+              <AdminPortalPage
+                currentUser={currentUser}
+                siteSettings={siteSettings}
+                onUpdateSiteSettings={(newSettings) => {
+                  setSiteSettings(newSettings);
+                  fetchPublicCatalogAndSettings();
+                }}
+                onRefreshResources={() => {
+                  fetchPublicCatalogAndSettings();
+                }}
+              />
+            </motion.div>
+          )}
+
         </AnimatePresence>
 
         {/* ========================================================================= */}
@@ -2196,14 +2488,21 @@ ${h.details || '-'}
         <footer className="w-full border-t border-border-subtle bg-card-bg/50 backdrop-blur-sm mt-8">
           <div className="max-w-[1600px] mx-auto px-4 sm:px-8 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="text-center md:text-left flex flex-col items-center md:items-start">
-              <img src={siteConfig.logoUrl} alt="Logo" className="h-6 sm:h-7 object-contain drop-shadow-sm mb-1 opacity-80 mix-blend-multiply" />
+              {activeConfig.logoUrl && activeConfig.logoUrl.trim() ? (
+                <img src={activeConfig.logoUrl} alt="Logo" className="h-6 sm:h-7 object-contain drop-shadow-sm mb-1 opacity-80 mix-blend-multiply" />
+              ) : null}
               <p className="text-[13px] text-text-muted mt-1">{t('footerDesc')}</p>
             </div>
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 sm:gap-6 text-[13px] font-medium text-text-muted">
-              <button onClick={() => setCurrentView('about')} className="hover:text-brand transition-colors">เกี่ยวกับเรา</button>
-              <button onClick={() => setCurrentView('contact')} className="hover:text-brand transition-colors">ติดต่อเรา</button>
-              <button onClick={() => setCurrentView('help')} className="hover:text-brand transition-colors">{t('help')}</button>
-              <button onClick={() => setShowSocialsModal(true)} className="hover:text-brand transition-colors">{t('socialsFollow')}</button>
+              <button onClick={() => setCurrentView('about')} className="hover:text-brand transition-colors cursor-pointer">เกี่ยวกับเรา</button>
+              <button onClick={() => setCurrentView('contact')} className="hover:text-brand transition-colors cursor-pointer">ติดต่อเรา</button>
+              <button onClick={() => setCurrentView('help')} className="hover:text-brand transition-colors cursor-pointer">{t('help')}</button>
+              <button onClick={() => setShowSocialsModal(true)} className="hover:text-brand transition-colors cursor-pointer">{t('socialsFollow')}</button>
+              {isMasterAdmin(currentUser) && (
+                <button onClick={() => setShowAdminDashboard(true)} className="hover:text-brand transition-colors text-blue-500 font-semibold flex items-center gap-1 cursor-pointer">
+                  <ShieldCheck className="w-3.5 h-3.5" /> แดชบอร์ดจัดการระบบ
+                </button>
+              )}
             </div>
             <div className="text-[12px] text-text-muted/70">
               &copy; {new Date().getFullYear()} ZORIX SHOP. All rights reserved.
@@ -2388,7 +2687,11 @@ ${h.details || '-'}
                 
                 <div className="bg-bg-app border border-border-subtle p-4 rounded-[16px] text-left flex gap-4 mt-6">
                   <div className="w-16 h-16 rounded-[12px] overflow-hidden shrink-0 bg-card-bg border border-border-subtle">
-                     <img src={selectedItem.imageUrl} alt="Product" className="w-full h-full object-cover" />
+                     {selectedItem.imageUrl && selectedItem.imageUrl.trim() ? (
+                       <img src={selectedItem.imageUrl} alt="Product" className="w-full h-full object-cover" />
+                     ) : (
+                       <div className="w-full h-full flex items-center justify-center text-text-muted"><Layers className="w-6 h-6 opacity-30" /></div>
+                     )}
                   </div>
                   <div>
                     <h3 className="text-[15px] font-semibold text-text-main line-clamp-1">{getLocalized(selectedItem.title)}</h3>
@@ -2734,9 +3037,9 @@ ${h.details || '-'}
         )}
         
         {/* ============================================================================ */}
-      {/* 📌 หน้าต่าง Pop-up โปรไฟล์ส่วนตัว (Profile Modal) */}
-      {/* ============================================================================ */}
-      {showProfileModal && currentUser && (
+        {/* 📌 หน้าต่าง Pop-up โปรไฟล์ส่วนตัว (Profile Modal) */}
+        {/* ============================================================================ */}
+        {showProfileModal && currentUser && (
           <ProfileModal
             currentUser={currentUser}
             onClose={() => setShowProfileModal(false)}
@@ -2744,6 +3047,25 @@ ${h.details || '-'}
               setCurrentUser(prev => prev ? { ...prev, username: updatedUser.username, avatarUrl: updatedUser.avatarUrl } : null);
             }}
             t={t}
+          />
+        )}
+
+        {/* ============================================================================ */}
+        {/* 📌 หน้าต่างจัดการระบบแอดมินหลังบ้าน (Admin Dashboard Modal) */}
+        {/* ============================================================================ */}
+        {showAdminDashboard && (
+          <AdminDashboardModal
+            isOpen={showAdminDashboard}
+            onClose={() => setShowAdminDashboard(false)}
+            currentUser={currentUser}
+            siteSettings={siteSettings}
+            onSettingsUpdate={(newSettings) => {
+              setSiteSettings(newSettings);
+              fetchPublicCatalogAndSettings();
+            }}
+            onResourcesUpdate={() => {
+              fetchPublicCatalogAndSettings();
+            }}
           />
         )}
       </AnimatePresence>
